@@ -34,6 +34,7 @@ npm run dev          # builds to dist/ and serves http://localhost:5173
 npm test             # unit tests (data tables, round-trips, checksums)
 node scripts/make-sample.ts sample.sav   # the same made-up save the "Try a sample save" button opens
 node scripts/gen-moves.mjs <pokered checkout>   # regenerates src/core/gen1/moves.ts (type, power, accuracy, PP)
+node scripts/verify-against-rom.mjs rom.gb      # checks the Gen 1 tables below against a Red/Blue ROM you own (copies nothing)
 node scripts/measure-icons.mjs                  # regenerates src/ui/spriteOffsets.ts after changing the Pokémon icons
 ```
 
@@ -157,6 +158,9 @@ Every screen explains itself in plain words, so keep it that way when you add a 
 - Tested against synthetic saves built from documented offsets and against two real saves (a Yellow and a Blue, both from
   emulators): they load, save back byte for byte, and every stored party stat and experience value matches the editor's
   formulas. A Red save hasn't been tried, but Red and Blue share one layout. Try copies of your own and report mismatches.
+- The built-in tables (base stats, types, growth curves, species ids, every move's type/power/accuracy/PP and name, item
+  names) were checked against a Pokémon Red ROM with `scripts/verify-against-rom.mjs`: all match. The ROM isn't in
+  the repo and the script copies nothing from it.
 - Gen 1: English only (Japanese uses different offsets and text encoding). Event flags and map position are left untouched.
 - The options byte (text speed, battle style, animations) and the max-PP rules come from the pokered disassembly, not
   from a real cartridge; check them against one of your own saves.
