@@ -45,3 +45,17 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # After a deploy: is the site up, and is the artwork site (a separate repository) serving the pictures? The editor
+  # works without them, so a failure here does not undo the deploy; it is the red mark that says "pictures are missing".
+  live-check:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: The site is up
+        run: curl -fsS --retry 6 --retry-delay 10 --retry-all-errors -o /dev/null https://noxxionmurph.github.io/SaveHub/
+      - name: The artwork site serves the pictures
+        run: |
+          curl -fsS --retry 6 --retry-delay 10 --retry-all-errors -D headers.txt -o /dev/null https://noxxionmurph.github.io/SaveHub-assets/sprites/pikachu.png
+          cat headers.txt
+          grep -qi '^content-type: image/png' headers.txt
