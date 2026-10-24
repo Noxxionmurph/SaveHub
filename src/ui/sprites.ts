@@ -53,31 +53,24 @@ export function typeIcon(type: string, cls = ''): HTMLImageElement {
   return icon(typeIconUrl(type), 128, 128, `type-icon ${cls}`.trim());
 }
 
-/** One of Pikachu's talk-to reactions (assets/sprites/pikachu/<slug>-1.png and -2.png, 40x40, hard pixel edges). */
-export const pikachuPicUrl = (slug: string, frame: 1 | 2) => `${BASE}/pikachu/${slug}-${frame}.png`;
-
 /**
- * A reaction picture. With `animated` it also holds the second frame, which the stylesheet flips on and off
- * (and leaves off for people who ask for less motion). Change it later with setPikachuPic.
+ * One of Pikachu's talk-to reactions, cut from assets/sprites/pikachu.png (one file: a row of two 40x40 frames
+ * for each reaction, hard pixel edges). The stylesheet picks the row from `--row`. With `animated` it also holds
+ * the second frame, which the stylesheet flips on and off (and leaves off for people who ask for less motion).
+ * An empty `alt` marks the picture as decoration. Change it later with setPikachuPic.
  */
-export function pikachuPic(slug: string, alt: string, animated = false): HTMLElement {
-  const first = icon(pikachuPicUrl(slug, 1), 40, 40, 'pika-frame');
-  first.alt = alt;
-  const frames: HTMLElement[] = [first];
-  if (animated) frames.push(icon(pikachuPicUrl(slug, 2), 40, 40, 'pika-frame pika-frame-2'));
-  return h('span', { class: `pika-pic${animated ? ' animated' : ''}` }, frames);
+export function pikachuPic(row: number, alt: string, animated = false): HTMLElement {
+  const frame = (cls: string) => h('span', { class: `pika-frame ${cls}`.trim(), 'aria-hidden': 'true' });
+  const pic = h('span', { class: `pika-pic${animated ? ' animated' : ''}` },
+    frame(''), animated ? frame('pika-frame-2') : null);
+  setPikachuPic(pic, row, alt);
+  return pic;
 }
 
-export function setPikachuPic(pic: HTMLElement, slug: string, alt: string): void {
-  const frames = pic.querySelectorAll('img');
-  frames.forEach((img, i) => setIconSrc(img, pikachuPicUrl(slug, i === 0 ? 1 : 2)));
-  if (frames[0]) frames[0].alt = alt;
-}
-
-/** Start fetching every reaction picture so they swap instantly while someone drags a slider. */
-export function preloadPikachuPics(slugs: string[]): void {
-  const go = () => { for (const slug of slugs) for (const frame of [1, 2] as const) new Image().src = pikachuPicUrl(slug, frame); };
-  if ('requestIdleCallback' in window) window.requestIdleCallback(go); else setTimeout(go, 400);
+export function setPikachuPic(pic: HTMLElement, row: number, alt: string): void {
+  pic.style.setProperty('--row', String(row));
+  if (alt) { pic.setAttribute('role', 'img'); pic.setAttribute('aria-label', alt); pic.removeAttribute('aria-hidden'); }
+  else { pic.removeAttribute('role'); pic.removeAttribute('aria-label'); pic.setAttribute('aria-hidden', 'true'); }
 }
 
 /** Point an existing icon at another file (and un-hide it if the last one failed). */

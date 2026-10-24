@@ -473,8 +473,14 @@ button.danger { color: var(--danger); }
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: 0 6px 8px -6px rgb(0 0 0 / 0.35);
 }
 .pika-screen { flex: none; background: #f8f8f8; border: 3px solid var(--pin); border-radius: 6px; }
-.pika-pic { display: block; position: relative; width: 80px; height: 80px; }
-.pika-frame { width: 80px; height: 80px; image-rendering: pixelated; }
+/* every picture is a window onto assets/sprites/pikachu.png: 40px frames drawn at --s, row --row, frame 2 to the right */
+.pika-pic { --s: 80px; display: block; position: relative; width: var(--s); height: var(--s); }
+.pika-frame {
+  display: block; width: var(--s); height: var(--s); image-rendering: pixelated;
+  background: url(assets/sprites/pikachu.png) no-repeat; background-size: calc(var(--s) * 2) auto;
+  background-position: 0 calc(var(--row, 0) * var(--s) * -1);
+}
+.pika-frame-2 { background-position: calc(var(--s) * -1) calc(var(--row, 0) * var(--s) * -1); }
 .pika-pic.animated .pika-frame-2 { position: absolute; inset: 0; opacity: 0; }
 @media (prefers-reduced-motion: no-preference) {
   .pika-pic.animated .pika-frame-2 { animation: pika-flip 1.2s steps(1, end) infinite; }
@@ -505,7 +511,7 @@ button.danger { color: var(--danger); }
 .pika-rules td.now { background: color-mix(in srgb, var(--button) 14%, transparent); font-weight: 700; }
 .pika-rules tr.group th { background: var(--surface-2); font-weight: 600; }
 @media (max-width: 359px) {
-  .pika-chart .pika-pic, .pika-chart .pika-frame { width: 40px; height: 40px; }
+  .pika-chart .pika-pic { --s: 40px; }
   .pika-kicker { display: none; }
 }
 .pikachu-card .lcd.second { margin-top: 18px; }
@@ -514,9 +520,7 @@ button.danger { color: var(--danger); }
 .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font: 600 0.75rem var(--font-body); }
 .tag.starter { background: var(--button); color: var(--button-ink); }
 
-/* ---- guidance text: a line at the top of each tab, notes inside cards and sections ---- */
-.tab-intro { margin: 0 0 14px; max-width: 46em; color: var(--muted); font-size: 0.9375rem; }
-.card-note { margin: -4px 0 10px; font-size: 0.8125rem; }
+/* ---- the few notes that stay: a consequence or a limit, never an introduction ---- */
 .section-note { margin: -2px 0 10px; font-size: 0.8125rem; max-width: 46em; }
 .family-edits { max-width: 46em; margin: 2px 0 12px; font-size: 0.875rem; }
 .family-edits strong { color: var(--text); font-weight: 600; }

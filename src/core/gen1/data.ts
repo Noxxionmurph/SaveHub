@@ -408,34 +408,35 @@ export function pikachuReactionName(friendship: number, mood: number): string {
 }
 
 /**
- * For each of the game's reaction names: the picture file (assets/sprites/pikachu/<slug>-1.png and -2.png), a
- * sentence to follow "Pikachu ", and a short label for the chart.
+ * For each of the game's reaction names: its picture (row `row` of assets/sprites/pikachu.png, frame 1 on the left
+ * and frame 2 on the right; `slug` is the name scripts/extract-pikachu.py gives that row), a sentence to follow
+ * "Pikachu ", and a short label for the chart.
  */
-export const REACTIONS: Readonly<Record<string, { slug: string; text: string; short: string }>> = {
-  AngryBolt: { slug: 'angry-bolt', text: 'looks angry, with sparks', short: 'Angry' },
-  SideBlink: { slug: 'side-blink', text: 'glances away and blinks', short: 'Glances away' },
-  Side: { slug: 'side', text: 'looks off to the side', short: 'Looks aside' },
-  BackTurn: { slug: 'back-turn', text: 'turns its back on you', short: 'Turns away' },
-  Sad: { slug: 'sad', text: 'looks sad', short: 'Sad' },
-  Bored: { slug: 'bored', text: 'looks bored', short: 'Bored' },
-  EarTwitch: { slug: 'ear-twitch', text: 'twitches its ears', short: 'Ear twitch' },
-  Blink2: { slug: 'blink', text: 'blinks', short: 'Blinks' },
-  Smile: { slug: 'smile', text: 'smiles', short: 'Smiles' },
-  Happy: { slug: 'happy', text: 'looks happy', short: 'Happy' },
-  FistPump: { slug: 'fist-pump', text: 'pumps its fist', short: 'Fist pump' },
-  Mad: { slug: 'mad', text: 'looks mad', short: 'Mad' },
-  Jump: { slug: 'jump', text: 'jumps', short: 'Jumps' },
-  Excited: { slug: 'excited', text: 'looks excited', short: 'Excited' },
-  Heart: { slug: 'heart', text: 'shows a heart', short: 'Heart' },
-  Joy: { slug: 'joy', text: 'looks overjoyed', short: 'Overjoyed' },
-  '2Hearts': { slug: 'two-hearts', text: 'shows two hearts', short: 'Two hearts' },
-  Love: { slug: 'love', text: 'looks full of love', short: 'Love' },
+export const REACTIONS: Readonly<Record<string, { slug: string; row: number; text: string; short: string }>> = {
+  AngryBolt: { slug: 'angry-bolt', row: 0, text: 'looks angry, with sparks', short: 'Angry' },
+  SideBlink: { slug: 'side-blink', row: 1, text: 'glances away and blinks', short: 'Glances away' },
+  Side: { slug: 'side', row: 2, text: 'looks off to the side', short: 'Looks aside' },
+  BackTurn: { slug: 'back-turn', row: 3, text: 'turns its back on you', short: 'Turns away' },
+  Sad: { slug: 'sad', row: 4, text: 'looks sad', short: 'Sad' },
+  Bored: { slug: 'bored', row: 5, text: 'looks bored', short: 'Bored' },
+  EarTwitch: { slug: 'ear-twitch', row: 6, text: 'twitches its ears', short: 'Ear twitch' },
+  Blink2: { slug: 'blink', row: 7, text: 'blinks', short: 'Blinks' },
+  Smile: { slug: 'smile', row: 8, text: 'smiles', short: 'Smiles' },
+  Happy: { slug: 'happy', row: 9, text: 'looks happy', short: 'Happy' },
+  FistPump: { slug: 'fist-pump', row: 10, text: 'pumps its fist', short: 'Fist pump' },
+  Mad: { slug: 'mad', row: 11, text: 'looks mad', short: 'Mad' },
+  Jump: { slug: 'jump', row: 12, text: 'jumps', short: 'Jumps' },
+  Excited: { slug: 'excited', row: 13, text: 'looks excited', short: 'Excited' },
+  Heart: { slug: 'heart', row: 14, text: 'shows a heart', short: 'Heart' },
+  Joy: { slug: 'joy', row: 15, text: 'looks overjoyed', short: 'Overjoyed' },
+  '2Hearts': { slug: 'two-hearts', row: 16, text: 'shows two hearts', short: 'Two hearts' },
+  Love: { slug: 'love', row: 17, text: 'looks full of love', short: 'Love' },
 };
 
 /** The picture, sentence and label for how Pikachu reacts at this friendship and mood. */
-export function pikachuReactionInfo(friendship: number, mood: number): { name: string; slug: string; text: string; short: string } {
+export function pikachuReactionInfo(friendship: number, mood: number): { name: string; slug: string; row: number; text: string; short: string } {
   const name = pikachuReactionName(friendship, mood);
-  return { name, ...(REACTIONS[name] ?? { slug: 'blink', text: 'reacts', short: 'Reacts' }) };
+  return { name, ...REACTIONS[name] };
 }
 
 /** Plain-English version of pikachuReactionName, to follow "Pikachu ". */

@@ -28,9 +28,6 @@ const BADGES = BADGE_NAMES;
 /** One shared array, so the item picker's markup is built once and cloned for every bag row. */
 const ITEM_OPTIONS = ITEM_CHOICES.map((c) => ({ value: c.id, label: c.name }));
 
-/** A short line at the top of a tab that says what it is for. */
-const intro = (...children: (Node | string)[]) => h('p', { class: 'tab-intro' }, ...children);
-
 export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
   let boxView = s.currentBoxIndex;
@@ -127,7 +124,6 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       return btn;
     }));
     return h('div', { class: 'stack' },
-      intro('Your trainer card, money, badges and game settings. Edit any field. Nothing is written to a file until you tap Save.'),
       overview(),
       h('section', { class: 'card' },
         h('h3', {}, 'Trainer'),
@@ -146,7 +142,6 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       pikachuSection(),
       h('section', { class: 'card' },
         h('h3', {}, 'Play time'),
-        h('p', { class: 'muted card-note' }, 'Shown on your trainer card.'),
         h('div', { class: 'grid compact' },
           field('Hours', numberInput(s.playHours, 0, 255, (v) => { s.playHours = v; edited(); })),
           field('Minutes', numberInput(s.playMinutes, 0, 59, (v) => { s.playMinutes = v; edited(); })),
@@ -154,7 +149,6 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         )),
       h('section', { class: 'card' },
         h('h3', {}, 'Badges'),
-        h('p', { class: 'muted card-note' }, 'Tap a badge to earn it or take it away.'),
         badgeRow,
         h('div', { class: 'button-row' },
           h('button', { onclick: () => { s.badges = 0xff; markDirty(); render(); } }, 'All badges'),
@@ -178,9 +172,8 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     if (!speeds.some((t) => t.value === s.options.textSpeed)) speeds.push({ value: s.options.textSpeed, label: `Custom (${s.options.textSpeed})` });
     return h('section', { class: 'card' },
       h('h3', {}, 'Game options'),
-      h('p', { class: 'muted card-note' }, 'The same settings as OPTION in the game’s start menu.'),
       h('div', { class: 'grid' },
-        field('Text speed', selectInput(speeds, s.options.textSpeed, (v) => { s.options.textSpeed = Number(v); edited(); }), 'How fast text appears.'),
+        field('Text speed', selectInput(speeds, s.options.textSpeed, (v) => { s.options.textSpeed = Number(v); edited(); })),
         field('Battle animations', selectInput([{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
           s.options.battleAnimationsOff ? 'off' : 'on', (v) => { s.options.battleAnimationsOff = v === 'off'; edited(); }), 'Off skips the move animations in battle.'),
         field('Battle style', selectInput([{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }],
@@ -191,13 +184,12 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
 
   // ---------- bag ----------
 
-  function itemList(title: string, note: string, items: BagItem[], max: number): Node {
+  function itemList(title: string, items: BagItem[], max: number): Node {
     const wrap = h('section', { class: 'card' });
     const draw = () => {
       clear(wrap);
       wrap.append(
         h('h3', {}, title, h('span', { class: 'muted count' }, `${items.length}/${max}`)),
-        note ? h('p', { class: 'muted card-note' }, note) : null,
         ...items.map((it, i) => {
           const icon = itemIcon(itemSpritePath(it.id));
           return h('div', { class: 'item-row' },
@@ -219,11 +211,9 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     return wrap;
   }
 
-  const bagTab = () => h('div', {},
-    intro('Pick an item, set how many (1 to 99), or tap ✕ to remove it. Only items the game can really hold are listed.'),
-    h('div', { class: 'two-col' },
-      itemList('Bag', 'What you carry. It holds up to 20 different items.', s.bag, 20),
-      itemList('PC item storage', 'Items stored in your PC. It holds up to 50 different items.', s.pcItems, 50)));
+  const bagTab = () => h('div', { class: 'two-col' },
+    itemList('Bag', s.bag, 20),
+    itemList('PC item storage', s.pcItems, 50));
 
   // ---------- Pokémon lists ----------
 
@@ -302,14 +292,12 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       }, s.party.length >= PARTY_MAX ? `Party full (${PARTY_MAX} of ${PARTY_MAX})` : `+ Add Pokémon (${s.party.length}/${PARTY_MAX})`));
     };
     draw();
-    return h('div', {},
-      intro('Up to 6 Pokémon. The first one battles first, so use the arrows to change the order. Tap a Pokémon to edit it, or ⋯ to move, duplicate or remove it.'),
-      wrap);
+    return h('div', {}, wrap);
   }
 
   function boxesTab(): Node {
     const holder = h('div', { class: 'boxes' });
-    /** The part that is rebuilt on every change; the intro and tips above it stay put, so an opened tip stays open. */
+    /** The part that is rebuilt on every change; the tips above it stay put, so an opened tip stays open. */
     const body = h('div');
     const step = (d: number) => { boxView = (boxView + d + BOX_TOTAL) % BOX_TOTAL; draw(); };
     const slotKey = (where: number, index: number) => `${where}:${index}`;
@@ -384,7 +372,6 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       );
     };
     holder.append(
-      intro('Your party and PC boxes. Tap a Pokémon to edit, move, duplicate or remove it, or drag one onto another to swap them.'),
       h('details', { class: 'tips' },
         h('summary', {}, 'How dragging works'),
         h('ul', {},
@@ -435,8 +422,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     paintSummary();
     return h('div', {},
       summary,
-      intro('Tap a Pokémon to cycle it: not seen, then seen, then owned.'),
-      h('p', { class: 'muted dex-hint' }, 'Dark shape = not seen. Colour = seen. Green with a Poké Ball = owned.'),
+      h('p', { class: 'muted dex-hint' }, 'Tap to cycle: not seen (dark shape), seen (colour), owned (green with a Poké Ball).'),
       h('div', { class: 'button-row' },
         h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setOwned(i + 1, true)); markDirty(); repaint(); } }, 'Own all 151'),
         h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, true)); markDirty(); repaint(); } }, 'Mark all seen'),

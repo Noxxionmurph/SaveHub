@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { DEX_TO_INTERNAL, FRIENDSHIP_EVENTS, REACTIONS, REACTION_ROWS, moodLabel, pikachuReaction, pikachuReactionInfo, pikachuReactionName } from '../src/core/gen1/data.ts';
 import { Gen1Save, PIKACHU_INTERNAL, checksum8, looksLikeYellow, newMon } from '../src/core/gen1/save.ts';
 import { blankGen1Save } from '../src/core/gen1/sample.ts';
@@ -132,18 +132,26 @@ test('the reaction shown matches the game’s own lookup for every friendship an
   assert.equal(pikachuReaction(30, 255), 'looks off to the side');
 });
 
-test('the reaction chart rows cover friendship 0 to 255 with no gaps, and every reaction has both pictures', () => {
+test('the reaction chart rows cover friendship 0 to 255 with no gaps, and every reaction has a picture', () => {
   assert.equal(REACTION_ROWS[0].from, 0);
   assert.equal(REACTION_ROWS[REACTION_ROWS.length - 1].upTo, 255);
   REACTION_ROWS.forEach((r, i) => { if (i) assert.equal(r.from, REACTION_ROWS[i - 1].upTo + 1); });
   const used = new Set(REACTION_ROWS.flatMap((r) => [r.below, r.at, r.above]));
   assert.equal(used.size, 18);
-  for (const name of used) {
-    assert.ok(REACTIONS[name], `${name} has a picture entry`);
-    for (const frame of [1, 2]) assert.ok(existsSync(new URL(`../assets/sprites/pikachu/${REACTIONS[name].slug}-${frame}.png`, import.meta.url)), `${name} frame ${frame}`);
-  }
+  for (const name of used) assert.ok(REACTIONS[name], `${name} has a picture entry`);
   assert.deepEqual(Object.keys(REACTIONS).filter((n) => !used.has(n)), [], 'no unused entries');
-  assert.deepEqual(pikachuReactionInfo(226, 128), { name: 'Heart', slug: 'heart', text: 'shows a heart', short: 'Heart' });
+  assert.deepEqual(pikachuReactionInfo(226, 128), { name: 'Heart', slug: 'heart', row: 14, text: 'shows a heart', short: 'Heart' });
+});
+
+test('the picture sheet has one row per reaction, in the order the cut script writes them', () => {
+  const png = readFileSync(new URL('../assets/sprites/pikachu.png', import.meta.url));
+  assert.equal(png.readUInt32BE(16), 80, 'two 40px frames across');
+  assert.equal(png.readUInt32BE(20), 40 * Object.keys(REACTIONS).length, 'one 40px row per reaction');
+  const script = readFileSync(new URL('../scripts/extract-pikachu.py', import.meta.url), 'utf8');
+  const names = [...script.match(/NAMES = \[([^\]]*)\]/)![1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+  const byRow = Object.values(REACTIONS).sort((a, b) => a.row - b.row);
+  assert.deepEqual(byRow.map((r) => r.row), names.map((_, i) => i), 'rows 0, 1, 2 ... with no gaps or repeats');
+  assert.deepEqual(byRow.map((r) => r.slug), names);
 });
 
 test('the friendship rules list gains and losses with three amounts each', () => {
