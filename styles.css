@@ -160,7 +160,7 @@ a { color: inherit; text-underline-offset: 3px; }
 button {
   font: inherit; font-weight: 500; color: var(--text); background: var(--surface-2);
   border: 1px solid var(--line-strong); border-bottom-width: 3px; border-radius: 8px;
-  padding: 7px 14px; min-height: 42px; cursor: pointer; touch-action: manipulation;
+  padding: 6px 14px; min-height: 38px; cursor: pointer; touch-action: manipulation;
 }
 button:hover:not(:disabled) { filter: brightness(1.04); }
 button:active:not(:disabled) { transform: translateY(2px); }
@@ -181,7 +181,7 @@ button.save-btn.dirty::after {
 
 input, select {
   font: inherit; color: var(--text); background: var(--surface-2); border: 1px solid var(--line-strong);
-  border-radius: 6px; padding: 8px 10px; min-height: 42px; width: 100%; min-width: 0;
+  border-radius: 6px; padding: 6px 10px; min-height: 38px; width: 100%; min-width: 0;
   box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.08);
 }
 input[type="number"] { font-family: var(--font-mono); }
@@ -193,6 +193,15 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .field-hint[hidden] { display: none; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px 12px; }
 .grid.compact { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
+/* fields side by side: two (names, money and coins) or three (play time, game options) */
+.grid.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid.one { grid-template-columns: minmax(0, 32em); }
+.grid.trio { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 8px; }
+.grid.options-grid { align-items: end; }
+.card > .grid + .grid { margin-top: 12px; }
+.card > .grid + p { margin-top: 10px; }
+.subgroup { margin-top: 14px; }
+.subgroup h4 { margin: 0 0 6px; font-size: 0.8125rem; font-weight: 500; color: var(--muted); }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
 .card h3:first-child { margin-top: 0; }
 .stack > * + * { margin-top: 16px; }
@@ -269,7 +278,7 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .mon > .icon { align-self: center; }
 
-.dex-summary { display: inline-block; padding: 6px 12px; font: 500 0.875rem var(--font-mono); }
+.dex-summary { display: inline-block; padding: 4px 12px; font: 500 0.875rem var(--font-mono); }
 .dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; margin-top: 12px; }
 /* ---- dialogs ---- */
 dialog {
@@ -344,15 +353,15 @@ dialog.confirm-dialog { width: min(360px, 100vw - 32px); padding: 18px 18px 6px;
 .item-row { grid-template-columns: 32px 1fr 76px auto; align-items: center; }
 
 /* ---- Pokédex icon grid ---- */
-.dex-hint { margin-top: 10px; }
-.dex-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.dex-grid { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; }
 .dex-tile {
-  position: relative; display: grid; justify-items: center; gap: 0; padding: 6px 4px 8px; min-height: 0; text-align: center;
+  position: relative; display: grid; justify-items: center; gap: 0; padding: 4px 2px 6px; min-height: 0; text-align: center;
   background: var(--surface); border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 8px; font-weight: 400;
 }
 .dex-tile .dex-no { font: 500 0.6875rem var(--font-mono); color: var(--muted); }
 .dex-tile .dex-name { font-size: 0.8125rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dex-tile .dex-ball { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; display: none; }
+.dex-tile .mon-icon { width: 100%; max-width: 56px; height: auto; }
+.dex-tile .dex-ball { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; display: none; }
 .dex-tile.unseen .mon-icon { filter: brightness(0); opacity: 0.2; }
 .dex-tile.unseen .dex-name { color: var(--muted); }
 .dex-tile.seen { border-color: var(--lcd-edge); }
@@ -462,11 +471,11 @@ button.danger { color: var(--danger); }
 .card-title { display: flex; align-items: center; gap: 8px; }
 .card-title h3 { margin: 0; }
 .card-icon { width: 48px; height: auto; }
-.friend { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 2px 14px; padding: 10px 14px; }
-.friend-head { grid-column: 1 / -1; font-size: 0.75rem; color: var(--lcd-dim); }
-.friend-value { font: 700 2rem/1 var(--font-mono); }
-.friend-label { font-weight: 600; }
-.friend-controls { display: grid; grid-template-columns: 1fr 92px; gap: 12px; align-items: center; margin: 14px 0 4px; }
+.friend { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 14px; padding: 6px 14px; }
+.friend-head { grid-column: 2; grid-row: 1; align-self: end; font-size: 0.75rem; color: var(--lcd-dim); }
+.friend-value { grid-column: 1; grid-row: 1 / span 2; font: 700 2rem/1 var(--font-mono); }
+.friend-label { grid-column: 2; grid-row: 2; align-self: start; font-weight: 600; }
+.friend-controls { display: grid; grid-template-columns: 1fr 92px; gap: 12px; align-items: center; margin: 8px 0 0; }
 .friend-controls input[type="range"] { width: 100%; min-height: 32px; padding: 0; accent-color: var(--button); box-shadow: none; background: none; border: 0; }
 /* the live picture of how Pikachu reacts; it stays in view under the tab bar while the sliders below are used */
 .pika-preview {
@@ -495,7 +504,7 @@ button.danger { color: var(--danger); }
 @media (max-width: 359px) {
   .pika-kicker { display: none; }
 }
-.pikachu-card .lcd.second { margin-top: 18px; }
+.pikachu-card .lcd.second { margin-top: 14px; }
 .pikachu-card .button-row + p { margin-top: 10px; }
 .starter-status { margin-top: 12px; display: grid; gap: 8px; justify-items: start; }
 .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font: 600 0.75rem var(--font-body); }
