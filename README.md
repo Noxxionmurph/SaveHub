@@ -159,8 +159,11 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   emulators): they load, save back byte for byte, and every stored party stat and experience value matches the editor's
   formulas. A Red save hasn't been tried, but Red and Blue share one layout. Try copies of your own and report mismatches.
 - The built-in tables (base stats, types, growth curves, species ids, every move's type/power/accuracy/PP and name, item
-  names) were checked against a Pokémon Red ROM with `scripts/verify-against-rom.mjs`: all match. The ROM isn't in
-  the repo and the script copies nothing from it.
+  names) were checked against Pokémon Red and Pokémon Yellow ROMs with `scripts/verify-against-rom.mjs`: all match.
+  Against Yellow it also checks Pikachu's reaction table (friendship and mood limits, which reactions repeat) and the
+  Celadon Mansion granny's six lines against the friendship wording. The ROMs aren't in the repo and the script copies
+  nothing from them. The granny's friendship limits (51, 101, 131, 161, 201) and the Museum and Melanie limits come from
+  the disassembly; they couldn't be located in the ROM's code, so they are the one thing not checked against a ROM.
 - Gen 1: English only (Japanese uses different offsets and text encoding). Event flags and map position are left untouched.
 - The options byte (text speed, battle style, animations) and the max-PP rules come from the pokered disassembly, not
   from a real cartridge; check them against one of your own saves.

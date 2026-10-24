@@ -7,7 +7,7 @@
 // script checks a known pattern at each one and says so if the ROM is a different build.
 import { readFileSync } from 'node:fs';
 import {
-  BASE_STATS, DEX_NAMES, GROWTH_BY_DEX, INTERNAL_TO_DEX, MOVE_NAMES, TYPE_BYTE, itemName,
+  BASE_STATS, DEX_NAMES, FRIENDSHIP_BANDS, GROWTH_BY_DEX, INTERNAL_TO_DEX, MOVE_NAMES, REACTION_ROWS, TYPE_BYTE, itemName,
 } from '../src/core/gen1/data.ts';
 import { moveInfo } from '../src/core/gen1/moves.ts';
 
@@ -123,6 +123,61 @@ if (itemsAt >= 0) {
     else check(`item 0x${id.toString(16)}`, false, `editor ${itemName(id)}, ROM ${romName}`);
   }
   console.log(`item names: ${ok}/${total} match`);
+}
+
+// ---- Pokémon Yellow only: how Pikachu reacts when talked to, and what the Celadon Mansion granny says ----
+if (title.includes('YELLOW')) {
+  // The reaction table: mood limits (40, 127, 128, 210, 255) with their columns, then one row per friendship limit.
+  const tableAt = find([40, 1, 127, 2, 128, 3, 210, 4, 255, 5]);
+  check('Pikachu reaction table', tableAt >= 0, 'not found');
+  if (tableAt >= 0) {
+    const rows = REACTION_ROWS.map((_, i) => [...rom.slice(tableAt + 10 + i * 6, tableAt + 16 + i * 6)]);
+    let ok = 0;
+    const cells = []; // [our animation name, the ROM's animation number]
+    rows.forEach((r, i) => {
+      const mine = REACTION_ROWS[i], [limit, c1, c2, c3, c4, c5] = r;
+      const same = limit === mine.upTo && c1 === c2 && c4 === c5;
+      check(`reaction row ${i + 1}`, same, `ROM limit ${limit} columns ${[c1, c2, c3, c4, c5]}, editor up to ${mine.upTo} (below 128 and above 128 should each be one reaction)`);
+      if (same) ok++;
+      cells.push([mine.below, c1], [mine.at, c3], [mine.above, c4]);
+    });
+    // two cells show the same picture in the editor exactly when they do in the game
+    for (const [a, ia] of cells) for (const [b, ib] of cells) check(`reaction ${a} / ${b}`, (a === b) === (ia === ib), `editor says ${a === b ? 'same' : 'different'}, ROM numbers ${ia} and ${ib}`);
+    console.log(`Pikachu reaction table (friendship limits, mood columns, which reactions repeat): ${ok}/${REACTION_ROWS.length} rows match`);
+  }
+  // The granny's six lines, in friendship order. Her text runs from "It seems like it..." to "...jealous!".
+  const letters = (s) => Array.from(s, (c) => (c === ' ' ? 0x7f : c >= 'a' && c <= 'z' ? 0xa0 + c.charCodeAt(0) - 97 : 0x88)); // 0x88 = "I"
+  const from = find(letters('It seems like it'));
+  const to = find(letters('jealous'), from);
+  check('granny text', from >= 0 && to > from, 'not found');
+  if (from >= 0 && to > from) {
+    /** The game's text as plain lines: its own line breaks become spaces, and the end of a speech starts a new line. */
+    const plain = (bytes) => {
+      let out = '';
+      for (const b of bytes) {
+        if (b >= 0x80 && b <= 0x99) out += String.fromCharCode(65 + b - 0x80);
+        else if (b >= 0xa0 && b <= 0xb9) out += String.fromCharCode(97 + b - 0xa0);
+        else if (b === 0x7f) out += ' ';
+        else if (b === 0xbe) out += "'t";
+        else if (b === 0xbd) out += "'s";
+        else if (b === 0xe0) out += "'";
+        else if (b === 0xe7 || b === 0xe8 || b === 0xe6) out += { 0xe7: '!', 0xe8: '.', 0xe6: '?' }[b];
+        else if (b === 0x57 || b === 0x58 || b === 0x50) out += '\n';
+        else out += ' ';
+      }
+      return out.split('\n').map((l) => l.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    };
+    const said = plain(rom.slice(from, to + 12));
+    const KEY = ['tamed at all', 'more care', 'that cute', 'seems tamed', 'happy with you', 'fantastic duo'];
+    const LABEL_HAS = ['tamed at all', 'more care', 'cute', 'seems tamed', 'happy with you', 'fantastic duo'];
+    let ok = 0;
+    KEY.forEach((k, i) => {
+      const good = (said[i] ?? '').toLowerCase().includes(k) && FRIENDSHIP_BANDS[i].label.toLowerCase().includes(LABEL_HAS[i]);
+      check(`granny line ${i + 1}`, good, `ROM: "${said[i]}", label: "${FRIENDSHIP_BANDS[i].label}"`);
+      if (good) ok++;
+    });
+    console.log(`granny wording (one line per friendship band): ${ok}/${KEY.length} labels match her lines`);
+  }
 }
 
 console.log(problems.length ? `\n${problems.length} difference(s):\n- ${problems.join('\n- ')}` : '\nEverything checked matches.');
