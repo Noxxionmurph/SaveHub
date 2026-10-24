@@ -409,53 +409,35 @@ export function pikachuReactionName(friendship: number, mood: number): string {
 
 /**
  * For each of the game's reaction names: its picture (row `row` of assets/sprites/pikachu.png, frame 1 on the left
- * and frame 2 on the right; `slug` is the name scripts/extract-pikachu.py gives that row), a sentence to follow
- * "Pikachu ", and a short label for the chart.
+ * and frame 2 on the right; `slug` is the name scripts/extract-pikachu.py gives that row) and a sentence to follow
+ * "Pikachu ".
  */
-export const REACTIONS: Readonly<Record<string, { slug: string; row: number; text: string; short: string }>> = {
-  AngryBolt: { slug: 'angry-bolt', row: 0, text: 'looks angry, with sparks', short: 'Angry' },
-  SideBlink: { slug: 'side-blink', row: 1, text: 'glances away and blinks', short: 'Glances away' },
-  Side: { slug: 'side', row: 2, text: 'looks off to the side', short: 'Looks aside' },
-  BackTurn: { slug: 'back-turn', row: 3, text: 'turns its back on you', short: 'Turns away' },
-  Sad: { slug: 'sad', row: 4, text: 'looks sad', short: 'Sad' },
-  Bored: { slug: 'bored', row: 5, text: 'looks bored', short: 'Bored' },
-  EarTwitch: { slug: 'ear-twitch', row: 6, text: 'twitches its ears', short: 'Ear twitch' },
-  Blink2: { slug: 'blink', row: 7, text: 'blinks', short: 'Blinks' },
-  Smile: { slug: 'smile', row: 8, text: 'smiles', short: 'Smiles' },
-  Happy: { slug: 'happy', row: 9, text: 'looks happy', short: 'Happy' },
-  FistPump: { slug: 'fist-pump', row: 10, text: 'pumps its fist', short: 'Fist pump' },
-  Mad: { slug: 'mad', row: 11, text: 'looks mad', short: 'Mad' },
-  Jump: { slug: 'jump', row: 12, text: 'jumps', short: 'Jumps' },
-  Excited: { slug: 'excited', row: 13, text: 'looks excited', short: 'Excited' },
-  Heart: { slug: 'heart', row: 14, text: 'shows a heart', short: 'Heart' },
-  Joy: { slug: 'joy', row: 15, text: 'looks overjoyed', short: 'Overjoyed' },
-  '2Hearts': { slug: 'two-hearts', row: 16, text: 'shows two hearts', short: 'Two hearts' },
-  Love: { slug: 'love', row: 17, text: 'looks full of love', short: 'Love' },
+export const REACTIONS: Readonly<Record<string, { slug: string; row: number; text: string }>> = {
+  AngryBolt: { slug: 'angry-bolt', row: 0, text: 'looks angry, with sparks' },
+  SideBlink: { slug: 'side-blink', row: 1, text: 'glances away and blinks' },
+  Side: { slug: 'side', row: 2, text: 'looks off to the side' },
+  BackTurn: { slug: 'back-turn', row: 3, text: 'turns its back on you' },
+  Sad: { slug: 'sad', row: 4, text: 'looks sad' },
+  Bored: { slug: 'bored', row: 5, text: 'looks bored' },
+  EarTwitch: { slug: 'ear-twitch', row: 6, text: 'twitches its ears' },
+  Blink2: { slug: 'blink', row: 7, text: 'blinks' },
+  Smile: { slug: 'smile', row: 8, text: 'smiles' },
+  Happy: { slug: 'happy', row: 9, text: 'looks happy' },
+  FistPump: { slug: 'fist-pump', row: 10, text: 'pumps its fist' },
+  Mad: { slug: 'mad', row: 11, text: 'looks mad' },
+  Jump: { slug: 'jump', row: 12, text: 'jumps' },
+  Excited: { slug: 'excited', row: 13, text: 'looks excited' },
+  Heart: { slug: 'heart', row: 14, text: 'shows a heart' },
+  Joy: { slug: 'joy', row: 15, text: 'looks overjoyed' },
+  '2Hearts': { slug: 'two-hearts', row: 16, text: 'shows two hearts' },
+  Love: { slug: 'love', row: 17, text: 'looks full of love' },
 };
 
 /** The picture, sentence and label for how Pikachu reacts at this friendship and mood. */
-export function pikachuReactionInfo(friendship: number, mood: number): { name: string; slug: string; row: number; text: string; short: string } {
+export function pikachuReactionInfo(friendship: number, mood: number): { name: string; slug: string; row: number; text: string } {
   const name = pikachuReactionName(friendship, mood);
   return { name, ...REACTIONS[name] };
 }
 
 /** Plain-English version of pikachuReactionName, to follow "Pikachu ". */
 export const pikachuReaction = (friendship: number, mood: number): string => pikachuReactionInfo(friendship, mood).text;
-
-/**
- * What raises and lowers the starter Pikachu's friendship (pokeyellow: HappinessChangeTable). Each change depends on
- * the current friendship: below 100, 100 to 199, or 200 and up. The result stops at 0 and 255.
- */
-export const FRIENDSHIP_EVENTS: readonly { up: boolean; what: string; amounts: readonly [number, number, number] }[] = [
-  { up: true, what: 'It levels up', amounts: [5, 3, 2] },
-  { up: true, what: 'You use a healing item or a vitamin on it (not a Revive)', amounts: [5, 3, 2] },
-  { up: true, what: 'You use an X item, Guard Spec. or Dire Hit in battle', amounts: [1, 1, 0] },
-  { up: true, what: 'You start a Gym Leader battle (or another major trainer battle) with it alive in your party', amounts: [3, 2, 1] },
-  { up: true, what: 'You teach it a TM or HM', amounts: [1, 1, 0] },
-  { up: true, what: 'You walk 256 steps (this only counts half the time)', amounts: [2, 1, 1] },
-  { up: false, what: 'You put it in a PC box', amounts: [-3, -3, -5] },
-  { up: false, what: 'It faints in battle', amounts: [-1, -1, -1] },
-  { up: false, what: 'It faints to a Pokémon 30 or more levels above it', amounts: [-5, -5, -10] },
-  { up: false, what: 'It faints from poison while you walk', amounts: [-5, -5, -10] },
-  { up: false, what: 'You trade it away', amounts: [-10, -10, -20] },
-];

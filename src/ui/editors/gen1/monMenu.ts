@@ -86,6 +86,7 @@ export function openMonMenu({ save, where, index, onEdit, onChange }: MonMenuOpt
     put(
       header(),
       h('h3', {}, 'Move to'),
+      h('p', { class: 'muted' }, 'Pick where to send it. The numbers show how many Pokémon are already in each place.'),
       h('div', { class: 'dest-list' }, ALL_PLACES.filter((w) => w !== where).map((w) => {
         const free = spaceAt(save, w);
         const blocked = free <= 0 || (where === PARTY && listAt(save, PARTY).length <= 1);

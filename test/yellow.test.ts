@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { readFileSync } from 'node:fs';
-import { DEX_TO_INTERNAL, FRIENDSHIP_EVENTS, REACTIONS, REACTION_ROWS, moodLabel, pikachuReaction, pikachuReactionInfo, pikachuReactionName } from '../src/core/gen1/data.ts';
+import { DEX_TO_INTERNAL, REACTIONS, REACTION_ROWS, moodLabel, pikachuReaction, pikachuReactionInfo, pikachuReactionName } from '../src/core/gen1/data.ts';
 import { Gen1Save, PIKACHU_INTERNAL, checksum8, looksLikeYellow, newMon } from '../src/core/gen1/save.ts';
 import { blankGen1Save } from '../src/core/gen1/sample.ts';
 import pokemonGen1 from '../src/games/pokemon-gen1.ts';
@@ -132,7 +132,7 @@ test('the reaction shown matches the game’s own lookup for every friendship an
   assert.equal(pikachuReaction(30, 255), 'looks off to the side');
 });
 
-test('the reaction chart rows cover friendship 0 to 255 with no gaps, and every reaction has a picture', () => {
+test('the reaction rows cover friendship 0 to 255 with no gaps, and every reaction has a picture', () => {
   assert.equal(REACTION_ROWS[0].from, 0);
   assert.equal(REACTION_ROWS[REACTION_ROWS.length - 1].upTo, 255);
   REACTION_ROWS.forEach((r, i) => { if (i) assert.equal(r.from, REACTION_ROWS[i - 1].upTo + 1); });
@@ -140,7 +140,7 @@ test('the reaction chart rows cover friendship 0 to 255 with no gaps, and every 
   assert.equal(used.size, 18);
   for (const name of used) assert.ok(REACTIONS[name], `${name} has a picture entry`);
   assert.deepEqual(Object.keys(REACTIONS).filter((n) => !used.has(n)), [], 'no unused entries');
-  assert.deepEqual(pikachuReactionInfo(226, 128), { name: 'Heart', slug: 'heart', row: 14, text: 'shows a heart', short: 'Heart' });
+  assert.deepEqual(pikachuReactionInfo(226, 128), { name: 'Heart', slug: 'heart', row: 14, text: 'shows a heart' });
 });
 
 test('the picture sheet has one row per reaction, in the order the cut script writes them', () => {
@@ -152,15 +152,4 @@ test('the picture sheet has one row per reaction, in the order the cut script wr
   const byRow = Object.values(REACTIONS).sort((a, b) => a.row - b.row);
   assert.deepEqual(byRow.map((r) => r.row), names.map((_, i) => i), 'rows 0, 1, 2 ... with no gaps or repeats');
   assert.deepEqual(byRow.map((r) => r.slug), names);
-});
-
-test('the friendship rules list gains and losses with three amounts each', () => {
-  assert.equal(FRIENDSHIP_EVENTS.length, 11);
-  for (const e of FRIENDSHIP_EVENTS) {
-    assert.equal(e.amounts.length, 3);
-    assert.ok(e.amounts.every((n) => (e.up ? n >= 0 : n < 0)), e.what);
-  }
-  // the first row of the game's table: gaining a level is +5 / +3 / +2; being traded away is -10 / -10 / -20
-  assert.deepEqual(FRIENDSHIP_EVENTS.find((e) => e.what.includes('levels up'))?.amounts, [5, 3, 2]);
-  assert.deepEqual(FRIENDSHIP_EVENTS.find((e) => e.what.includes('trade'))?.amounts, [-10, -10, -20]);
 });

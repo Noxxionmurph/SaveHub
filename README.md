@@ -47,11 +47,9 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
   Red and Blue leave empty). A Yellow save gets a Pikachu card: friendship (0-255, with the game's own wording
   for each range), mood (0-255, 128 is neutral) and whether the game still counts your Pikachu as your starter.
   A live picture at the top shows how Pikachu will react when you talk to it, and stays in view as you move the
-  sliders. Two collapsible sections show all 18 reactions as a chart (friendship down, mood across) and what raises
-  and lowers friendship in the game; each is only built when you open it. Whether the game follows your Pikachu
-  depends on its original trainer matching your name and Trainer ID, so the editor tags the starter in the party,
-  warns in the review list if an edit would orphan it, and has a "Make Pikachu my starter" button. Red and Blue can't be told apart, so
-  those saves ask which one yours is.
+  sliders. Whether the game follows your Pikachu depends on its original trainer matching your name and Trainer ID,
+  so the editor tags the starter in the party, warns in the review list if an edit would orphan it, and has a
+  "Make Pikachu my starter" button. Red and Blue can't be told apart, so those saves ask which one yours is.
 - Bag and PC item storage (only items the game can actually put there)
 - Party and all 12 boxes. The party has up/down arrows beside each card; boxes are a 4 x 5 grid like the PC, with your
   party in a row above it. **Drag a Pokémon onto another to swap them** (inside a box, between boxes and the party),
@@ -142,13 +140,13 @@ Every screen explains itself in plain words, so keep it that way when you add a 
 - One name per thing: **Save** (the button and the act), "the file you opened" (the original, which is never changed),
   "your edited copy", **Party** and **Box 1-12**, **slot** (only for a position inside a box), **Duplicate**, **Swap**,
   **Move**, **Owned** / **Seen**. Money is shown as ¥ everywhere, including the review list.
-- This is a save editor, not a guide. No introductions, no tab or card blurbs that restate the heading, no tutorials.
-  A line of text earns its place only if it warns of a consequence ("Changing the level also sets experience to
-  match."), gives a limit or a reason a control is unavailable, or covers something that can't be discovered by
-  looking (the Boxes tab's dragging tips, which sit in a collapsed "How ... works" section that stays open across
-  redraws). If the label already says it, cut the sentence.
-- Explain jargon only where it appears and only when the label can't (growth rate), in a short note under the field,
-  not in a separate manual. Only state game rules you've checked against the disassembly.
+- Each tab opens with one line saying what it is for, so people know how to use the editor. Anything that needs more
+  (the Boxes tab's dragging tips) sits in a collapsed "How ... works" section that stays open across redraws.
+- This is a save editor, not a game guide. Say how to use the editor, but don't add reference material about the game:
+  no galleries, no tables of rules, no walkthroughs. (A friendship rules table and a chart of every Pikachu reaction
+  were tried on the Pikachu card and removed.)
+- Explain jargon where it appears, in a one-line note under the heading or field (DVs, EVs, original trainer, growth
+  rate), not in a separate manual. Only state game rules you've checked against the disassembly.
 - Say why a control is unavailable ("Party full (6 of 6)", "Full (20 of 20)"), not just grey it out.
 - Errors say what happened and what to do next. Warnings in the review list start with "Warning:" and name the fix.
 - Sentence case, active voice, plain verbs ("Tap", "Pick", "Drop"). A game can describe itself to the shell with
@@ -171,9 +169,8 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   while after some events (catching a Pokémon, fishing, a Thunderstone, Thunder and Thunderbolt).
 - The reaction pictures are Pokémon Yellow's own, cut from the Serebii sheet by `scripts/extract-pikachu.py` into one
   file (`assets/sprites/pikachu.png`, so the card costs one request however many reactions you look at) and
-  credited in `assets/sprites/CREDITS.md`. The friendship amounts come from the game's own table, not from Serebii:
-  its page lists a few numbers that differ from the code (for example it gives -255 for a trade, the code gives
-  -10, -10 and -20), and it ranks reactions by friendship alone, where the game uses friendship and mood together.
+  credited in `assets/sprites/CREDITS.md`. Which reaction shows comes from the game's own tables, not from Serebii,
+  which ranks reactions by friendship alone where the game uses friendship and mood together.
 - Red and Blue saves are byte-identical in structure, so the site asks which version yours is.
 - Names that use the game's "PK" / "MN" symbols show as `{PK}` / `{MN}` in the editor, and the "TRAINER" text some
   Pokémon carry as their original trainer shows as `{TRAINER}`. Type them the same way to put them back. A name that
