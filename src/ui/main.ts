@@ -3,6 +3,7 @@
 
 import { GAMES, detectGames, gamesByFamily, type Match } from '../core/registry.ts';
 import type { EditableSave, EditorHost, GameIdentity, GameModule } from '../core/types.ts';
+import { cartridge } from './brand.ts';
 import { askConfirm, clear, h, toast } from './dom.ts';
 import { makeZip } from './zip.ts';
 
@@ -10,6 +11,7 @@ const root = document.getElementById('app')!;
 let fileName = 'save.sav';
 let dirty = false;
 const APP_NAME = 'SaveForge';
+const REPO = 'https://github.com/Noxxionmurph/SaveHub';
 const host: EditorHost = { markDirty: () => { dirty = true; } };
 
 // ---------- file handling ----------
@@ -78,6 +80,17 @@ function pickFile(): void {
   input.click();
 }
 
+// ---------- shared pieces ----------
+
+function wordmark(size = 28): HTMLElement {
+  return h('div', { class: 'wordmark' }, cartridge(size), h('span', { class: 'wordmark-text' }, APP_NAME));
+}
+
+const externalLink = (href: string, label: string) =>
+  h('a', { href, target: '_blank', rel: 'noopener noreferrer' }, label);
+
+// ---------- editor ----------
+
 async function openGame(game: GameModule, data: Uint8Array): Promise<void> {
   let save: EditableSave;
   try {
@@ -118,16 +131,17 @@ async function openGame(game: GameModule, data: Uint8Array): Promise<void> {
 
   clear(root);
   root.append(
-    h('header', { class: 'topbar' },
-      h('div', {},
-        h('p', { class: 'brand' }, APP_NAME),
-        nameEl,
-        h('p', { class: 'muted' }, `${fileName} · ${game.platform}${identity.note && names.length > 1 ? ` · ${identity.note}` : ''}`),
-        picker),
-      h('div', { class: 'button-row' },
-        h('button', { onclick: async () => { if (!dirty || await askConfirm('Discard unsaved changes?', 'Discard')) { dirty = false; setPageTitle(); renderWelcome(); } } }, 'Close'),
-        h('button', { class: 'primary', onclick: () => void download(save) }, 'Download'),
-      ),
+    h('header', { class: 'editor-head' },
+      h('div', { class: 'editor-bar' },
+        wordmark(22),
+        h('div', { class: 'bar-actions' },
+          h('button', { onclick: async () => { if (!dirty || await askConfirm('Discard unsaved changes?', 'Discard')) { dirty = false; setPageTitle(); renderWelcome(); } } }, 'Close'),
+          h('button', { class: 'primary', onclick: () => void download(save) }, 'Download'),
+        )),
+      nameEl,
+      h('p', { class: 'muted file-line' }, h('span', {}, fileName), h('span', {}, game.platform)),
+      picker,
+      identity.note && names.length > 1 ? h('p', { class: 'muted version-note' }, identity.note) : null,
       dlNote),
     container,
   );
@@ -143,34 +157,81 @@ async function openGame(game: GameModule, data: Uint8Array): Promise<void> {
 
 // ---------- screens ----------
 
+/** Example bytes for the "how it works" panel (Gen 1 layout; see src/core/gen1/save.ts). */
+const HEX_ROWS: [offset: string, bytes: string, means: string][] = [
+  ['0x2598', '80 92 87 50', 'Trainer name: ASH'],
+  ['0x2605', '30 39', 'Trainer ID: 12345'],
+  ['0x25F3', '00 30 00', 'Money: ¥3,000'],
+];
+
 function renderWelcome(): void {
   setPageTitle();
   clear(root);
-  const drop = h('div', { class: 'drop', tabIndex: 0, role: 'button', onclick: pickFile },
-    h('strong', {}, 'Open a save file'),
-    h('span', { class: 'muted' }, 'Drop a save here, or tap to browse. The game is detected automatically.'),
+
+  const slot = h('div', { class: 'slot', tabIndex: 0, role: 'button', onclick: pickFile },
+    h('div', { class: 'slot-art', 'aria-hidden': 'true' }, cartridge(92, 'slot-cart'), h('div', { class: 'slot-bar' })),
+    h('div', { class: 'slot-text' },
+      h('strong', {}, 'Open a save file'),
+      h('span', { class: 'muted' }, 'Drop a save here, or tap to browse. The game is detected automatically.'),
+      h('span', { class: 'slot-cta' }, 'Choose file'),
+    ),
   );
-  drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickFile(); } });
-  drop.addEventListener('dragover', (e) => { e.preventDefault(); drop.classList.add('over'); });
-  drop.addEventListener('dragleave', () => drop.classList.remove('over'));
-  drop.addEventListener('drop', (e) => {
-    e.preventDefault(); drop.classList.remove('over');
+  slot.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pickFile(); } });
+  slot.addEventListener('dragover', (e) => { e.preventDefault(); slot.classList.add('over'); });
+  slot.addEventListener('dragleave', () => slot.classList.remove('over'));
+  slot.addEventListener('drop', (e) => {
+    e.preventDefault(); slot.classList.remove('over');
     const f = e.dataTransfer?.files?.[0];
     if (f) void loadFile(f);
   });
+
+  const hex = h('figure', { class: 'lcd hex' },
+    h('figcaption', {}, 'Games are recognised from the bytes inside the file, not from its name. This is what a Gen 1 save looks like in there.'),
+    h('table', {},
+      h('thead', {}, h('tr', {}, h('th', {}, 'Offset'), h('th', {}, 'Bytes'), h('th', {}, 'Reads as'))),
+      h('tbody', {}, HEX_ROWS.map(([offset, bytes, means]) =>
+        h('tr', {}, h('td', {}, offset), h('td', {}, bytes), h('td', {}, means))))),
+  );
+
   root.append(
-    h('header', { class: 'hero' },
-      h('h1', {}, 'SaveForge'),
-      h('p', { class: 'muted' }, 'Save editor for classic games. Runs entirely in your browser: your save never leaves your device.')),
-    drop,
-    h('p', { class: 'notice' }, 'Always keep a backup of the original save file before editing.'),
-    h('section', { class: 'supported' },
-      h('h3', {}, 'Supported games'),
-      ...[...gamesByFamily()].map(([family, games]) =>
-        h('div', { class: 'family' }, h('strong', {}, family),
-          h('ul', {}, games.flatMap((g) => g.games.map((name) =>
-            h('li', {}, `${name} `, h('span', { class: 'muted' }, g.platform)))))))
+    h('header', { class: 'site-head' }, wordmark(30)),
+    h('h1', { class: 'lede' }, 'Edit your retro game saves in the browser.'),
+    h('p', { class: 'lede-sub' }, 'Open a save, and SaveForge works out which game it belongs to and loads the right editor. Your file never leaves your device.'),
+    slot,
+    h('p', { class: 'muted notice' }, 'Keep a backup of the original save file before you edit.'),
+
+    h('section', { class: 'how' },
+      h('h2', {}, 'How it works'),
+      h('div', { class: 'how-body' },
+        h('ol', { class: 'steps' },
+          h('li', {}, h('strong', {}, 'Open your save'), h('span', {}, 'Use the file straight from your cartridge dumper or emulator.')),
+          h('li', {}, h('strong', {}, 'Edit what you like'), h('span', {}, 'Pokémon, items, money, badges. Checksums are fixed for you.')),
+          h('li', {}, h('strong', {}, 'Download it again'), h('span', {}, 'Copy the edited file back to your cartridge or emulator.')),
+        ),
+        hex,
+      ),
     ),
+
+    h('section', { class: 'supported' },
+      h('h2', {}, 'Supported games'),
+      ...[...gamesByFamily()].map(([family, games]) =>
+        h('div', { class: 'family' },
+          h('h3', {}, family),
+          h('ul', { class: 'tiles' }, games.flatMap((g) => g.games.map((name) => {
+            const tile = h('li', { class: 'tile' },
+              h('span', { class: 'tile-label', 'aria-hidden': 'true' }),
+              h('span', { class: 'tile-name' }, name),
+              h('span', { class: 'muted' }, g.platform));
+            const color = g.colors?.[name];
+            if (color) tile.style.setProperty('--label', color);
+            return tile;
+          }))))),
+      h('p', { class: 'request' }, 'Want another game? ', externalLink(`${REPO}/issues/new`, 'Request it on GitHub'), '.'),
+    ),
+
+    h('footer', { class: 'site-foot' },
+      h('span', {}, 'Runs entirely in your browser.'),
+      externalLink(REPO, 'Source on GitHub')),
   );
 }
 
@@ -180,7 +241,7 @@ function renderChooser(data: Uint8Array, matches: Match[]): void {
   const ambiguous = matches.length > 1;
   const candidates = matches.length ? matches.map((m) => m.module) : GAMES;
   root.append(
-    h('header', { class: 'hero' }, h('h1', {}, 'SaveForge')),
+    h('header', { class: 'site-head' }, wordmark()),
     h('div', { class: ambiguous ? 'notice-box' : 'error' },
       h('strong', {}, ambiguous ? 'This file could be more than one game' : "Couldn't identify this file"),
       h('p', {}, ambiguous
@@ -195,7 +256,7 @@ function renderChooser(data: Uint8Array, matches: Match[]): void {
 function renderError(title: string, detail: string, back: () => void): void {
   clear(root);
   root.append(
-    h('header', { class: 'hero' }, h('h1', {}, 'SaveForge')),
+    h('header', { class: 'site-head' }, wordmark()),
     h('div', { class: 'error' },
       h('strong', {}, title),
       h('p', {}, detail),

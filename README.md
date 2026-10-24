@@ -5,6 +5,13 @@ One site, many games. Drop a save on the landing page, the game is detected from
 lazy-loaded. Currently supported: Pokémon Red / Blue / Yellow (English). Everything is a self-contained
 "game module", so adding Pokémon Gen 2–5, Final Fantasy, Mega Man Battle Network, etc. never touches the shell.
 
+## Look and feel
+
+The page is styled as a handheld: grey plastic shell, olive LCD panels wherever the app shows data (levels, stats,
+Pokédex totals, the example bytes), magenta action buttons. Colours are CSS tokens at the top of `styles.css` with a
+light and a dark set. Fonts (Pixelify Sans, Instrument Sans, JetBrains Mono) load from Google Fonts and fall back to
+system fonts. A game can set `colors` on its module to give each title a cartridge-label colour on the landing page.
+
 ## Run it
 
 Requires Node 22.18+ (uses Node's built-in TypeScript stripping — **no npm dependencies**).

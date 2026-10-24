@@ -8,6 +8,7 @@ export default defineGame<Gen1Save>({
   family: 'Pokémon',
   games: GAMES,
   platform: 'Game Boy · English',
+  colors: { 'Pokémon Red': '#c0392b', 'Pokémon Blue': '#2d62b8', 'Pokémon Yellow': '#e2b007' },
   detect: (data) => (gen1Handler.detect(data) ? { confidence: 'certain' } : null),
   // Red and Blue share one save format and nothing in the file says which cartridge wrote it.
   identify: () => ({ names: GAMES, note: "This save format doesn't record the exact version." }),

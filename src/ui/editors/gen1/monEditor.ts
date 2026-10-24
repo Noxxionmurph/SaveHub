@@ -1,19 +1,21 @@
 // Pokémon editor dialog.
 
 import {
-  DEX_NAMES, DEX_TO_INTERNAL, GROWTH_RATES, MOVE_NAMES, baseStatsFor, expForLevel, guessGrowth, speciesName,
-  type Growth,
+  DEX_NAMES, DEX_TO_INTERNAL, GROWTH_RATES, INTERNAL_TO_DEX, MOVE_NAMES, baseStatsFor, expForLevel, guessGrowth,
+  speciesName, type Growth,
 } from '../../../core/gen1/data.ts';
 import {
   applySpeciesTypes, calcStats, defaultNickname, hpDv, recalcPartyStats, type Gen1Mon,
 } from '../../../core/gen1/save.ts';
 import { clear, field, h, numberInput, selectInput, textInput } from '../../dom.ts';
+import { typeChips } from './typeChip.ts';
 
 const SPECIES_OPTIONS = DEX_NAMES.map((name, i) => ({
   value: DEX_TO_INTERNAL[i + 1],
   label: `#${String(i + 1).padStart(3, '0')} ${name}`,
 }));
 const MOVE_OPTIONS = MOVE_NAMES.map((name, i) => ({ value: i, label: i === 0 ? '— (none)' : name }));
+const STAT_LABELS = { hp: 'HP', atk: 'Atk', def: 'Def', spe: 'Spd', spc: 'Spc' } as const;
 const STATUS_OPTIONS = [
   { value: 0, label: 'Healthy' }, { value: 4, label: 'Asleep' }, { value: 8, label: 'Poisoned' },
   { value: 16, label: 'Burned' }, { value: 32, label: 'Frozen' }, { value: 64, label: 'Paralyzed' },
@@ -35,11 +37,11 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
   const refresh = () => {
     if (refreshing) return;
     refreshing = true;
-    try { clear(body); body.append(...render()); } finally { refreshing = false; }
+    try { clear(body); body.append(...render().filter((n): n is Node => n !== null)); } finally { refreshing = false; }
   };
   const touched = () => { if (party) recalcPartyStats(mon); };
 
-  function render(): Node[] {
+  function render(): (Node | null)[] {
     const base = baseStatsFor(mon.species);
     const calc = calcStats(mon.species, mon.level, mon.dvs, mon.evs);
 
@@ -54,12 +56,28 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
     );
 
     const dvInputs = (['atk', 'def', 'spe', 'spc'] as const).map((k) =>
-      field(k.toUpperCase(), numberInput(mon.dvs[k], 0, 15, (v) => { mon.dvs[k] = v; touched(); refresh(); })));
+      field(STAT_LABELS[k], numberInput(mon.dvs[k], 0, 15, (v) => { mon.dvs[k] = v; touched(); refresh(); })));
     const evInputs = (['hp', 'atk', 'def', 'spe', 'spc'] as const).map((k) =>
-      field(k.toUpperCase(), numberInput(mon.evs[k], 0, 65535, (v) => { mon.evs[k] = v; touched(); refresh(); })));
+      field(STAT_LABELS[k], numberInput(mon.evs[k], 0, 65535, (v) => { mon.evs[k] = v; touched(); refresh(); })));
+
+    // LCD readout. Party Pokémon store their stats; box Pokémon don't, so those are calculated.
+    const shown = party
+      ? { hp: `${mon.hp}/${mon.maxHp}`, atk: mon.atk, def: mon.def, spe: mon.spe, spc: mon.spc }
+      : calc ? { hp: calc.hp, atk: calc.atk, def: calc.def, spe: calc.spe, spc: calc.spc }
+        : { hp: '—', atk: '—', def: '—', spe: '—', spc: '—' };
+    const dex = INTERNAL_TO_DEX[mon.species];
 
     return [
-      h('h2', {}, mon.nickname || speciesName(mon.species)),
+      h('div', { class: 'mon-head' },
+        h('div', {},
+          h('h2', {}, mon.nickname || speciesName(mon.species)),
+          h('p', { class: 'muted' }, dex ? `#${String(dex).padStart(3, '0')} ${speciesName(mon.species)}` : speciesName(mon.species)),
+          typeChips(base)),
+        h('span', { class: 'lcd lv' }, `Lv ${mon.level}`)),
+      h('dl', { class: 'lcd stats', 'aria-label': party ? 'Current stats' : 'Calculated stats' },
+        (['hp', 'atk', 'def', 'spe', 'spc'] as const).map((k) =>
+          h('div', {}, h('dt', {}, STAT_LABELS[k]), h('dd', {}, String(shown[k]))))),
+      party ? null : h('p', { class: 'muted stats-note' }, 'Box Pokémon don’t store stats, so these are calculated from level, DVs and EVs.'),
       h('div', { class: 'grid' },
         field('Species', selectInput(SPECIES_OPTIONS, mon.species, (v) => {
           const hadDefaultName = !mon.nickname || mon.nickname === defaultNickname(mon.species);
@@ -68,7 +86,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
           applySpeciesTypes(mon);
           touched();
           refresh();
-        }), base ? `${base.type1}${base.type2 !== base.type1 ? ' / ' + base.type2 : ''}` : 'Unknown species'),
+        }), base ? undefined : 'Unknown species'),
         field('Nickname', textInput(mon.nickname, 10, (v) => { mon.nickname = v; }), 'Up to 10 characters'),
         field('Level', numberInput(mon.level, 1, 100, (v) => {
           mon.level = v;
@@ -106,7 +124,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
             field('Special', numberInput(mon.spc, 1, 999, (v) => { mon.spc = v; })),
           ),
           calc ? h('p', { class: 'muted' },
-            `Calculated from base stats, DVs and EVs: HP ${calc.hp} · Atk ${calc.atk} · Def ${calc.def} · Spd ${calc.spe} · Spc ${calc.spc}`) : null,
+            `Calculated from base stats, DVs and EVs: HP ${calc.hp}, Atk ${calc.atk}, Def ${calc.def}, Spd ${calc.spe}, Spc ${calc.spc}`) : null,
         )
         : null,
 

@@ -1,10 +1,13 @@
 // Gen 1 (Red / Blue / Yellow) editor UI. Loaded lazily by the shell via the game module.
 
-import { DEX_NAMES, DEX_TO_INTERNAL, ITEM_CHOICES, itemName, speciesName } from '../../../core/gen1/data.ts';
+import {
+  DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, baseStatsFor, itemName, speciesName,
+} from '../../../core/gen1/data.ts';
 import { newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
 import type { EditorHost, MountEditor } from '../../../core/types.ts';
 import { askConfirm, clear, field, h, numberInput, selectInput, textInput } from '../../dom.ts';
 import { openMonEditor } from './monEditor.ts';
+import { typeChips } from './typeChip.ts';
 
 type Tab = 'trainer' | 'bag' | 'party' | 'boxes' | 'dex';
 const TABS: { id: Tab; label: string }[] = [
@@ -46,33 +49,43 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   // ---------- trainer ----------
 
   function trainerTab(): Node {
-    return h('div', {},
-      h('div', { class: 'grid' },
-        field('Trainer name', textInput(s.trainerName, 10, (v) => { s.trainerName = v; markDirty(); }), 'In-game limit is 7 characters'),
-        field('Rival name', textInput(s.rivalName, 10, (v) => { s.rivalName = v; markDirty(); })),
-        field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; markDirty(); })),
-        field('Money (¥)', numberInput(s.money, 0, 999999, (v) => { s.money = v; markDirty(); })),
-        field('Game Corner coins', numberInput(s.coins, 0, 9999, (v) => { s.coins = v; markDirty(); })),
-      ),
-      h('h3', {}, 'Play time'),
-      h('div', { class: 'grid compact' },
-        field('Hours', numberInput(s.playHours, 0, 255, (v) => { s.playHours = v; markDirty(); })),
-        field('Minutes', numberInput(s.playMinutes, 0, 59, (v) => { s.playMinutes = v; markDirty(); })),
-        field('Seconds', numberInput(s.playSeconds, 0, 59, (v) => { s.playSeconds = v; markDirty(); })),
-      ),
-      h('h3', {}, 'Badges'),
-      h('div', { class: 'badges' }, BADGES.map((name, i) => {
-        const box = h('input', { type: 'checkbox', checked: Boolean((s.badges >> i) & 1) });
-        box.addEventListener('change', () => {
-          s.badges = box.checked ? s.badges | (1 << i) : s.badges & ~(1 << i);
-          markDirty();
-        });
-        return h('label', { class: 'chip' }, box, name);
-      })),
-      h('div', { class: 'button-row' },
-        h('button', { onclick: () => { s.badges = 0xff; markDirty(); render(); } }, 'All badges'),
-        h('button', { onclick: () => { s.money = 999999; s.coins = 9999; markDirty(); render(); } }, 'Max money & coins'),
-      ),
+    const badgeRow = h('div', { class: 'badge-grid' }, BADGES.map((name, i) => {
+      const btn = h('button', { class: 'badge-btn', 'aria-pressed': String(Boolean((s.badges >> i) & 1)) },
+        h('span', { class: 'gem', 'aria-hidden': 'true' }, String(i + 1)), name);
+      btn.addEventListener('click', () => {
+        s.badges ^= 1 << i;
+        btn.setAttribute('aria-pressed', String(Boolean((s.badges >> i) & 1)));
+        markDirty();
+      });
+      return btn;
+    }));
+    return h('div', { class: 'stack' },
+      h('section', { class: 'card' },
+        h('h3', {}, 'Trainer'),
+        h('div', { class: 'grid' },
+          field('Trainer name', textInput(s.trainerName, 10, (v) => { s.trainerName = v; markDirty(); }), 'In-game limit is 7 characters'),
+          field('Rival name', textInput(s.rivalName, 10, (v) => { s.rivalName = v; markDirty(); })),
+          field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; markDirty(); })),
+          field('Money (¥)', numberInput(s.money, 0, 999999, (v) => { s.money = v; markDirty(); })),
+          field('Game Corner coins', numberInput(s.coins, 0, 9999, (v) => { s.coins = v; markDirty(); })),
+        ),
+        h('div', { class: 'button-row' },
+          h('button', { onclick: () => { s.money = 999999; s.coins = 9999; markDirty(); render(); } }, 'Max money & coins'),
+        )),
+      h('section', { class: 'card' },
+        h('h3', {}, 'Play time'),
+        h('div', { class: 'grid compact' },
+          field('Hours', numberInput(s.playHours, 0, 255, (v) => { s.playHours = v; markDirty(); })),
+          field('Minutes', numberInput(s.playMinutes, 0, 59, (v) => { s.playMinutes = v; markDirty(); })),
+          field('Seconds', numberInput(s.playSeconds, 0, 59, (v) => { s.playSeconds = v; markDirty(); })),
+        )),
+      h('section', { class: 'card' },
+        h('h3', {}, 'Badges'),
+        badgeRow,
+        h('div', { class: 'button-row' },
+          h('button', { onclick: () => { s.badges = 0xff; markDirty(); render(); } }, 'All badges'),
+          h('button', { onclick: () => { s.badges = 0; markDirty(); render(); } }, 'Clear badges'),
+        )),
     );
   }
 
@@ -83,7 +96,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     const draw = () => {
       clear(wrap);
       wrap.append(
-        h('h3', {}, `${title} `, h('span', { class: 'muted' }, `${items.length}/${max}`)),
+        h('h3', {}, title, h('span', { class: 'muted count' }, `${items.length}/${max}`)),
         ...items.map((it, i) => h('div', { class: 'item-row' },
           selectInput(
             ITEM_CHOICES.some((c) => c.id === it.id) ? ITEM_CHOICES.map((c) => ({ value: c.id, label: c.name }))
@@ -108,12 +121,16 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
 
   function monCard(mon: Gen1Mon, onOpen: () => void, extra: Node[] = []): HTMLElement {
     const name = speciesName(mon.species);
+    const dex = INTERNAL_TO_DEX[mon.species];
     const showNick = mon.nickname && mon.nickname.toLowerCase() !== name.toLowerCase();
     return h('div', { class: 'mon' },
       h('button', { class: 'mon-main', onclick: onOpen },
-        h('span', { class: 'mon-name' }, showNick ? `${mon.nickname} ` : name,
+        h('span', { class: 'mon-title' },
+          dex ? h('span', { class: 'mon-dex' }, `#${String(dex).padStart(3, '0')}`) : null,
+          h('span', { class: 'mon-name' }, showNick ? `${mon.nickname} ` : name),
           showNick ? h('span', { class: 'muted' }, `(${name})`) : null),
-        h('span', { class: 'muted' }, `Lv ${mon.level}`),
+        h('span', { class: 'lcd lv' }, `Lv ${mon.level}`),
+        typeChips(baseStatsFor(mon.species)),
       ),
       ...extra,
     );
@@ -134,7 +151,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           ],
         ));
       });
-      if (!mons.length) wrap.append(h('p', { class: 'muted' }, 'Empty.'));
+      if (!mons.length) wrap.append(h('p', { class: 'muted' }, 'No Pokémon here yet.'));
       wrap.append(h('button', {
         disabled: mons.length >= max,
         onclick: () => {
@@ -185,7 +202,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       const owned = DEX_NAMES.filter((_, i) => s.isOwned(i + 1)).length;
       const seen = DEX_NAMES.filter((_, i) => s.isSeen(i + 1)).length;
       wrap.append(
-        h('p', { class: 'muted' }, `Owned ${owned}/151 · Seen ${seen}/151`),
+        h('p', { class: 'lcd dex-summary' }, `Owned ${owned}/151 · Seen ${seen}/151`),
         h('div', { class: 'button-row' },
           h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setOwned(i + 1, true)); markDirty(); draw(); } }, 'Complete Pokédex'),
           h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, true)); markDirty(); draw(); } }, 'Mark all seen'),
@@ -195,10 +212,10 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           const n = i + 1;
           const own = Boolean(s.isOwned(n)), see = Boolean(s.isSeen(n));
           return h('div', { class: `dex ${own ? 'owned' : see ? 'seen' : ''}` },
-            h('span', { class: 'dex-name' }, `#${String(n).padStart(3, '0')} ${name}`),
+            h('span', { class: 'dex-name' }, h('span', { class: 'dex-no' }, `#${String(n).padStart(3, '0')}`), name),
             h('span', { class: 'dex-actions' },
-              h('button', { class: see ? 'toggle on' : 'toggle', title: 'Seen', onclick: () => { s.setSeen(n, !see); markDirty(); draw(); } }, 'Seen'),
-              h('button', { class: own ? 'toggle on' : 'toggle', title: 'Owned', onclick: () => { s.setOwned(n, !own); markDirty(); draw(); } }, 'Own'),
+              h('button', { class: see ? 'toggle on' : 'toggle', title: 'Seen', 'aria-pressed': String(see), onclick: () => { s.setSeen(n, !see); markDirty(); draw(); } }, 'Seen'),
+              h('button', { class: own ? 'toggle on' : 'toggle', title: 'Owned', 'aria-pressed': String(own), onclick: () => { s.setOwned(n, !own); markDirty(); draw(); } }, 'Own'),
             ));
         })),
       );
