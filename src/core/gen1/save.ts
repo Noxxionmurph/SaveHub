@@ -21,6 +21,11 @@ const OFF = {
   pcItemCount: 0x27e6, // count, then 50 × (id, qty), 0xFF
   currentBox: 0x284c, // low 7 bits = box index, bit 7 = "box changed" flag
   coins: 0x2850, // 2 bytes BCD
+  // Pokémon Yellow only: this 128-byte block holds the Pikachu follower's state. Red and Blue leave it
+  // unused (the game clears it at boot), so any non-zero byte here means a Yellow save.
+  yellowBlock: 0x26dc,
+  pikachuFriendship: 0x271c, // wPikachuHappiness (0-255)
+  pikachuMood: 0x271d, // wPikachuMood (0x80 = neutral)
   playHours: 0x2ced,
   playMaxed: 0x2cee,
   playMinutes: 0x2cef,
@@ -33,6 +38,12 @@ const OFF = {
   bank2: 0x4000,
   bank3: 0x6000,
 } as const;
+
+const YELLOW_BLOCK_LEN = 128;
+/** Internal species index of Pikachu, the starter you're handed in Yellow. */
+export const PIKACHU_INTERNAL = 0x54;
+/** Yellow compares the first five bytes of the OT name with the trainer's name to find the starter Pikachu. */
+const STARTER_NAME_BYTES = 5;
 
 const NAME_LEN = 11;
 const PARTY_MON_SIZE = 44;
@@ -62,6 +73,13 @@ export function readOptions(byte: number): Gen1Options {
 /** The options byte for these settings. Bits 0-5 round-trip as read, so nothing the game stored is lost. */
 export function writeOptions(o: Gen1Options): number {
   return (o.textSpeed & 0x3f) | (o.battleStyleSet ? 0x40 : 0) | (o.battleAnimationsOff ? 0x80 : 0);
+}
+
+/** True for a Pokémon Yellow save (the Pikachu block is only ever written by Yellow). */
+export function looksLikeYellow(data: Uint8Array): boolean {
+  if (data.length < SAVE_SIZE) return false;
+  for (let i = OFF.yellowBlock; i < OFF.yellowBlock + YELLOW_BLOCK_LEN; i++) if (data[i] !== 0) return true;
+  return false;
 }
 
 export interface Gen1Mon {
@@ -328,6 +346,10 @@ export class Gen1Save implements EditableSave {
   coins: number;
   badges: number;
   options: Gen1Options;
+  /** Yellow only. The starter Pikachu's friendship (0-255), shown in the game as how happy it looks. */
+  pikachuFriendship: number;
+  pikachuMood: number;
+  readonly isYellow: boolean;
   playHours: number;
   playMinutes: number;
   playSeconds: number;
@@ -356,6 +378,9 @@ export class Gen1Save implements EditableSave {
     this.coins = bcdDecode(d, OFF.coins, 2);
     this.badges = d[OFF.badges];
     this.options = readOptions(d[OFF.options]);
+    this.isYellow = looksLikeYellow(d);
+    this.pikachuFriendship = d[OFF.pikachuFriendship];
+    this.pikachuMood = d[OFF.pikachuMood];
     this.playHours = d[OFF.playHours];
     this.playMinutes = d[OFF.playMinutes];
     this.playSeconds = d[OFF.playSeconds];
@@ -393,6 +418,25 @@ export class Gen1Save implements EditableSave {
     if (!on) this.setOwned(dex, false);
   }
 
+  /**
+   * Is this the Pikachu the game treats as yours (Yellow)? It must be a Pikachu whose original trainer ID
+   * matches yours and whose OT name starts with the same five characters as your name.
+   */
+  isStarterPikachu(mon: Gen1Mon): boolean {
+    if (mon.species !== PIKACHU_INTERNAL || mon.otId !== this.trainerId) return false;
+    const ot = encodeText(mon.otName, NAME_LEN, mon.otRaw);
+    const me = encodeText(this.trainerName, NAME_LEN, this.nameRaw);
+    for (let i = 0; i < STARTER_NAME_BYTES; i++) if (ot[i] !== me[i]) return false;
+    return true;
+  }
+
+  /** Give a Pokémon your name and Trainer ID as its original trainer, which is what makes a Pikachu "yours". */
+  makeStarter(mon: Gen1Mon): void {
+    mon.otId = this.trainerId;
+    mon.otName = this.trainerName;
+    mon.otRaw = this.nameRaw.slice();
+  }
+
   /** What differs from `before` (the same save as first loaded), grouped for the review dialog. */
   describeChanges(before: EditableSave): ChangeGroup[] {
     return describeGen1Changes(before as Gen1Save, this);
@@ -408,6 +452,10 @@ export class Gen1Save implements EditableSave {
     bcdEncode(d, OFF.coins, 2, this.coins);
     d[OFF.badges] = this.badges & 0xff;
     d[OFF.options] = writeOptions(this.options);
+    if (this.isYellow) {
+      d[OFF.pikachuFriendship] = this.pikachuFriendship & 0xff;
+      d[OFF.pikachuMood] = this.pikachuMood & 0xff;
+    }
     d[OFF.playHours] = this.playHours & 0xff;
     d[OFF.playMinutes] = Math.min(59, this.playMinutes);
     d[OFF.playSeconds] = Math.min(59, this.playSeconds);

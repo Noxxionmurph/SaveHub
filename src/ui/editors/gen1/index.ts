@@ -1,10 +1,10 @@
 // Gen 1 (Red / Blue / Yellow) editor UI. Loaded lazily by the shell via the game module.
 
 import {
-  BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, TEXT_SPEEDS, baseStatsFor, itemName, speciesName,
+  BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, TEXT_SPEEDS, baseStatsFor, friendshipLabel, itemName, speciesName,
 } from '../../../core/gen1/data.ts';
-import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, listAt } from '../../../core/gen1/roster.ts';
-import { newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
+import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, listAt, shiftMon } from '../../../core/gen1/roster.ts';
+import { PIKACHU_INTERNAL, newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
 import type { EditorHost, MountEditor } from '../../../core/types.ts';
 import { clear, field, h, numberInput, selectInput, textInput } from '../../dom.ts';
 import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
@@ -27,12 +27,12 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
   let boxView = s.currentBoxIndex;
   const markDirty = () => host.markDirty();
-  /** Redraws the trainer-card summary; set while the Trainer tab is showing. */
-  let refreshOverview: () => void = () => {};
-  const edited = () => { markDirty(); refreshOverview(); };
+  /** Redraw hooks for parts of the Trainer tab that depend on its fields (card summary, starter Pikachu). */
+  let refreshers: (() => void)[] = [];
+  const edited = () => { markDirty(); refreshers.forEach((f) => f()); };
 
   const render = () => {
-    refreshOverview = () => {};
+    refreshers = [];
     clear(container);
     container.append(
       h('nav', { class: 'tabs', role: 'tablist' }, TABS.map((t) =>
@@ -90,7 +90,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         })),
       );
     };
-    refreshOverview = draw;
+    refreshers.push(draw);
     draw();
     return wrap;
   }
@@ -120,6 +120,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         h('div', { class: 'button-row' },
           h('button', { onclick: () => { s.money = 999999; s.coins = 9999; markDirty(); render(); } }, 'Max money & coins'),
         )),
+      pikachuCard(),
       h('section', { class: 'card' },
         h('h3', {}, 'Play time'),
         h('div', { class: 'grid compact' },
@@ -136,6 +137,57 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         )),
       optionsCard(),
     );
+  }
+
+
+  /** Pokémon Yellow only: how much your starter Pikachu likes you, and whether the game still counts it as yours. */
+  function pikachuCard(): Node | null {
+    if (!s.isYellow) return null;
+    const label = h('span', { class: 'friend-label' });
+    const value = h('output', { class: 'friend-value', 'aria-label': 'Friendship' });
+    const slider = h('input', { type: 'range', min: 0, max: 255, step: 1, value: String(s.pikachuFriendship), 'aria-label': 'Friendship' });
+    const number = numberInput(s.pikachuFriendship, 0, 255, (v) => set(v), { 'aria-label': 'Friendship number' });
+    const paint = () => { value.textContent = String(s.pikachuFriendship); label.textContent = friendshipLabel(s.pikachuFriendship); };
+    function set(v: number): void {
+      s.pikachuFriendship = v;
+      slider.value = String(v);
+      number.value = String(v);
+      paint();
+      markDirty();
+    }
+    slider.addEventListener('input', () => set(Number(slider.value)));
+
+    const status = h('div', { class: 'starter-status', 'aria-live': 'polite' });
+    const drawStatus = () => {
+      clear(status);
+      const at = s.party.findIndex((m) => s.isStarterPikachu(m));
+      if (at >= 0) {
+        status.append(h('p', {}, h('strong', {}, 'Starter Pikachu: '), `${monLabel(s.party[at])} (party ${at + 1}). It follows you while it's in your party and hasn't fainted.`));
+        return;
+      }
+      const other = s.party.findIndex((m) => m.species === PIKACHU_INTERNAL);
+      if (other < 0) {
+        status.append(h('p', {}, h('strong', {}, 'No starter Pikachu in your party. '),
+          'The game only counts a Pikachu whose original trainer (OT) is your name and Trainer ID. Put one in your party, then use the button here.'));
+        return;
+      }
+      status.append(
+        h('p', {}, h('strong', {}, 'Not your starter. '),
+          `${monLabel(s.party[other])}'s original trainer doesn't match your name and Trainer ID, so it won't follow you.`),
+        h('button', { onclick: () => { s.makeStarter(s.party[other]); markDirty(); drawStatus(); } }, `Make ${monLabel(s.party[other])} my starter`));
+    };
+    refreshers.push(drawStatus);
+    paint();
+    drawStatus();
+
+    return h('section', { class: 'card pikachu-card' },
+      h('div', { class: 'card-title' }, pokemonIcon(25, 'card-icon'), h('h3', {}, 'Pikachu')),
+      h('div', { class: 'lcd friend' }, h('span', { class: 'friend-head' }, 'Friendship'), value, label),
+      h('div', { class: 'friend-controls' }, slider, number),
+      h('div', { class: 'button-row' },
+        h('button', { onclick: () => set(255) }, 'Max friendship')),
+      h('p', { class: 'muted' }, 'The Museum of Science hiker wants 101 or more, and Melanie in Cerulean City only gives her Bulbasaur at 147 or more.'),
+      status);
   }
 
   /** The three settings from the in-game OPTION menu. */
@@ -189,11 +241,12 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
 
   // ---------- Pokémon lists ----------
 
-  function monCard(mon: Gen1Mon, onOpen: () => void, extra: Node[] = []): HTMLElement {
+  function monCard(mon: Gen1Mon, onOpen: () => void, extra: Node[] = [], before: Node[] = []): HTMLElement {
     const name = speciesName(mon.species);
     const dex = INTERNAL_TO_DEX[mon.species];
     const showNick = mon.nickname && mon.nickname.toLowerCase() !== name.toLowerCase();
     return h('div', { class: 'mon' },
+      ...before,
       h('button', { class: 'mon-main', onclick: onOpen },
         pokemonIcon(dex),
         h('span', { class: 'mon-title' },
@@ -202,7 +255,8 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           showNick ? h('span', { class: 'muted' }, `(${name})`) : null),
         h('span', { class: 'mon-meta' },
           h('span', { class: 'lcd lv' }, `Lv ${mon.level}`),
-          typeChips(baseStatsFor(mon.species), false)),
+          typeChips(baseStatsFor(mon.species), false),
+          s.isYellow && s.isStarterPikachu(mon) ? h('span', { class: 'tag starter', title: 'Your starter Pikachu' }, 'Starter') : null),
       ),
       ...extra,
     );
@@ -233,13 +287,23 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
 
   function partyTab(): Node {
     const wrap = h('div', { class: 'mon-list' });
-    const draw = () => {
+    const draw = (focus?: { index: number; delta: -1 | 1 }) => {
       clear(wrap);
       s.party.forEach((mon, i) => {
+        const nudge = (delta: -1 | 1) => () => { if (shiftMon(s, PARTY, i, delta)) { markDirty(); draw({ index: i + delta, delta }); } };
         wrap.append(monCard(mon, () => editMon(PARTY, i, draw), [
           h('button', { class: 'icon', 'aria-label': `Actions for ${monLabel(mon)}`, onclick: () => menuFor(PARTY, i, draw) }, '⋯'),
+        ], [
+          h('div', { class: 'reorder', role: 'group', 'aria-label': `Move ${monLabel(mon)}` },
+            h('button', { class: 'icon', 'aria-label': `Move ${monLabel(mon)} up`, disabled: i === 0, dataset: { reorder: `${i}:-1` }, onclick: nudge(-1) }, '↑'),
+            h('button', { class: 'icon', 'aria-label': `Move ${monLabel(mon)} down`, disabled: i === s.party.length - 1, dataset: { reorder: `${i}:1` }, onclick: nudge(1) }, '↓')),
         ]));
       });
+      // Keep keyboard focus on the arrow that was just used, so it can be pressed again.
+      if (focus) {
+        const same = wrap.querySelector<HTMLButtonElement>(`[data-reorder="${focus.index}:${focus.delta}"]:not(:disabled)`);
+        (same ?? wrap.querySelector<HTMLButtonElement>(`[data-reorder="${focus.index}:${-focus.delta}"]:not(:disabled)`))?.focus();
+      }
       if (!s.party.length) wrap.append(h('p', { class: 'muted' }, 'No Pokémon here yet.'));
       wrap.append(h('button', {
         disabled: s.party.length >= PARTY_MAX,

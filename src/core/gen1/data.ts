@@ -361,3 +361,19 @@ export const TEXT_SPEEDS = [
   { value: 3, label: 'Medium' },
   { value: 5, label: 'Slow' },
 ] as const;
+
+/**
+ * How the Celadon Mansion granny describes the starter Pikachu (Yellow), by friendship. These are the game's own
+ * bands: each entry applies while friendship is below `below`.
+ */
+export const FRIENDSHIP_BANDS = [
+  { below: 51, label: 'Not tamed at all' },
+  { below: 101, label: 'Needs more care' },
+  { below: 131, label: 'Cute and content' },
+  { below: 161, label: 'Seems tamed' },
+  { below: 201, label: 'Happy with you' },
+  { below: 256, label: 'A fantastic duo' },
+] as const;
+
+export const friendshipLabel = (friendship: number): string =>
+  FRIENDSHIP_BANDS.find((b) => friendship < b.below)?.label ?? FRIENDSHIP_BANDS[FRIENDSHIP_BANDS.length - 1].label;

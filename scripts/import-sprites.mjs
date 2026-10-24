@@ -68,5 +68,6 @@ artwork is not covered by that licence. Remove this folder to take the artwork o
 without it (icons just don't show).
 `);
 
+await import('./measure-icons.mjs'); // re-centre offsets for the icons we just copied
 console.log(`Copied ${nMon} Pokémon icons, ${nItem} item icons and ${nType} type icons into assets/sprites/`);
 if (missing.length) { console.error('MISSING:', missing.join(', ')); process.exit(1); }

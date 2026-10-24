@@ -47,13 +47,25 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
     const base = baseStatsFor(mon.species);
     const calc = calcStats(mon.species, mon.level, mon.dvs, mon.evs);
 
-    /** One move: its type icon and name, current PP (capped at the move's real maximum) and PP Ups. */
+    /**
+     * One move: type icon and name on the first line; below, the current PP (read-only) and a PP Up stepper
+     * side by side, with the move's maximum PP centred underneath both. Each PP Up raises the maximum, and the
+     * current PP rises with it, like using a PP Up in the game.
+     */
     const moveRow = (i: number): HTMLElement => {
       const redraw = () => row.replaceWith((row = build()));
+      const setUps = (n: number) => {
+        const id = mon.moves[i];
+        const before = maxPp(id, mon.ppUps[i]);
+        mon.ppUps[i] = n;
+        const after = maxPp(id, n);
+        mon.pp[i] = Math.max(0, Math.min(after, mon.pp[i] + after - before));
+        redraw();
+      };
       const build = (): HTMLElement => {
         const id = mon.moves[i];
         const info = moveInfo(id);
-        const cap = maxPp(id, mon.ppUps[i]);
+        const ups = mon.ppUps[i];
         return h('div', { class: 'move-row' },
           h('div', { class: 'move-pick' },
             info ? typeIcon(info.type, 'move-type') : h('span', { class: 'move-type blank', 'aria-hidden': 'true' }),
@@ -62,15 +74,16 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
               mon.pp[i] = maxPp(mon.moves[i], mon.ppUps[i]); // a newly picked move starts with full PP
               redraw();
             })),
-          field('PP', numberInput(mon.pp[i], 0, cap, (v) => { mon.pp[i] = v; }, { disabled: !id }), id ? `max ${cap}` : undefined),
-          field('PP Up', numberInput(mon.ppUps[i], 0, 3, (v) => {
-            // Like using a PP Up in the game: the current PP grows by the same amount as the maximum.
-            const before = maxPp(id, mon.ppUps[i]);
-            mon.ppUps[i] = v;
-            const after = maxPp(id, v);
-            mon.pp[i] = Math.max(0, Math.min(after, mon.pp[i] + after - before));
-            redraw();
-          }, { disabled: !id })));
+          h('div', { class: 'field' },
+            h('span', { class: 'field-label' }, 'PP'),
+            h('output', { class: 'lcd pp-value', 'aria-label': 'PP' }, id ? String(mon.pp[i]) : '–')),
+          h('div', { class: 'field' },
+            h('span', { class: 'field-label' }, 'PP Up'),
+            h('div', { class: 'stepper', role: 'group', 'aria-label': 'PP Up' },
+              h('button', { class: 'icon', 'aria-label': 'Fewer PP Ups', disabled: !id || ups <= 0, onclick: () => setUps(ups - 1) }, '−'),
+              h('output', { class: 'lcd stepper-value', 'aria-label': 'PP Ups used' }, id ? String(ups) : '–'),
+              h('button', { class: 'icon', 'aria-label': 'More PP Ups', disabled: !id || ups >= 3, onclick: () => setUps(ups + 1) }, '+'))),
+          h('p', { class: 'max-pp' }, id ? `Max PP: ${maxPp(id, ups)}` : ' '));
       };
       let row = build();
       return row;

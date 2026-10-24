@@ -1,14 +1,18 @@
-// A made-up Gen 1 save, built in code, for the "Try a sample save" button and for scripts/tests.
-// Nothing here comes from a real game: it's a tidy trainer with a full party, a couple of boxes,
-// a bag, three badges and a partly filled Pokédex, so every tab of the editor has something to show.
+// A made-up Pokémon Yellow save, built in code, for the "Try a sample save" button and for scripts/tests.
+// Nothing here comes from a real game: it's a tidy trainer with a full party led by their starter Pikachu, a
+// couple of boxes, a bag, three badges and a partly filled Pokédex, so every tab of the editor has something to show.
 
 import { DEX_TO_INTERNAL, INTERNAL_TO_DEX, MOVE_NAMES, expForLevel, type Growth } from './data.ts';
 import { maxPp } from './moves.ts';
 import { Gen1Save, SAVE_SIZE, checksum8, newMon, recalcPartyStats, type Gen1Mon } from './save.ts';
 import { encodeText } from './text.ts';
 
-/** A brand-new, empty save that passes every checksum (what the game writes for a fresh file). */
-export function blankGen1Save(trainer = 'ASH', rival = 'GARY'): Uint8Array {
+/**
+ * A brand-new, empty save that passes every checksum (what the game writes for a fresh file). With
+ * `yellow`, Pikachu's block is filled in as a new Yellow game does (friendship 90, neutral mood), which is
+ * what marks the file as Pokémon Yellow.
+ */
+export function blankGen1Save(trainer = 'ASH', rival = 'GARY', yellow = false): Uint8Array {
   const d = new Uint8Array(SAVE_SIZE);
   d.set(encodeText(trainer, 11), 0x2598);
   d.set(encodeText(rival, 11), 0x25f6);
@@ -18,6 +22,7 @@ export function blankGen1Save(trainer = 'ASH', rival = 'GARY'): Uint8Array {
     d[bank + 0x1a4c] = checksum8(d, bank, bank + 0x1a4c);
     for (let i = 0; i < 6; i++) d[bank + 0x1a4d + i] = checksum8(d, bank + i * 0x462, bank + (i + 1) * 0x462);
   }
+  if (yellow) { d[0x271c] = 90; d[0x271d] = 0x80; }
   d[0x3523] = checksum8(d, 0x2598, 0x3523);
   return d;
 }
@@ -72,7 +77,8 @@ const BOX_2: Spec[] = [
 
 /** The sample save's bytes: a valid file that opens in the editor and in the real game. */
 export function buildSampleSave(): Uint8Array {
-  const save = new Gen1Save(blankGen1Save());
+  const save = new Gen1Save(blankGen1Save('ASH', 'GARY', true));
+  save.pikachuFriendship = 160;
   save.trainerId = TRAINER_ID;
   save.money = 12500;
   save.coins = 250;

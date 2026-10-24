@@ -186,6 +186,20 @@ function pokemonLines(b: Gen1Save, a: Gen1Save): string[] {
   return lines;
 }
 
+// ---------- Yellow: the starter Pikachu ----------
+
+function pikachuLines(b: Gen1Save, a: Gen1Save): string[] {
+  if (!a.isYellow) return [];
+  const out: string[] = [];
+  if (b.pikachuFriendship !== a.pikachuFriendship) out.push(`Friendship: ${b.pikachuFriendship} → ${a.pikachuFriendship}`);
+  // The game finds your Pikachu by its original trainer, so editing your name or ID (or moving it out of the
+  // party) quietly stops it following you.
+  if (b.party.some((m) => b.isStarterPikachu(m)) && !a.party.some((m) => a.isStarterPikachu(m))) {
+    out.push("Your starter Pikachu won't follow you: it's no longer in the party, or its original trainer no longer matches your name and ID");
+  }
+  return out;
+}
+
 // ---------- everything ----------
 
 export function describeGen1Changes(before: Gen1Save, after: Gen1Save): ChangeGroup[] {
@@ -195,6 +209,7 @@ export function describeGen1Changes(before: Gen1Save, after: Gen1Save): ChangeGr
     group('PC items', itemLines(before.pcItems, after.pcItems)),
     group('Pokémon', pokemonLines(before, after), 14),
     group('Pokédex', dexLines(before, after)),
+    group('Pikachu', pikachuLines(before, after)),
     group('Options', optionLines(before, after)),
   ].filter((g): g is ChangeGroup => g !== null);
 }

@@ -3,6 +3,7 @@
 // site still works if the assets folder is removed.
 
 import { h } from './dom.ts';
+import { ICON_OFFSETS, ICON_SIZE } from './spriteOffsets.ts';
 
 const BASE = 'assets/sprites';
 
@@ -17,10 +18,21 @@ function icon(src: string, w: number, h_: number, cls: string): HTMLImageElement
   return img;
 }
 
+/**
+ * The icons are drawn with their feet on a common baseline, so the art sits low in its canvas. Shift each one
+ * by how far off-centre its visible pixels are (measured by scripts/measure-icons.mjs). Percentages are of the
+ * image's own size, so it stays right however large CSS draws the icon.
+ */
+function centre(img: HTMLImageElement, dex: number): HTMLImageElement {
+  const [dx, dy] = ICON_OFFSETS[dex] ?? [0, 0];
+  if (dx || dy) img.style.transform = `translate(${(-dx / ICON_SIZE[0] * 100).toFixed(2)}%, ${(-dy / ICON_SIZE[1] * 100).toFixed(2)}%)`;
+  return img;
+}
+
 /** Pokémon box icon (68x56) by National Dex number. Dex 0 (glitch species) gets an empty spacer. */
 export function pokemonIcon(dex: number, cls = ''): HTMLElement {
   if (!dex) return h('span', { class: `sprite mon-icon empty ${cls}`.trim(), 'aria-hidden': 'true' });
-  return icon(pokemonIconUrl(dex), 68, 56, `mon-icon ${cls}`.trim());
+  return centre(icon(pokemonIconUrl(dex), ICON_SIZE[0], ICON_SIZE[1], `mon-icon ${cls}`.trim()), dex);
 }
 
 /** Item icon (32x32) from a "<category>/<name>" path. */
@@ -46,5 +58,7 @@ export function setIconSrc(img: HTMLImageElement, src: string): void {
 
 /** A generic icon from any page-relative path (used for the per-game pictures on the landing page). */
 export function pictureIcon(src: string, w: number, h_: number, cls = ''): HTMLImageElement {
-  return icon(src, w, h_, cls);
+  const img = icon(src, w, h_, cls);
+  const dex = Number(src.match(/\/pokemon\/(\d+)\.png$/)?.[1]);
+  return dex ? centre(img, dex) : img;
 }

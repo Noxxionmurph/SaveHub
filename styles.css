@@ -291,7 +291,6 @@ dialog.confirm-dialog { width: min(360px, 100vw - 32px); padding: 18px 18px 6px;
 .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 10px 8px; margin-bottom: 18px; text-align: center; }
 .stats dt { font-size: 0.75rem; color: var(--lcd-dim); }
 .stats dd { font: 600 1rem var(--font-mono); }
-.move-row { display: grid; grid-template-columns: 1fr 72px 72px; gap: 8px; margin-bottom: 8px; align-items: end; }
 
 /* ---- notices ---- */
 .error, .notice-box { margin-top: 24px; padding: 16px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 6px; }
@@ -420,11 +419,34 @@ button.danger { color: var(--danger); }
 .move-type.blank { display: inline-block; }
 .sheet-note { margin-top: 10px; min-height: 0; color: var(--danger); font-weight: 600; font-size: 0.875rem; }
 .sheet-note:empty { display: none; }
-/* On a phone the move name gets its own line, so "Thunder Wave" isn't cut off. */
-@media (max-width: 520px) {
-  .move-row { grid-template-columns: 1fr 1fr; }
-  .move-row .move-pick { grid-column: 1 / -1; }
-}
 /* Money is the widest figure on the trainer card; give it more room so it never runs into Coins. */
 .tcard-stats { grid-template-columns: 1.6fr 1fr 1fr 1fr; }
-@media (max-width: 520px) { .move-row { align-items: start; } }
+
+/* ---- a move: name on top, PP and PP Up in two matching boxes, max PP centred below ---- */
+.move-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-bottom: 18px; }
+.move-row .move-pick { grid-column: 1 / -1; }
+.pp-value, .stepper-value {
+  display: flex; align-items: center; justify-content: center; min-height: 42px; min-width: 0;
+  font: 600 1.0625rem var(--font-mono);
+}
+.stepper { display: grid; grid-template-columns: 42px minmax(0, 1fr) 42px; gap: 6px; }
+.stepper button { padding: 0; font-size: 1.25rem; min-width: 0; }
+.max-pp { grid-column: 1 / -1; margin: -2px 0 0; text-align: center; font-size: 0.875rem; color: var(--muted); min-height: 1.3em; }
+
+/* ---- party cards: up/down arrows on the left of each card ---- */
+.reorder { display: grid; grid-template-rows: 1fr 1fr; gap: 4px; width: 40px; flex: none; }
+.reorder button { min-height: 0; width: 100%; padding: 0; font-size: 1.0625rem; line-height: 1; }
+
+/* ---- Yellow: the starter Pikachu ---- */
+.card-title { display: flex; align-items: center; gap: 8px; }
+.card-title h3 { margin: 0; }
+.card-icon { width: 48px; height: auto; }
+.friend { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 2px 14px; padding: 10px 14px; }
+.friend-head { grid-column: 1 / -1; font-size: 0.75rem; color: var(--lcd-dim); }
+.friend-value { font: 700 2rem/1 var(--font-mono); }
+.friend-label { font-weight: 600; }
+.friend-controls { display: grid; grid-template-columns: 1fr 92px; gap: 12px; align-items: center; margin: 14px 0 4px; }
+.friend-controls input[type="range"] { width: 100%; min-height: 32px; padding: 0; accent-color: var(--button); box-shadow: none; background: none; border: 0; }
+.starter-status { margin-top: 12px; display: grid; gap: 8px; justify-items: start; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font: 600 0.75rem var(--font-body); }
+.tag.starter { background: var(--button); color: var(--button-ink); }

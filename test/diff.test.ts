@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DEX_TO_INTERNAL } from '../src/core/gen1/data.ts';
 import { Gen1Save, SAVE_SIZE, checksum8, newMon, recalcPartyStats } from '../src/core/gen1/save.ts';
+import { buildSampleSave } from '../src/core/gen1/sample.ts';
 import { encodeText } from '../src/core/gen1/text.ts';
 
 function blank(): Uint8Array {
@@ -104,4 +105,27 @@ test('changing only the species of a Pokémon reads as an edit, not a swap', () 
   const f = fixture();
   f.after.party[1].species = DEX_TO_INTERNAL[17]; // Pidgey -> Pidgeotto
   assert.deepEqual(lines(f, 'Pokémon'), ['Pidgeotto “PIDGEY” (Party 2): species Pidgey → Pidgeotto']);
+});
+
+test('Yellow: friendship changes are listed, and losing the starter Pikachu is called out', () => {
+  const raw = buildSampleSave();
+  const f = { before: new Gen1Save(raw), after: new Gen1Save(raw) };
+  assert.deepEqual(diff(f), []);
+
+  f.after.pikachuFriendship = 255;
+  assert.deepEqual(lines(f, 'Pikachu'), ['Friendship: 160 → 255']);
+
+  f.after.trainerId = 54321; // the starter's OT ID no longer matches
+  const got = lines(f, 'Pikachu');
+  assert.equal(got.length, 2);
+  assert.match(got[1], /starter Pikachu won't follow you/);
+
+  f.after.makeStarter(f.after.party[0]); // fixed again
+  assert.deepEqual(lines(f, 'Pikachu'), ['Friendship: 160 → 255']);
+});
+
+test('Red/Blue saves never get a Pikachu section', () => {
+  const f = fixture();
+  f.after.pikachuFriendship = 7;
+  assert.deepEqual(diff(f), []);
 });

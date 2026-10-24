@@ -4,6 +4,7 @@ import { itemName, speciesName } from '../src/core/gen1/data.ts';
 import { Gen1Save, gen1Handler } from '../src/core/gen1/save.ts';
 import { blankGen1Save, buildSampleSave } from '../src/core/gen1/sample.ts';
 import { openSave } from '../src/core/registry.ts';
+import pokemonGen1 from '../src/games/pokemon-gen1.ts';
 
 test('the blank save is valid and empty', () => {
   const raw = blankGen1Save('RED', 'BLUE');
@@ -38,4 +39,14 @@ test('the sample has something on every tab', () => {
   // Every Pokémon's moves have PP, and a party member's stats are consistent with its level.
   for (const m of [...s.party, ...s.boxes.flat()]) m.moves.forEach((mv, i) => assert.equal(mv ? m.pp[i] > 0 : m.pp[i] === 0, true));
   for (const m of s.party) assert.equal(m.hp, m.maxHp);
+});
+
+test('the sample is a Pokémon Yellow save with its starter Pikachu in front', () => {
+  const raw = buildSampleSave();
+  assert.deepEqual(pokemonGen1.identify!(raw).names, ['Pokémon Yellow']);
+  const s = new Gen1Save(raw);
+  assert.equal(s.isYellow, true);
+  assert.equal(s.pikachuFriendship, 160);
+  assert.equal(s.isStarterPikachu(s.party[0]), true);
+  assert.deepEqual(s.party.slice(1).map((m) => s.isStarterPikachu(m)), [false, false, false, false, false]);
 });

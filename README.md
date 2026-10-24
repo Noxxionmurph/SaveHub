@@ -18,7 +18,11 @@ Pokémon box icons (dex #1-151), item icons and type icons live in `assets/sprit
 [PokéSprite](https://github.com/msikma/pokesprite); the eight gym badges are cut from the Trainer Card sheet on
 The Spriters Resource (see `assets/sprites/CREDITS.md`). The images are © Nintendo /
 Creatures Inc. / GAME FREAK Inc.; delete the folder to remove them and the site still works, just without icons.
-To refresh them from a PokéSprite checkout: `node scripts/import-sprites.mjs <path>`. Which file shows for which
+To refresh them from a PokéSprite checkout: `node scripts/import-sprites.mjs <path>`.
+The box icons are drawn with their feet on a common baseline, so the art sits low in its canvas;
+`scripts/measure-icons.mjs` measures where the visible pixels really are and writes `src/ui/spriteOffsets.ts`, and
+the UI nudges each icon by that much so Pokémon look vertically centred wherever they appear (the import script
+runs it for you, and `npm test` fails if the table is stale). Which file shows for which
 Gen 1 item is one table in `src/ui/editors/gen1/itemSprites.ts`, and `npm test` checks that every file it names exists.
 
 ## Run it
@@ -30,6 +34,7 @@ npm run dev          # builds to dist/ and serves http://localhost:5173
 npm test             # unit tests (data tables, round-trips, checksums)
 node scripts/make-sample.ts sample.sav   # the same made-up save the "Try a sample save" button opens
 node scripts/gen-moves.mjs <pokered checkout>   # regenerates src/core/gen1/moves.ts (type, power, accuracy, PP)
+node scripts/measure-icons.mjs                  # regenerates src/ui/spriteOffsets.ts after changing the Pokémon icons
 ```
 
 Everything runs client-side; saves never leave the browser. **Back up your real .sav before editing.**
@@ -38,11 +43,19 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
 
 - Trainer: name, rival, ID, money, coins, play time, badges; in-game options (text speed, battle animations,
   battle style)
+- **Pokémon Yellow** is told apart from Red/Blue by the file itself (Yellow writes Pikachu's state into a block
+  Red and Blue leave empty). A Yellow save gets a Pikachu card: friendship (0-255, with the game's own wording
+  for each range) and whether the game still counts your Pikachu as your starter. That depends on its original
+  trainer matching your name and Trainer ID, so the editor tags the starter in the party, warns in the review list
+  if an edit would orphan it, and has a "Make Pikachu my starter" button. Red and Blue can't be told apart, so
+  those saves ask which one yours is.
 - Bag and PC item storage (only items the game can actually put there)
-- Party and all 12 boxes, shown as a 4 x 5 grid like the PC. Tap a Pokémon to edit it, move it between the party
-  and any box, copy it, reorder it or remove it. The last Pokémon in the party can't be moved out or removed.
-- Full Pokémon editor: species, nickname, OT, level, exp + growth curve, status, moves (with type icons), PP capped
-  at each move's real maximum, PP Ups, DVs, EVs, battle stats
+- Party and all 12 boxes. The party has up/down arrows beside each card; boxes are a 4 x 5 grid like the PC. Tap ⋯
+  (party) or a Pokémon (box) to edit it, move it between the party and any box, copy it or remove it. The last
+  Pokémon in the party can't be moved out or removed.
+- Full Pokémon editor: species, nickname, OT, level, exp + growth curve, status, moves (with type icons), DVs, EVs,
+  battle stats. Each move shows its PP (read-only) and a PP Up stepper (0-3); every PP Up raises the maximum and the
+  current PP with it, like the game, and "Max PP" is shown under both. Restore PP refills all four.
 - Pokédex seen / owned
 - **Save** first shows a plain-language list of everything that changed (and "No changes yet" if nothing did)
 - "Try a sample save" on the landing page opens a made-up save, so nothing needs to be uploaded to look around
@@ -113,5 +126,9 @@ is wrapped in a `.zip`, since `.sav` isn't an allowed type) and in-page dialogs.
 - Gen 1: English only (Japanese uses different offsets and text encoding). Event flags and map position are left untouched.
 - The options byte (text speed, battle style, animations) and the max-PP rules come from the pokered disassembly, not
   from a real cartridge; check them against one of your own saves.
+- Yellow's Pikachu offsets (friendship at 0x271C, mood at 0x271D) come from the pokeyellow disassembly and were
+  checked against one real Yellow save. Mood is kept as it is, not editable.
 - Red and Blue saves are byte-identical in structure, so the site asks which version yours is.
+- Names that use the game's "PK" / "MN" symbols show a "?" in the editor but are written back exactly as they were
+  unless you change that name.
 - Growth rate isn't stored in the save, so the editor infers it from level/exp and lets you override it.

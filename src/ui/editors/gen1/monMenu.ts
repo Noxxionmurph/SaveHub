@@ -66,7 +66,8 @@ export function openMonMenu({ save, where, index, onEdit, onChange }: MonMenuOpt
             finish(r.where === where ? `Copied ${name}.` : `Copied ${name} to ${placeName(r.where)}, since ${placeName(where)} is full.`);
           },
         }, 'Duplicate'),
-        h('div', { class: 'sheet-pair' },
+        // Party members have arrows on the Party tab; boxes don't, so the menu keeps them for boxes.
+        where === PARTY ? null : h('div', { class: 'sheet-pair' },
           h('button', { disabled: index === 0, onclick: () => { shiftMon(save, where, index, -1); finish(`Moved ${name} up.`); } }, '↑ Earlier'),
           h('button', { disabled: index >= list.length - 1, onclick: () => { shiftMon(save, where, index, 1); finish(`Moved ${name} down.`); } }, '↓ Later')),
         h('button', {

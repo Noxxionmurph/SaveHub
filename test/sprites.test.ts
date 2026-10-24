@@ -33,3 +33,17 @@ test('all 15 Gen 1 types have an icon', () => {
   const types = ['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon'];
   for (const t of types) assert.ok(has(`types/${t}.png`), `missing types/${t}.png`);
 });
+
+test('icon offsets match the sprite files (rerun scripts/measure-icons.mjs after refreshing sprites)', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { centreOffset } = await import('../scripts/lib/png-alpha.mjs');
+  const { ICON_OFFSETS, ICON_SIZE } = await import('../src/ui/spriteOffsets.ts');
+  assert.equal(ICON_OFFSETS.length, 152);
+  for (let dex = 1; dex <= 151; dex++) {
+    const o = centreOffset(await readFile(new URL(`../assets/sprites/pokemon/${dex}.png`, import.meta.url)));
+    assert.deepEqual([o.width, o.height], [...ICON_SIZE], `icon ${dex} size`);
+    assert.deepEqual([...ICON_OFFSETS[dex]], [o.dx, o.dy], `icon ${dex} offset`);
+  }
+  // The art really does sit low (feet on a common baseline), which is what the shift corrects.
+  assert.ok(ICON_OFFSETS.slice(1).every(([, dy]) => dy > 8 && dy < 22));
+});
