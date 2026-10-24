@@ -18,6 +18,7 @@
   --cart: #8b919b;
   --cart-shade: #6e747e;
   --pin: #3c424d;
+  --slot-bar: #23272f;
   --focus: #1a56db;
   --font-display: "Pixelify Sans", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -30,7 +31,7 @@
     --text: #e6e8ec; --muted: #a2a9b5;
     --button: #e0447f; --button-edge: #a82a5c; --button-ink: #1a0610;
     --lcd: #223018; --lcd-ink: #c2d96e; --lcd-dim: #8aa04a; --lcd-edge: #3b4f27;
-    --cart: #a9afba; --cart-shade: #8d93a0; --pin: #d0d4db;
+    --cart: #a9afba; --cart-shade: #8d93a0; --pin: #d0d4db; --slot-bar: #0e1014;
     --focus: #7fb0ff;
     color-scheme: dark;
   }
@@ -40,7 +41,7 @@
   --text: #e6e8ec; --muted: #a2a9b5;
   --button: #e0447f; --button-edge: #a82a5c; --button-ink: #1a0610;
   --lcd: #223018; --lcd-ink: #c2d96e; --lcd-dim: #8aa04a; --lcd-edge: #3b4f27;
-  --cart: #a9afba; --cart-shade: #8d93a0; --pin: #d0d4db;
+  --cart: #a9afba; --cart-shade: #8d93a0; --pin: #d0d4db; --slot-bar: #0e1014;
   --focus: #7fb0ff;
   color-scheme: dark;
 }
@@ -93,7 +94,7 @@ a { color: inherit; text-underline-offset: 3px; }
 }
 .slot-bar {
   position: absolute; left: 0; right: 0; bottom: 0; height: 22px; border-radius: 4px;
-  background: #23272f; box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.55);
+  background: var(--slot-bar); box-shadow: inset 0 3px 0 rgba(0, 0, 0, 0.55);
 }
 .slot.over .slot-cart { transform: translateX(-50%) translateY(10px); }
 .slot-text { display: grid; gap: 6px; justify-items: start; min-width: 0; }
@@ -134,13 +135,15 @@ a { color: inherit; text-underline-offset: 3px; }
 
 .supported { margin-top: 44px; }
 .family + .family { margin-top: 8px; }
-.tiles { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.tiles { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
 .tile {
-  display: grid; grid-template-columns: 10px 1fr; column-gap: 12px; padding: 10px 12px 10px 0;
+  display: grid; grid-template-columns: 10px 1fr auto; column-gap: 12px; align-items: center; padding: 6px 8px 6px 0;
   background: var(--surface); border: 1px solid var(--line); border-radius: 4px; overflow: hidden;
 }
-.tile-label { grid-row: 1 / span 2; background: var(--label, var(--line-strong)); }
+.tile-label { grid-row: 1 / span 2; align-self: stretch; margin-block: -6px; background: var(--label, var(--line-strong)); }
 .tile-name { font-weight: 600; }
+.tile-platform { grid-column: 2; }
+.tile-icon { grid-column: 3; grid-row: 1 / span 2; }
 .request { margin-top: 16px; color: var(--muted); }
 .site-foot {
   margin-top: 44px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted);
@@ -249,20 +252,6 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 
 .dex-summary { display: inline-block; padding: 6px 12px; font: 500 0.875rem var(--font-mono); }
 .dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; margin-top: 12px; }
-.dex {
-  display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 6px 5px 10px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 4px; opacity: 0.78;
-}
-.dex.seen { opacity: 1; border-color: var(--lcd-edge); }
-.dex.owned { opacity: 1; background: var(--lcd); color: var(--lcd-ink); border-color: var(--lcd-edge); }
-.dex-no { margin-right: 8px; font: 500 0.75rem var(--font-mono); }
-.dex-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dex-actions { display: flex; gap: 4px; }
-button.toggle { min-height: 32px; padding: 0 9px; font-size: 0.75rem; border-bottom-width: 2px; border-radius: 6px; }
-button.toggle.on { background: var(--lcd-ink); color: var(--lcd); border-color: var(--lcd-ink); }
-.dex.owned button.toggle { background: transparent; color: var(--lcd-ink); border-color: var(--lcd-edge); }
-.dex.owned button.toggle.on { background: var(--lcd-ink); color: var(--lcd); }
-
 /* ---- dialogs ---- */
 dialog {
   color: var(--text); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 12px; padding: 0;
@@ -294,3 +283,70 @@ dialog.confirm-dialog { width: min(360px, 100vw - 32px); padding: 18px 18px 6px;
 @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 @media (max-width: 380px) { .tab { padding-inline: 7px; } }
+
+/* ---- sprites ---- */
+.sprite { display: block; flex: none; max-width: none; }
+.sprite.empty { width: 68px; height: 56px; }
+.mon-icon.big { width: 88px; height: auto; }
+.item-icon { width: 32px; height: 32px; }
+
+/* ---- trainer card + party strip ---- */
+.overview { display: grid; gap: 12px; }
+.tcard { padding: 12px 14px; }
+.tcard-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+.tcard-name { font: 700 1.5rem/1.1 var(--font-display); overflow-wrap: anywhere; }
+.tcard-id { font: 500 0.875rem var(--font-mono); color: var(--lcd-dim); white-space: nowrap; }
+.tcard-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(72px, 1fr)); gap: 6px 12px; }
+.tcard-stats dt { font-size: 0.75rem; color: var(--lcd-dim); }
+.tcard-stats dd { font: 600 0.9375rem var(--font-mono); }
+.party-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.party-slot {
+  display: grid; justify-items: center; align-content: center; gap: 0; min-width: 0; padding: 2px 0 4px; min-height: 0;
+  border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 8px; background: var(--surface-2);
+}
+.party-slot .mon-icon { width: 100%; max-width: 68px; height: auto; }
+.party-slot.empty { border-style: dashed; background: none; min-height: 64px; }
+.lv-tag { font: 600 0.6875rem var(--font-mono); color: var(--muted); }
+
+/* ---- Pokémon cards with icons ---- */
+.mon-id { display: flex; gap: 12px; align-items: center; min-width: 0; }
+
+/* ---- bag rows with icons ---- */
+.item-row { grid-template-columns: 32px 1fr 76px auto; align-items: center; }
+
+/* ---- Pokédex icon grid ---- */
+.dex-hint { margin-top: 10px; }
+.dex-grid { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.dex-tile {
+  position: relative; display: grid; justify-items: center; gap: 0; padding: 6px 4px 8px; min-height: 0; text-align: center;
+  background: var(--surface); border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 8px; font-weight: 400;
+}
+.dex-tile .dex-no { font: 500 0.6875rem var(--font-mono); color: var(--muted); }
+.dex-tile .dex-name { font-size: 0.8125rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dex-tile .dex-ball { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; display: none; }
+.dex-tile.unseen .mon-icon { filter: brightness(0); opacity: 0.2; }
+.dex-tile.unseen .dex-name { color: var(--muted); }
+.dex-tile.seen { border-color: var(--lcd-edge); }
+.dex-tile.owned { background: var(--lcd); color: var(--lcd-ink); border-color: var(--lcd-edge); }
+.dex-tile.owned .dex-no { color: var(--lcd-dim); }
+.dex-tile.owned .dex-ball { display: block; }
+
+.site-foot > span:nth-child(2) { flex-basis: 100%; order: 3; }
+
+.mon-main { grid-template-columns: auto 1fr; align-items: center; gap: 2px 8px; }
+.mon-main > .mon-icon { grid-row: 1 / span 2; margin-left: -4px; }
+.mon-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mon-meta .mon-types { display: contents; }
+.mon-meta .lv { align-self: auto; }
+.mon-title { overflow-wrap: anywhere; }
+
+.tcard-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 8px; }
+.tcard-stats dd { font-size: 0.875rem; }
+.party-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 620px) { .party-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+.party-slot .mon-icon { width: 68px; max-width: 100%; }
+.slot-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; font-weight: 600; }
+.party-slot { padding: 4px 4px 6px; }
+.party-slot.empty { min-height: 96px; }
+
+.tile-icon { width: 84px; height: auto; }

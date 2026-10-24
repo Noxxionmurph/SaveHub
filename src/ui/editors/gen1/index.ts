@@ -6,6 +6,8 @@ import {
 import { newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
 import type { EditorHost, MountEditor } from '../../../core/types.ts';
 import { askConfirm, clear, field, h, numberInput, selectInput, textInput } from '../../dom.ts';
+import { itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
+import { itemSpritePath } from './itemSprites.ts';
 import { openMonEditor } from './monEditor.ts';
 import { typeChips } from './typeChip.ts';
 
@@ -23,8 +25,12 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
   let boxView = s.currentBoxIndex;
   const markDirty = () => host.markDirty();
+  /** Redraws the trainer-card summary; set while the Trainer tab is showing. */
+  let refreshOverview: () => void = () => {};
+  const edited = () => { markDirty(); refreshOverview(); };
 
   const render = () => {
+    refreshOverview = () => {};
     clear(container);
     container.append(
       h('nav', { class: 'tabs', role: 'tablist' }, TABS.map((t) =>
@@ -48,6 +54,42 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
 
   // ---------- trainer ----------
 
+  const popcount = (n: number) => { let c = 0; for (let v = n & 0xff; v; v &= v - 1) c++; return c; };
+  const monLabel = (mon: Gen1Mon) => (mon.nickname && mon.nickname.toLowerCase() !== speciesName(mon.species).toLowerCase() ? mon.nickname : speciesName(mon.species));
+
+  /** The in-game trainer card at a glance, plus the party as icons (tap one to edit it). */
+  function overview(): HTMLElement {
+    const wrap = h('section', { class: 'card overview' });
+    const stat = (label: string, value: string) => h('div', {}, h('dt', {}, label), h('dd', {}, value));
+    const draw = () => {
+      clear(wrap);
+      wrap.append(
+        h('div', { class: 'lcd tcard' },
+          h('div', { class: 'tcard-top' },
+            h('span', { class: 'tcard-name' }, s.trainerName || '—'),
+            h('span', { class: 'tcard-id' }, `ID ${String(s.trainerId).padStart(5, '0')}`)),
+          h('dl', { class: 'tcard-stats' },
+            stat('Money', `¥${s.money.toLocaleString('en-US')}`),
+            stat('Coins', s.coins.toLocaleString('en-US')),
+            stat('Time', `${s.playHours}:${String(s.playMinutes).padStart(2, '0')}`),
+            stat('Badges', `${popcount(s.badges)}/8`))),
+        h('div', { class: 'party-strip', role: 'group', 'aria-label': 'Party' }, Array.from({ length: 6 }, (_, i) => {
+          const mon = s.party[i];
+          if (!mon) return h('span', { class: 'party-slot empty', 'aria-hidden': 'true' });
+          return h('button', {
+            class: 'party-slot', 'aria-label': `${monLabel(mon)}, level ${mon.level}. Edit`,
+            onclick: () => openMonEditor({ mon, party: true, onDone: () => { markDirty(); draw(); } }),
+          }, pokemonIcon(INTERNAL_TO_DEX[mon.species]),
+          h('span', { class: 'slot-name' }, monLabel(mon)),
+          h('span', { class: 'lv-tag' }, `Lv ${mon.level}`));
+        })),
+      );
+    };
+    refreshOverview = draw;
+    draw();
+    return wrap;
+  }
+
   function trainerTab(): Node {
     const badgeRow = h('div', { class: 'badge-grid' }, BADGES.map((name, i) => {
       const btn = h('button', { class: 'badge-btn', 'aria-pressed': String(Boolean((s.badges >> i) & 1)) },
@@ -55,19 +97,20 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       btn.addEventListener('click', () => {
         s.badges ^= 1 << i;
         btn.setAttribute('aria-pressed', String(Boolean((s.badges >> i) & 1)));
-        markDirty();
+        edited();
       });
       return btn;
     }));
     return h('div', { class: 'stack' },
+      overview(),
       h('section', { class: 'card' },
         h('h3', {}, 'Trainer'),
         h('div', { class: 'grid' },
-          field('Trainer name', textInput(s.trainerName, 10, (v) => { s.trainerName = v; markDirty(); }), 'In-game limit is 7 characters'),
+          field('Trainer name', textInput(s.trainerName, 10, (v) => { s.trainerName = v; edited(); }), 'In-game limit is 7 characters'),
           field('Rival name', textInput(s.rivalName, 10, (v) => { s.rivalName = v; markDirty(); })),
-          field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; markDirty(); })),
-          field('Money (¥)', numberInput(s.money, 0, 999999, (v) => { s.money = v; markDirty(); })),
-          field('Game Corner coins', numberInput(s.coins, 0, 9999, (v) => { s.coins = v; markDirty(); })),
+          field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; edited(); })),
+          field('Money (¥)', numberInput(s.money, 0, 999999, (v) => { s.money = v; edited(); })),
+          field('Game Corner coins', numberInput(s.coins, 0, 9999, (v) => { s.coins = v; edited(); })),
         ),
         h('div', { class: 'button-row' },
           h('button', { onclick: () => { s.money = 999999; s.coins = 9999; markDirty(); render(); } }, 'Max money & coins'),
@@ -75,8 +118,8 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       h('section', { class: 'card' },
         h('h3', {}, 'Play time'),
         h('div', { class: 'grid compact' },
-          field('Hours', numberInput(s.playHours, 0, 255, (v) => { s.playHours = v; markDirty(); })),
-          field('Minutes', numberInput(s.playMinutes, 0, 59, (v) => { s.playMinutes = v; markDirty(); })),
+          field('Hours', numberInput(s.playHours, 0, 255, (v) => { s.playHours = v; edited(); })),
+          field('Minutes', numberInput(s.playMinutes, 0, 59, (v) => { s.playMinutes = v; edited(); })),
           field('Seconds', numberInput(s.playSeconds, 0, 59, (v) => { s.playSeconds = v; markDirty(); })),
         )),
       h('section', { class: 'card' },
@@ -97,14 +140,18 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       clear(wrap);
       wrap.append(
         h('h3', {}, title, h('span', { class: 'muted count' }, `${items.length}/${max}`)),
-        ...items.map((it, i) => h('div', { class: 'item-row' },
-          selectInput(
-            ITEM_CHOICES.some((c) => c.id === it.id) ? ITEM_CHOICES.map((c) => ({ value: c.id, label: c.name }))
-              : [{ value: it.id, label: itemName(it.id) }, ...ITEM_CHOICES.map((c) => ({ value: c.id, label: c.name }))],
-            it.id, (v) => { it.id = Number(v); markDirty(); }),
-          numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': 'Quantity' }),
-          h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { items.splice(i, 1); markDirty(); draw(); } }, '✕'),
-        )),
+        ...items.map((it, i) => {
+          const icon = itemIcon(itemSpritePath(it.id));
+          return h('div', { class: 'item-row' },
+            icon,
+            selectInput(
+              ITEM_CHOICES.some((c) => c.id === it.id) ? ITEM_CHOICES.map((c) => ({ value: c.id, label: c.name }))
+                : [{ value: it.id, label: itemName(it.id) }, ...ITEM_CHOICES.map((c) => ({ value: c.id, label: c.name }))],
+              it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }),
+            numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': 'Quantity' }),
+            h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { items.splice(i, 1); markDirty(); draw(); } }, '✕'),
+          );
+        }),
         h('button', {
           disabled: items.length >= max,
           onclick: () => { items.push({ id: 0x28, count: 99 }); markDirty(); draw(); },
@@ -125,12 +172,14 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     const showNick = mon.nickname && mon.nickname.toLowerCase() !== name.toLowerCase();
     return h('div', { class: 'mon' },
       h('button', { class: 'mon-main', onclick: onOpen },
+        pokemonIcon(dex),
         h('span', { class: 'mon-title' },
           dex ? h('span', { class: 'mon-dex' }, `#${String(dex).padStart(3, '0')}`) : null,
           h('span', { class: 'mon-name' }, showNick ? `${mon.nickname} ` : name),
           showNick ? h('span', { class: 'muted' }, `(${name})`) : null),
-        h('span', { class: 'lcd lv' }, `Lv ${mon.level}`),
-        typeChips(baseStatsFor(mon.species)),
+        h('span', { class: 'mon-meta' },
+          h('span', { class: 'lcd lv' }, `Lv ${mon.level}`),
+          typeChips(baseStatsFor(mon.species))),
       ),
       ...extra,
     );
@@ -196,32 +245,48 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   // ---------- Pokédex ----------
 
   function dexTab(): Node {
-    const wrap = h('div');
-    const draw = () => {
-      clear(wrap);
+    type DexState = 'unseen' | 'seen' | 'owned';
+    const stateOf = (n: number): DexState => (s.isOwned(n) ? 'owned' : s.isSeen(n) ? 'seen' : 'unseen');
+    const summary = h('p', { class: 'lcd dex-summary' });
+    const paintSummary = () => {
       const owned = DEX_NAMES.filter((_, i) => s.isOwned(i + 1)).length;
       const seen = DEX_NAMES.filter((_, i) => s.isSeen(i + 1)).length;
-      wrap.append(
-        h('p', { class: 'lcd dex-summary' }, `Owned ${owned}/151 · Seen ${seen}/151`),
-        h('div', { class: 'button-row' },
-          h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setOwned(i + 1, true)); markDirty(); draw(); } }, 'Complete Pokédex'),
-          h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, true)); markDirty(); draw(); } }, 'Mark all seen'),
-          h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, false)); markDirty(); draw(); } }, 'Clear'),
-        ),
-        h('div', { class: 'dex-grid' }, DEX_NAMES.map((name, i) => {
-          const n = i + 1;
-          const own = Boolean(s.isOwned(n)), see = Boolean(s.isSeen(n));
-          return h('div', { class: `dex ${own ? 'owned' : see ? 'seen' : ''}` },
-            h('span', { class: 'dex-name' }, h('span', { class: 'dex-no' }, `#${String(n).padStart(3, '0')}`), name),
-            h('span', { class: 'dex-actions' },
-              h('button', { class: see ? 'toggle on' : 'toggle', title: 'Seen', 'aria-pressed': String(see), onclick: () => { s.setSeen(n, !see); markDirty(); draw(); } }, 'Seen'),
-              h('button', { class: own ? 'toggle on' : 'toggle', title: 'Owned', 'aria-pressed': String(own), onclick: () => { s.setOwned(n, !own); markDirty(); draw(); } }, 'Own'),
-            ));
-        })),
-      );
+      summary.textContent = `Owned ${owned}/151 · Seen ${seen}/151`;
     };
-    draw();
-    return wrap;
+    const tiles = DEX_NAMES.map((name, i) => {
+      const n = i + 1;
+      const tile = h('button', { class: 'dex-tile' },
+        pokemonIcon(n),
+        itemIcon('ball/poke', 'dex-ball'),
+        h('span', { class: 'dex-no' }, `#${String(n).padStart(3, '0')}`),
+        h('span', { class: 'dex-name' }, name));
+      const paint = () => {
+        const st = stateOf(n);
+        tile.className = `dex-tile ${st}`;
+        tile.setAttribute('aria-label', `#${n} ${name}: ${st}. Tap to change.`);
+      };
+      tile.addEventListener('click', () => {
+        const st = stateOf(n);
+        if (st === 'unseen') s.setSeen(n, true);
+        else if (st === 'seen') s.setOwned(n, true);
+        else s.setSeen(n, false);
+        markDirty(); paint(); paintSummary();
+      });
+      paint();
+      return { tile, paint };
+    });
+    const repaint = () => { tiles.forEach((t) => t.paint()); paintSummary(); };
+    paintSummary();
+    return h('div', {},
+      summary,
+      h('p', { class: 'muted dex-hint' }, 'Tap a Pokémon to cycle it: unseen, seen, owned.'),
+      h('div', { class: 'button-row' },
+        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setOwned(i + 1, true)); markDirty(); repaint(); } }, 'Complete Pokédex'),
+        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, true)); markDirty(); repaint(); } }, 'Mark all seen'),
+        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, false)); markDirty(); repaint(); } }, 'Clear'),
+      ),
+      h('div', { class: 'dex-grid' }, tiles.map((t) => t.tile)),
+    );
   }
 
   render();

@@ -8,6 +8,7 @@ import {
   applySpeciesTypes, calcStats, defaultNickname, hpDv, recalcPartyStats, type Gen1Mon,
 } from '../../../core/gen1/save.ts';
 import { clear, field, h, numberInput, selectInput, textInput } from '../../dom.ts';
+import { pokemonIcon } from '../../sprites.ts';
 import { typeChips } from './typeChip.ts';
 
 const SPECIES_OPTIONS = DEX_NAMES.map((name, i) => ({
@@ -69,10 +70,12 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
 
     return [
       h('div', { class: 'mon-head' },
-        h('div', {},
-          h('h2', {}, mon.nickname || speciesName(mon.species)),
-          h('p', { class: 'muted' }, dex ? `#${String(dex).padStart(3, '0')} ${speciesName(mon.species)}` : speciesName(mon.species)),
-          typeChips(base)),
+        h('div', { class: 'mon-id' },
+          pokemonIcon(dex, 'big'),
+          h('div', {},
+            h('h2', {}, mon.nickname || speciesName(mon.species)),
+            h('p', { class: 'muted' }, dex ? `#${String(dex).padStart(3, '0')} ${speciesName(mon.species)}` : speciesName(mon.species)),
+            typeChips(base))),
         h('span', { class: 'lcd lv' }, `Lv ${mon.level}`)),
       h('dl', { class: 'lcd stats', 'aria-label': party ? 'Current stats' : 'Calculated stats' },
         (['hp', 'atk', 'def', 'spe', 'spc'] as const).map((k) =>

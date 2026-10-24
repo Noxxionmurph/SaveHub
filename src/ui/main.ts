@@ -5,6 +5,7 @@ import { GAMES, detectGames, gamesByFamily, type Match } from '../core/registry.
 import type { EditableSave, EditorHost, GameIdentity, GameModule } from '../core/types.ts';
 import { cartridge } from './brand.ts';
 import { askConfirm, clear, h, toast } from './dom.ts';
+import { pictureIcon } from './sprites.ts';
 import { makeZip } from './zip.ts';
 
 const root = document.getElementById('app')!;
@@ -218,10 +219,12 @@ function renderWelcome(): void {
         h('div', { class: 'family' },
           h('h3', {}, family),
           h('ul', { class: 'tiles' }, games.flatMap((g) => g.games.map((name) => {
+            const picture = g.icons?.[name];
             const tile = h('li', { class: 'tile' },
               h('span', { class: 'tile-label', 'aria-hidden': 'true' }),
               h('span', { class: 'tile-name' }, name),
-              h('span', { class: 'muted' }, g.platform));
+              h('span', { class: 'muted tile-platform' }, g.platform),
+              picture ? pictureIcon(picture, 68, 56, 'tile-icon') : null);
             const color = g.colors?.[name];
             if (color) tile.style.setProperty('--label', color);
             return tile;
@@ -231,6 +234,8 @@ function renderWelcome(): void {
 
     h('footer', { class: 'site-foot' },
       h('span', {}, 'Runs entirely in your browser.'),
+      h('span', {}, 'Sprites from ', externalLink('https://github.com/msikma/pokesprite', 'PokéSprite'),
+        ', © Nintendo / Creatures Inc. / GAME FREAK Inc.'),
       externalLink(REPO, 'Source on GitHub')),
   );
 }

@@ -49,6 +49,8 @@ export interface GameModule<S extends EditableSave = EditableSave> {
   readonly platform: string;
   /** Optional cartridge-label color per game name (any CSS color), shown on the landing page. */
   readonly colors?: Readonly<Record<string, string>>;
+  /** Optional small picture per game name (a path relative to the page), shown on the landing page. */
+  readonly icons?: Readonly<Record<string, string>>;
   /**
    * Cheap, side-effect-free structural check: file size, checksums, magic values, plausible fields.
    * Must never throw. Never rely on a file hash — saves change every time the game writes them.

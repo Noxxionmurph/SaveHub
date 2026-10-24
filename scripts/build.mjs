@@ -35,4 +35,5 @@ for await (const file of walk(srcDir)) {
 
 await cp(join(root, 'index.html'), join(outDir, 'index.html'));
 await cp(join(root, 'styles.css'), join(outDir, 'styles.css'));
+await cp(join(root, 'assets'), join(outDir, 'assets'), { recursive: true });
 console.log(`Built ${count} modules into dist/`);

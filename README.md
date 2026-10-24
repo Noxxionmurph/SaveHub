@@ -12,6 +12,14 @@ Pokédex totals, the example bytes), magenta action buttons. Colours are CSS tok
 light and a dark set. Fonts (Pixelify Sans, Instrument Sans, JetBrains Mono) load from Google Fonts and fall back to
 system fonts. A game can set `colors` on its module to give each title a cartridge-label colour on the landing page.
 
+## Sprites
+
+Pokémon box icons (dex #1-151) and item icons live in `assets/sprites/` and come from
+[PokéSprite](https://github.com/msikma/pokesprite) (see `assets/sprites/CREDITS.md`). The images are © Nintendo /
+Creatures Inc. / GAME FREAK Inc.; delete the folder to remove them and the site still works, just without icons.
+To refresh them from a PokéSprite checkout: `node scripts/import-sprites.mjs <path>`. Which file shows for which
+Gen 1 item is one table in `src/ui/editors/gen1/itemSprites.ts`, and `npm test` checks that every file it names exists.
+
 ## Run it
 
 Requires Node 22.18+ (uses Node's built-in TypeScript stripping — **no npm dependencies**).
