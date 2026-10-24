@@ -74,12 +74,12 @@ test('the starter Pikachu is the one with your Trainer ID and name as OT', () =>
   assert.equal(wrongName.otName, 'ALEXANDER');
 });
 
-test('a name with a glyph this editor shows as "?" is still matched byte for byte', () => {
+test('a name with the PK symbol shows as {PK} and is still matched byte for byte', () => {
   const raw = yellowBytes();
   raw.set([0x80, 0xb2, 0xa7, 0xab, 0xa4, 0xb8, 0xe1, 0x50, 0x50, 0x50, 0x50], 0x2598); // "Ashley" + PK glyph
   raw[0x3523] = checksum8(raw, 0x2598, 0x3523);
   const s = new Gen1Save(raw);
-  assert.equal(s.trainerName, 'Ashley?');
+  assert.equal(s.trainerName, 'Ashley{PK}');
   const pika = newMon(PIKACHU_INTERNAL, 30);
   pika.otId = s.trainerId;
   s.makeStarter(pika);

@@ -157,8 +157,11 @@ Every screen explains itself in plain words, so keep it that way when you add a 
 - Yellow's Pikachu offsets (friendship at 0x271C, mood at 0x271D) come from the pokeyellow disassembly and were
   checked against one real Yellow save. Mood is kept as it is, not editable.
 - Red and Blue saves are byte-identical in structure, so the site asks which version yours is.
-- Names that use the game's "PK" / "MN" symbols show a "?" in the editor but are written back exactly as they were
-  unless you change that name.
+- Names that use the game's "PK" / "MN" symbols show as `{PK}` / `{MN}` in the editor, and the "TRAINER" text some
+  Pokémon carry as their original trainer shows as `{TRAINER}`. Type them the same way to put them back. A name that
+  isn't touched is written back byte for byte.
+- A name field warns, under the box, when what you typed can't be saved as typed: a character the game has no glyph
+  for (it would be saved as "?") or more than 10 characters (the rest is dropped).
 - Dragging is for mouse, touch and pen; on a touch screen you press and hold for a moment first, so swiping still scrolls.
   There is no keyboard drag, but the Pokémon menu does everything it does.
 - Growth rate isn't stored in the save, so the editor infers it from level/exp and lets you override it.

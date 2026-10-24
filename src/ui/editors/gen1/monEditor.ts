@@ -7,9 +7,10 @@ import {
 import {
   applySpeciesTypes, calcStats, defaultNickname, hpDv, recalcPartyStats, type Gen1Mon,
 } from '../../../core/gen1/save.ts';
-import { clear, field, h, numberInput, selectInput, textInput } from '../../dom.ts';
+import { clear, field, h, numberInput, selectInput } from '../../dom.ts';
 import { maxPp, moveInfo } from '../../../core/gen1/moves.ts';
 import { pokemonIcon, typeIcon } from '../../sprites.ts';
+import { nameField } from './nameField.ts';
 import { typeChips } from './typeChip.ts';
 
 const SPECIES_OPTIONS = DEX_NAMES.map((name, i) => ({
@@ -123,7 +124,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
           touched();
           refresh();
         }), base ? undefined : 'Unknown species'),
-        field('Nickname', textInput(mon.nickname, 10, (v) => { mon.nickname = v; }), 'Up to 10 characters'),
+        nameField('Nickname', mon.nickname, (v) => { mon.nickname = v; }, 'Up to 10 characters.'),
         field('Level', numberInput(mon.level, 1, 100, (v) => {
           mon.level = v;
           mon.exp = expForLevel(growth, v);
@@ -136,7 +137,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
         field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; }), 'Total experience points.'),
         field('Status', selectInput(STATUS_OPTIONS, STATUS_OPTIONS.some((s) => s.value === mon.status) ? mon.status : 0,
           (v) => { mon.status = Number(v); })),
-        field('Original trainer', textInput(mon.otName, 10, (v) => { mon.otName = v; }), 'The name of whoever caught it.'),
+        nameField('Original trainer', mon.otName, (v) => { mon.otName = v; }, 'The name of whoever caught it.'),
         field('Original trainer ID', numberInput(mon.otId, 0, 65535, (v) => { mon.otId = v; }),
           'If this isn’t your Trainer ID, the game counts this Pokémon as traded.'),
         field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; })),

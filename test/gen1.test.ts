@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import {
   BASE_STATS, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, MOVE_NAMES, expForLevel, guessGrowth, speciesName,
 } from '../src/core/gen1/data.ts';
-import { decodeText, encodeText } from '../src/core/gen1/text.ts';
+import { decodeText, encodeText, isEncodable, nameProblems } from '../src/core/gen1/text.ts';
+import { nameWarning } from '../src/ui/editors/gen1/nameField.ts';
 import {
   Gen1Save, SAVE_SIZE, calcStats, checksum8, gen1Handler, newMon, recalcPartyStats,
 } from '../src/core/gen1/save.ts';
@@ -53,6 +54,29 @@ test('text encoding round-trips and keeps unknown bytes intact', () => {
   assert.equal(decodeText(enc), 'Ash♂ Jr.');
   const weird = new Uint8Array([0x80, 0x01, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50]);
   assert.deepEqual(encodeText(decodeText(weird), 11, weird), weird);
+});
+
+test('the PK and MN symbols show as {PK} and {MN} and encode back to the same bytes', () => {
+  // "Ashley" followed by the PK symbol: the trainer name in a real Yellow save
+  const real = new Uint8Array([0x80, 0xb2, 0xa7, 0xab, 0xa4, 0xb8, 0xe1, 0x50, 0x00, 0x00, 0x00]);
+  assert.equal(decodeText(real), 'Ashley{PK}');
+  assert.equal(decodeText(encodeText('Ashley{PK}', 11)), 'Ashley{PK}');
+  assert.deepEqual(encodeText('Ashley{PK}', 11).slice(0, 8), real.slice(0, 8));
+  assert.deepEqual(encodeText('{MN}', 11).slice(0, 2), new Uint8Array([0xe2, 0x50]));
+  // the letters P and K are different bytes from the symbol
+  assert.deepEqual(encodeText('PK', 11).slice(0, 3), new Uint8Array([0x8f, 0x8a, 0x50]));
+  // a symbol counts as one character toward the length limit
+  assert.equal(decodeText(encodeText('{PK}{PK}{PK}{PK}{PK}{PK}{PK}{PK}', 8)), '{PK}{PK}{PK}{PK}{PK}{PK}{PK}');
+  // untouched names keep their exact bytes
+  assert.deepEqual(encodeText(decodeText(real), 11, real), real);
+});
+
+test('isEncodable says which names the game can show', () => {
+  assert.equal(isEncodable('Ash♂ Jr.'), true);
+  assert.equal(isEncodable('Ashley{PK}'), true);
+  assert.equal(isEncodable('Zoë'), false);
+  assert.equal(isEncodable('😀'), false);
+  assert.equal(isEncodable('{PKX}'), false);
 });
 
 test('stat formula matches known Gen 1 values', () => {
@@ -202,4 +226,25 @@ test('in-game options read and write the right bits and nothing else', () => {
   raw[0x2601] = 0b0000_0111;
   raw[0x3523] = checksum8(raw, 0x2598, 0x3523);
   assert.equal(new Gen1Save(raw).serialize()[0x2601], 7);
+});
+
+test('nameProblems and nameWarning say what the game would change in a typed name', () => {
+  assert.deepEqual(nameProblems('Ashley{PK}', 10), { unsupported: [], extra: 0 });
+  assert.deepEqual(nameProblems('Zoë@@ ✓', 10), { unsupported: ['ë', '@', '✓'], extra: 0 });
+  assert.deepEqual(nameProblems('ABCDEFGHIJKL', 10), { unsupported: [], extra: 2 });
+  assert.deepEqual(nameProblems('{PK}{PK}{PK}{PK}{PK}{PK}', 10), { unsupported: [], extra: 0 }, 'a symbol is one character');
+  assert.equal(nameWarning('Ashley{PK}'), '');
+  assert.equal(nameWarning('Zoë'), 'The game can’t show “ë”. It is saved as “?”.');
+  assert.equal(nameWarning('Zoë@'), 'The game can’t show “ë” “@”. They are saved as “?”.');
+  assert.equal(nameWarning('ABCDEFGHIJKL'), 'Only the first 10 characters are kept.');
+  assert.match(nameWarning('é#$%&*+=<>'), /saved as/);
+  assert.equal(nameWarning('é'), '', 'é is in the game’s character set');
+});
+
+test('the TRAINER text used as an original trainer shows as {TRAINER} and encodes back to the same byte', () => {
+  const bytes = Uint8Array.of(0x5d, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50, 0x50);
+  assert.equal(decodeText(bytes), '{TRAINER}');
+  assert.deepEqual([...encodeText('{TRAINER}', 11)], [...bytes]);
+  assert.equal(isEncodable('{TRAINER}'), true);
+  assert.deepEqual(nameProblems('{TRAINER}', 10), { unsupported: [], extra: 0 });
 });

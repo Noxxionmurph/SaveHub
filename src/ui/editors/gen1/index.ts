@@ -6,12 +6,13 @@ import {
 import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, dropMon, listAt, placeName, shiftMon } from '../../../core/gen1/roster.ts';
 import { PIKACHU_INTERNAL, newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
 import type { EditorHost, MountEditor } from '../../../core/types.ts';
-import { clear, field, h, lazySelect, numberInput, selectInput, textInput, toast } from '../../dom.ts';
+import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '../../dom.ts';
 import { enableDrag } from '../../drag.ts';
 import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
 import { openMonEditor } from './monEditor.ts';
 import { openMonMenu } from './monMenu.ts';
+import { nameField } from './nameField.ts';
 import { typeChips } from './typeChip.ts';
 
 type Tab = 'trainer' | 'bag' | 'party' | 'boxes' | 'dex';
@@ -130,8 +131,9 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       h('section', { class: 'card' },
         h('h3', {}, 'Trainer'),
         h('div', { class: 'grid' },
-          field('Trainer name', textInput(s.trainerName, 10, (v) => { s.trainerName = v; edited(); }), 'The game shows up to 7 characters.'),
-          field('Rival name', textInput(s.rivalName, 10, (v) => { s.rivalName = v; markDirty(); }), 'Up to 7 characters.'),
+          nameField('Trainer name', s.trainerName, (v) => { s.trainerName = v; edited(); },
+            'The game shows up to 7 characters. Type {PK} or {MN} for the PK and MN symbols.'),
+          nameField('Rival name', s.rivalName, (v) => { s.rivalName = v; markDirty(); }, 'Up to 7 characters.'),
           field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; edited(); }),
             'Pokémon you caught remember this number. If you change it, they count as traded: they earn extra experience, but may ignore your orders at higher levels.'),
           field('Money (¥)', numberInput(s.money, 0, 999999, (v) => { s.money = v; edited(); }), 'Up to ¥999,999.'),
