@@ -99,8 +99,13 @@ export interface Gen1Mon {
   dvs: { atk: number; def: number; spe: number; spc: number };
   nickname: string;
   otName: string;
+  /**
+   * Party Pokémon only: the level and the "box level" byte exactly as the file had them. The game works from the
+   * party level; the box level byte can be left at 0 or stale, so it is only rewritten when the level changes.
+   */
+  origLevel?: number;
+  origBoxLevel?: number;
   // Party-only computed stats (ignored for box mons).
-  partyLevel: number;
   maxHp: number;
   atk: number;
   def: number;
@@ -176,7 +181,6 @@ export const hpDv = (dvs: Gen1Mon['dvs']) =>
 /** Recalculate a party mon's stored stats (and clamp HP) from its species/level/DVs/EVs. */
 export function recalcPartyStats(mon: Gen1Mon, heal = false): void {
   const s = calcStats(mon.species, mon.level, mon.dvs, mon.evs);
-  mon.partyLevel = mon.level;
   if (!s) return;
   mon.maxHp = s.hp; mon.atk = s.atk; mon.def = s.def; mon.spe = s.spe; mon.spc = s.spc;
   mon.hp = heal ? s.hp : Math.min(mon.hp, s.hp);
@@ -201,7 +205,7 @@ export function newMon(species: number, level = 5): Gen1Mon {
     evs: { hp: 0, atk: 0, def: 0, spe: 0, spc: 0 },
     dvs: { atk: 8, def: 8, spe: 8, spc: 8 },
     nickname: defaultNickname(species), otName: '',
-    partyLevel: level, maxHp: 1, atk: 1, def: 1, spe: 1, spc: 1,
+    maxHp: 1, atk: 1, def: 1, spe: 1, spc: 1,
   };
   applySpeciesTypes(mon);
   recalcPartyStats(mon, true);
@@ -235,10 +239,13 @@ function readMon(d: Uint8Array, off: number, party: boolean, otRaw: Uint8Array, 
     nickname: decodeText(nickRaw),
     otName: decodeText(otRaw),
     nickRaw, otRaw,
-    partyLevel: d[off + 3], maxHp: 0, atk: 0, def: 0, spe: 0, spc: 0,
+    maxHp: 0, atk: 0, def: 0, spe: 0, spc: 0,
   };
   if (party) {
-    mon.partyLevel = d[off + 33];
+    // A party Pokémon's level is the one stored with its stats; the byte at +3 is only the box level.
+    mon.level = d[off + 33] || d[off + 3];
+    mon.origLevel = mon.level;
+    mon.origBoxLevel = d[off + 3];
     mon.maxHp = u16(d, off + 34);
     mon.atk = u16(d, off + 36);
     mon.def = u16(d, off + 38);
@@ -253,7 +260,7 @@ function writeMon(d: Uint8Array, off: number, mon: Gen1Mon, party: boolean): voi
   d.fill(0, off, off + size);
   d[off] = mon.species;
   setU16(d, off + 1, mon.hp);
-  d[off + 3] = mon.level;
+  d[off + 3] = party && mon.origBoxLevel !== undefined && mon.origLevel === mon.level ? mon.origBoxLevel : mon.level;
   d[off + 4] = mon.status;
   d[off + 5] = mon.type1;
   d[off + 6] = mon.type2;
@@ -272,7 +279,7 @@ function writeMon(d: Uint8Array, off: number, mon: Gen1Mon, party: boolean): voi
   d[off + 28] = ((mon.dvs.spe & 0xf) << 4) | (mon.dvs.spc & 0xf);
   for (let i = 0; i < 4; i++) d[off + 29 + i] = ((mon.ppUps[i] & 3) << 6) | (mon.pp[i] & 0x3f);
   if (party) {
-    d[off + 33] = mon.partyLevel;
+    d[off + 33] = mon.level;
     setU16(d, off + 34, mon.maxHp);
     setU16(d, off + 36, mon.atk);
     setU16(d, off + 38, mon.def);

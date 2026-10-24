@@ -56,7 +56,7 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
   or onto an empty spot to move it to the end; hold a dragged Pokémon over the ‹ › buttons to turn to the next box.
   Tap one for its menu instead: edit it, move it to the party or any box, duplicate it or remove it. The last Pokémon in
   the party can't be moved out or removed (a swap is fine, since the count doesn't change).
-- Full Pokémon editor: species, nickname, OT, level, exp + growth curve, status, moves (with type icons), DVs, EVs,
+- Full Pokémon editor: species, nickname, OT, level, exp (the species' own growth curve), status, moves (with type icons), DVs, EVs,
   battle stats. Each move shows its PP (read-only) and a PP Up stepper (0-3); every PP Up raises the maximum and the
   current PP with it, like the game, and "Max PP" is shown under both. Restore PP refills all four.
 - Pokédex seen / owned
@@ -154,7 +154,9 @@ Every screen explains itself in plain words, so keep it that way when you add a 
 
 ## Known limitations
 
-- Tested against synthetic saves built from documented offsets, not yet against real cartridge saves; try copies of your own and report mismatches.
+- Tested against synthetic saves built from documented offsets and against two real saves (a Yellow and a Blue, both from
+  emulators): they load, save back byte for byte, and every stored party stat and experience value matches the editor's
+  formulas. A Red save hasn't been tried, but Red and Blue share one layout. Try copies of your own and report mismatches.
 - Gen 1: English only (Japanese uses different offsets and text encoding). Event flags and map position are left untouched.
 - The options byte (text speed, battle style, animations) and the max-PP rules come from the pokered disassembly, not
   from a real cartridge; check them against one of your own saves.
@@ -179,4 +181,8 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   for (it would be saved as "?") or more than 10 characters (the rest is dropped).
 - Dragging is for mouse, touch and pen; on a touch screen you press and hold for a moment first, so swiping still scrolls.
   There is no keyboard drag, but the Pokémon menu does everything it does.
-- Growth rate isn't stored in the save, so the editor infers it from level/exp and lets you override it.
+- A party Pokémon's level is read from its stats block (the byte the game uses), not the "box level" byte next to its
+  species, which a real Blue save leaves at 0. That byte is left alone unless you change the level, or the Pokémon goes to a box.
+- Bytes after the 32 KB save (some emulators append a clock footer) are kept as they are.
+- A species' growth curve (which sets experience from level) is fixed by the game, so the editor uses a table of all 151
+  rather than guessing from the save. A glitch species falls back to a guess.

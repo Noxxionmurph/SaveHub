@@ -1,8 +1,8 @@
 // Pokémon editor dialog.
 
 import {
-  DEX_NAMES, DEX_TO_INTERNAL, GROWTH_RATES, INTERNAL_TO_DEX, MOVE_NAMES, baseStatsFor, expForLevel, guessGrowth,
-  speciesName, type Growth,
+  DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, MOVE_NAMES, baseStatsFor, expForLevel, growthOf, guessGrowth,
+  speciesName,
 } from '../../../core/gen1/data.ts';
 import {
   applySpeciesTypes, calcStats, defaultNickname, hpDv, recalcPartyStats, type Gen1Mon,
@@ -31,7 +31,9 @@ export interface MonEditorOptions {
 }
 
 export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
-  let growth: Growth = guessGrowth(mon.level, mon.exp);
+  /** The experience a Pokémon of this species has at a level. The curve is fixed by the species; a glitch species is guessed once, on opening. */
+  const guessed = guessGrowth(mon.level, mon.exp);
+  const expAt = (level: number) => expForLevel(growthOf(mon.species, guessed), level);
   const dialog = h('dialog', { class: 'mon-dialog' });
   const body = h('div', { class: 'dialog-body' });
   dialog.append(body);
@@ -127,13 +129,10 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
         nameField('Nickname', mon.nickname, (v) => { mon.nickname = v; }, 'Up to 10 characters.'),
         field('Level', numberInput(mon.level, 1, 100, (v) => {
           mon.level = v;
-          mon.exp = expForLevel(growth, v);
+          mon.exp = expAt(v);
           touched();
           refresh();
         }), 'Changing the level also sets experience to match.'),
-        field('Growth rate', selectInput(GROWTH_RATES.map((g) => ({ value: g, label: g })), growth, (v) => {
-          growth = v as Growth;
-        }), 'How fast this Pokémon levels up. The save doesn’t store it, so this is a guess. Fix it if it’s wrong: it sets the experience when you change the level.'),
         field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; }), 'Total experience points.'),
         field('Status', selectInput(STATUS_OPTIONS, STATUS_OPTIONS.some((s) => s.value === mon.status) ? mon.status : 0,
           (v) => { mon.status = Number(v); })),
@@ -174,7 +173,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
       h('div', { class: 'button-row' },
         h('button', { onclick: () => { mon.dvs = { atk: 15, def: 15, spe: 15, spc: 15 }; touched(); refresh(); } }, 'Max DVs'),
         h('button', { onclick: () => { mon.evs = { hp: 65535, atk: 65535, def: 65535, spe: 65535, spc: 65535 }; touched(); refresh(); } }, 'Max EVs'),
-        h('button', { onclick: () => { mon.exp = expForLevel(growth, mon.level); refresh(); } }, 'Match exp to level'),
+        h('button', { onclick: () => { mon.exp = expAt(mon.level); refresh(); } }, 'Match exp to level'),
         h('button', { onclick: () => { mon.pp = mon.moves.map((m, i) => maxPp(m, mon.ppUps[i])) as typeof mon.pp; refresh(); } }, 'Restore PP'),
         party ? h('button', { onclick: () => { recalcPartyStats(mon, true); refresh(); } }, 'Heal and recalculate stats') : null,
       ),

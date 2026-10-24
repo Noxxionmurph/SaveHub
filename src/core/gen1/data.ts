@@ -332,6 +332,27 @@ export function expForLevel(growth: Growth, n: number): number {
   return Math.max(0, exp);
 }
 
+/**
+ * Each species' growth curve is fixed by the game (it is in the game's data, not the save). By National Dex number;
+ * every other number from 1 to 151 is Medium Fast. Checked against Bulbapedia's list by experience type and against
+ * the experience of every Pokémon in two real saves.
+ */
+const MEDIUM_SLOW_DEX = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 16, 17, 18, 29, 30, 31, 32, 33, 34, 43, 44, 45, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71,
+  74, 75, 76, 92, 93, 94, 151,
+];
+const FAST_DEX = [35, 36, 39, 40, 113];
+const SLOW_DEX = [58, 59, 72, 73, 90, 91, 102, 103, 111, 112, 120, 121, 127, 128, 129, 130, 131, 142, 143, 144, 145, 146, 147, 148, 149, 150];
+
+export const GROWTH_BY_DEX: readonly Growth[] = Array.from({ length: 151 }, (_, i): Growth =>
+  MEDIUM_SLOW_DEX.includes(i + 1) ? 'Medium Slow' : FAST_DEX.includes(i + 1) ? 'Fast' : SLOW_DEX.includes(i + 1) ? 'Slow' : 'Medium Fast');
+
+/** The growth curve for a species (by the game's internal id). A glitch species has none, so `fallback` is used. */
+export function growthOf(internalId: number, fallback: Growth = 'Medium Fast'): Growth {
+  const dex = INTERNAL_TO_DEX[internalId];
+  return dex ? GROWTH_BY_DEX[dex - 1] : fallback;
+}
+
 /** The first growth curve consistent with the mon's current level/exp (falls back to Medium Fast). */
 export function guessGrowth(level: number, exp: number): Growth {
   if (level >= 100) {

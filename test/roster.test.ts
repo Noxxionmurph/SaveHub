@@ -20,7 +20,7 @@ test('moving between party and boxes keeps the Pokémon and fixes party stats', 
   assert.equal(moveMon(s, 0, 1, PARTY), null);
   assert.equal(s.boxes[0].length, 1);
   assert.equal(s.party.at(-1), magikarp);
-  assert.equal(magikarp.partyLevel, 40);
+  assert.equal(new Gen1Save(s.serialize()).party.at(-1)!.level, 40, 'the party level is what gets saved');
   assert.ok(magikarp.maxHp > 20, 'stats recalculated for the new level');
   assert.equal(moveMon(s, PARTY, 2, 5), null);
   assert.equal(s.boxes[5][0], magikarp);
@@ -86,7 +86,7 @@ test('dropping onto a Pokémon swaps them, in a box or across places', () => {
   assert.deepEqual(dropMon(s, { where: 0, index: 0 }, { where: PARTY, index: 0 }), { kind: 'swap' });
   assert.equal(s.party[0], d);
   assert.equal(s.boxes[0][0], pikachu);
-  assert.equal(d.partyLevel, 50);
+  assert.equal(new Gen1Save(s.serialize()).party[0].level, 50, 'the party level is what gets saved');
   assert.ok(d.maxHp > 50, 'stats recalculated for the new level');
   assert.equal(s.party.length, 2);
   assert.equal(s.boxes[0].length, 4);
