@@ -1,10 +1,10 @@
 // Gen 1 (Red / Blue / Yellow) editor UI. Loaded lazily by the shell via the game module.
 
 import {
-  BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, MOOD_NEUTRAL, TEXT_SPEEDS, baseStatsFor, friendshipLabel, itemName, moodLabel, pikachuReaction, speciesName,
+  BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, TEXT_SPEEDS, baseStatsFor, itemName, speciesName,
 } from '../../../core/gen1/data.ts';
 import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, dropMon, listAt, placeName, shiftMon } from '../../../core/gen1/roster.ts';
-import { PIKACHU_INTERNAL, newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
+import { newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
 import type { EditorHost, MountEditor } from '../../../core/types.ts';
 import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '../../dom.ts';
 import { enableDrag } from '../../drag.ts';
@@ -13,6 +13,7 @@ import { itemSpritePath } from './itemSprites.ts';
 import { openMonEditor } from './monEditor.ts';
 import { openMonMenu } from './monMenu.ts';
 import { nameField } from './nameField.ts';
+import { pikachuCard } from './pikachuCard.ts';
 import { typeChips } from './typeChip.ts';
 
 type Tab = 'trainer' | 'bag' | 'party' | 'boxes' | 'dex';
@@ -142,7 +143,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         h('div', { class: 'button-row' },
           h('button', { onclick: () => { s.money = 999999; s.coins = 9999; markDirty(); render(); } }, 'Max money & coins'),
         )),
-      pikachuCard(),
+      pikachuSection(),
       h('section', { class: 'card' },
         h('h3', {}, 'Play time'),
         h('p', { class: 'muted card-note' }, 'Shown on your trainer card.'),
@@ -164,88 +165,10 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   }
 
 
-  /** Pokémon Yellow only: how much your starter Pikachu likes you, how it feels, and whether the game still counts it as yours. */
-  function pikachuCard(): Node | null {
+  /** Pokémon Yellow only: the starter Pikachu's friendship and mood (see pikachuCard.ts). */
+  function pikachuSection(): Node | null {
     if (!s.isYellow) return null;
-    const reaction = h('p', { class: 'pika-reaction', 'aria-live': 'polite' });
-    const paintReaction = () => {
-      reaction.replaceChildren(h('strong', {}, 'Talk to it: '),
-        `Pikachu ${pikachuReaction(s.pikachuFriendship, s.pikachuMood)}.`);
-    };
-
-    /** A 0 to 255 value shown as a big number and a label, with a slider and a number box that stay in step. */
-    function dial(title: string, get: () => number, put: (v: number) => void, describe: (v: number) => string, extra = '') {
-      const label = h('span', { class: 'friend-label' });
-      const value = h('output', { class: 'friend-value', 'aria-label': title });
-      const slider = h('input', { type: 'range', min: 0, max: 255, step: 1, value: String(get()), 'aria-label': title });
-      const number = numberInput(get(), 0, 255, (v) => set(v), { 'aria-label': `${title} number` });
-      const paint = () => { value.textContent = String(get()); label.textContent = describe(get()); };
-      function set(v: number): void {
-        put(v);
-        slider.value = String(v);
-        number.value = String(v);
-        paint();
-        paintReaction();
-        markDirty();
-      }
-      slider.addEventListener('input', () => set(Number(slider.value)));
-      paint();
-      return {
-        set,
-        lcd: h('div', { class: `lcd friend ${extra}`.trim() }, h('span', { class: 'friend-head' }, title), value, label),
-        controls: h('div', { class: 'friend-controls' }, slider, number),
-      };
-    }
-
-    const friend = dial('Friendship', () => s.pikachuFriendship, (v) => { s.pikachuFriendship = v; }, friendshipLabel);
-    const fade = h('p', { class: 'muted' });
-    const mood = dial('Mood', () => s.pikachuMood, (v) => { s.pikachuMood = v; paintFade(); }, moodLabel, 'second');
-    function paintFade(): void {
-      const steps = Math.abs(s.pikachuMood - MOOD_NEUTRAL);
-      fade.textContent = steps === 0
-        ? 'Neutral is where the mood settles. Walking moves it 1 step back toward neutral, so a changed mood fades as you walk.'
-        : `Walking moves the mood 1 step back toward neutral, so this fades after about ${steps} step${steps === 1 ? '' : 's'}. Set it just before you want to see it.`;
-    }
-    paintFade();
-    paintReaction();
-
-    const status = h('div', { class: 'starter-status', 'aria-live': 'polite' });
-    const drawStatus = () => {
-      clear(status);
-      const at = s.party.findIndex((m) => s.isStarterPikachu(m));
-      if (at >= 0) {
-        status.append(h('p', {}, h('strong', {}, 'Starter Pikachu: '), `${monLabel(s.party[at])} (party ${at + 1}). It follows you while it's in your party and hasn't fainted.`));
-        return;
-      }
-      const other = s.party.findIndex((m) => m.species === PIKACHU_INTERNAL);
-      if (other < 0) {
-        status.append(h('p', {}, h('strong', {}, 'No Pikachu in your party. '),
-          'The game only follows a Pikachu whose original trainer is your name and Trainer ID. Add a Pikachu on the Party tab and a button to make it your starter will appear here.'));
-        return;
-      }
-      status.append(
-        h('p', {}, h('strong', {}, 'Not your starter. '),
-          `${monLabel(s.party[other])}'s original trainer doesn't match your name and Trainer ID, so it won't follow you. The button copies your name and ID onto it.`),
-        h('button', { onclick: () => { s.makeStarter(s.party[other]); markDirty(); drawStatus(); } }, `Make ${monLabel(s.party[other])} my starter`));
-    };
-    refreshers.push(drawStatus);
-    drawStatus();
-
-    return h('section', { class: 'card pikachu-card' },
-      h('div', { class: 'card-title' }, pokemonIcon(25, 'card-icon'), h('h3', {}, 'Pikachu')),
-      h('p', { class: 'muted card-note' }, 'How much your starter Pikachu likes you, and how it feels right now. Both run from 0 to 255.'),
-      friend.lcd, friend.controls,
-      h('div', { class: 'button-row' },
-        h('button', { onclick: () => friend.set(255) }, 'Max friendship')),
-      h('p', { class: 'muted' }, 'Some characters react to friendship. For example, the hiker at the Museum of Science needs 101 or more, and Melanie in Cerulean City only gives you her Bulbasaur at 147 or more.'),
-      mood.lcd, mood.controls,
-      h('div', { class: 'button-row' },
-        h('button', { onclick: () => mood.set(0) }, 'Upset'),
-        h('button', { onclick: () => mood.set(MOOD_NEUTRAL) }, 'Neutral'),
-        h('button', { onclick: () => mood.set(255) }, 'Cheerful')),
-      fade,
-      reaction,
-      status);
+    return pikachuCard(s, { markDirty, onRefresh: (fn) => refreshers.push(fn), monLabel });
   }
 
   /** The three settings from the in-game OPTION menu. */

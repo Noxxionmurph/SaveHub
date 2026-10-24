@@ -390,14 +390,15 @@ export const moodLabel = (mood: number): 'Upset' | 'Neutral' | 'Cheerful' =>
  * columns, but they only ever differ as below 128, exactly 128, or above 128, so there are three here.
  * The names are the game's own animation names.
  */
-const REACTION_ROWS: { upTo: number; below: string; at: string; above: string }[] = [
-  { upTo: 50, below: 'AngryBolt', at: 'SideBlink', above: 'Side' },
-  { upTo: 100, below: 'BackTurn', at: 'Sad', above: 'Bored' },
-  { upTo: 130, below: 'EarTwitch', at: 'Blink2', above: 'Smile' },
-  { upTo: 160, below: 'EarTwitch', at: 'Happy', above: 'FistPump' },
-  { upTo: 200, below: 'Mad', at: 'Jump', above: 'Excited' },
-  { upTo: 250, below: 'Mad', at: 'Heart', above: 'Joy' },
-  { upTo: 255, below: 'Mad', at: '2Hearts', above: 'Love' },
+export interface ReactionRow { from: number; upTo: number; below: string; at: string; above: string }
+export const REACTION_ROWS: readonly ReactionRow[] = [
+  { from: 0, upTo: 50, below: 'AngryBolt', at: 'SideBlink', above: 'Side' },
+  { from: 51, upTo: 100, below: 'BackTurn', at: 'Sad', above: 'Bored' },
+  { from: 101, upTo: 130, below: 'EarTwitch', at: 'Blink2', above: 'Smile' },
+  { from: 131, upTo: 160, below: 'EarTwitch', at: 'Happy', above: 'FistPump' },
+  { from: 161, upTo: 200, below: 'Mad', at: 'Jump', above: 'Excited' },
+  { from: 201, upTo: 250, below: 'Mad', at: 'Heart', above: 'Joy' },
+  { from: 251, upTo: 255, below: 'Mad', at: '2Hearts', above: 'Love' },
 ];
 
 /** The game's animation name for how Pikachu reacts to being talked to. */
@@ -406,16 +407,54 @@ export function pikachuReactionName(friendship: number, mood: number): string {
   return mood < MOOD_NEUTRAL ? row.below : mood === MOOD_NEUTRAL ? row.at : row.above;
 }
 
-const REACTION_TEXT: Record<string, string> = {
-  AngryBolt: 'looks angry, with sparks', SideBlink: 'glances away and blinks', Side: 'looks off to the side',
-  BackTurn: 'turns its back on you', Sad: 'looks sad', Bored: 'looks bored',
-  EarTwitch: 'twitches its ears', Blink2: 'blinks', Smile: 'smiles',
-  Happy: 'looks happy', FistPump: 'pumps its fist',
-  Mad: 'looks mad', Jump: 'jumps', Excited: 'looks excited',
-  Heart: 'shows a heart', Joy: 'looks overjoyed',
-  '2Hearts': 'shows two hearts', Love: 'looks full of love',
+/**
+ * For each of the game's reaction names: the picture file (assets/sprites/pikachu/<slug>-1.png and -2.png), a
+ * sentence to follow "Pikachu ", and a short label for the chart.
+ */
+export const REACTIONS: Readonly<Record<string, { slug: string; text: string; short: string }>> = {
+  AngryBolt: { slug: 'angry-bolt', text: 'looks angry, with sparks', short: 'Angry' },
+  SideBlink: { slug: 'side-blink', text: 'glances away and blinks', short: 'Glances away' },
+  Side: { slug: 'side', text: 'looks off to the side', short: 'Looks aside' },
+  BackTurn: { slug: 'back-turn', text: 'turns its back on you', short: 'Turns away' },
+  Sad: { slug: 'sad', text: 'looks sad', short: 'Sad' },
+  Bored: { slug: 'bored', text: 'looks bored', short: 'Bored' },
+  EarTwitch: { slug: 'ear-twitch', text: 'twitches its ears', short: 'Ear twitch' },
+  Blink2: { slug: 'blink', text: 'blinks', short: 'Blinks' },
+  Smile: { slug: 'smile', text: 'smiles', short: 'Smiles' },
+  Happy: { slug: 'happy', text: 'looks happy', short: 'Happy' },
+  FistPump: { slug: 'fist-pump', text: 'pumps its fist', short: 'Fist pump' },
+  Mad: { slug: 'mad', text: 'looks mad', short: 'Mad' },
+  Jump: { slug: 'jump', text: 'jumps', short: 'Jumps' },
+  Excited: { slug: 'excited', text: 'looks excited', short: 'Excited' },
+  Heart: { slug: 'heart', text: 'shows a heart', short: 'Heart' },
+  Joy: { slug: 'joy', text: 'looks overjoyed', short: 'Overjoyed' },
+  '2Hearts': { slug: 'two-hearts', text: 'shows two hearts', short: 'Two hearts' },
+  Love: { slug: 'love', text: 'looks full of love', short: 'Love' },
 };
 
+/** The picture, sentence and label for how Pikachu reacts at this friendship and mood. */
+export function pikachuReactionInfo(friendship: number, mood: number): { name: string; slug: string; text: string; short: string } {
+  const name = pikachuReactionName(friendship, mood);
+  return { name, ...(REACTIONS[name] ?? { slug: 'blink', text: 'reacts', short: 'Reacts' }) };
+}
+
 /** Plain-English version of pikachuReactionName, to follow "Pikachu ". */
-export const pikachuReaction = (friendship: number, mood: number): string =>
-  REACTION_TEXT[pikachuReactionName(friendship, mood)] ?? 'reacts';
+export const pikachuReaction = (friendship: number, mood: number): string => pikachuReactionInfo(friendship, mood).text;
+
+/**
+ * What raises and lowers the starter Pikachu's friendship (pokeyellow: HappinessChangeTable). Each change depends on
+ * the current friendship: below 100, 100 to 199, or 200 and up. The result stops at 0 and 255.
+ */
+export const FRIENDSHIP_EVENTS: readonly { up: boolean; what: string; amounts: readonly [number, number, number] }[] = [
+  { up: true, what: 'It levels up', amounts: [5, 3, 2] },
+  { up: true, what: 'You use a healing item or a vitamin on it (not a Revive)', amounts: [5, 3, 2] },
+  { up: true, what: 'You use an X item, Guard Spec. or Dire Hit in battle', amounts: [1, 1, 0] },
+  { up: true, what: 'You start a Gym Leader battle (or another major trainer battle) with it alive in your party', amounts: [3, 2, 1] },
+  { up: true, what: 'You teach it a TM or HM', amounts: [1, 1, 0] },
+  { up: true, what: 'You walk 256 steps (this only counts half the time)', amounts: [2, 1, 1] },
+  { up: false, what: 'You put it in a PC box', amounts: [-3, -3, -5] },
+  { up: false, what: 'It faints in battle', amounts: [-1, -1, -1] },
+  { up: false, what: 'It faints to a Pokémon 30 or more levels above it', amounts: [-5, -5, -10] },
+  { up: false, what: 'It faints from poison while you walk', amounts: [-5, -5, -10] },
+  { up: false, what: 'You trade it away', amounts: [-10, -10, -20] },
+];

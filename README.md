@@ -45,7 +45,10 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
   battle style)
 - **Pokémon Yellow** is told apart from Red/Blue by the file itself (Yellow writes Pikachu's state into a block
   Red and Blue leave empty). A Yellow save gets a Pikachu card: friendship (0-255, with the game's own wording
-  for each range), mood (0-255, 128 is neutral) and whether the game still counts your Pikachu as your starter. That depends on its original
+  for each range), mood (0-255, 128 is neutral) and whether the game still counts your Pikachu as your starter.
+  A live picture at the top shows how Pikachu will react when you talk to it, and stays in view as you move the
+  sliders. Two collapsible sections show all 18 reactions as a chart (friendship down, mood across) and what raises
+  and lowers friendship in the game. That depends on its original
   trainer matching your name and Trainer ID, so the editor tags the starter in the party, warns in the review list
   if an edit would orphan it, and has a "Make Pikachu my starter" button. Red and Blue can't be told apart, so
   those saves ask which one yours is.
@@ -159,8 +162,14 @@ Every screen explains itself in plain words, so keep it that way when you add a 
 - Mood only changes how Pikachu reacts when you talk to it (the editor shows which reaction, worked out from the game's
   own friendship and mood tables and tested against them for all 65,536 combinations). It also drifts: every step you
   walk moves it 1 closer to 128, so an edited mood fades, and the card says roughly how many steps that takes. The
-  reaction wording is plain English for the game's animation names (AngryBolt, BackTurn, Love, ...), and a few
-  maps give Pikachu a fixed reaction regardless of mood.
+  reaction wording is plain English for the game's animation names (AngryBolt, BackTurn, Love, ...). The game only
+  uses this table when nothing else applies: Pikachu has a fixed reaction when it is asleep or has a status
+  condition, in Pokémon Tower, the Pokémon Fan Club, the Pewter Pokémon Center and Bill's house, and for a short
+  while after some events (catching a Pokémon, fishing, a Thunderstone, Thunder and Thunderbolt).
+- The reaction pictures are Pokémon Yellow's own, cut from the Serebii sheet by `scripts/extract-pikachu.py` and
+  credited in `assets/sprites/CREDITS.md`. The friendship amounts come from the game's own table, not from Serebii:
+  its page lists a few numbers that differ from the code (for example it gives -255 for a trade, the code gives
+  -10, -10 and -20), and it ranks reactions by friendship alone, where the game uses friendship and mood together.
 - Red and Blue saves are byte-identical in structure, so the site asks which version yours is.
 - Names that use the game's "PK" / "MN" symbols show as `{PK}` / `{MN}` in the editor, and the "TRAINER" text some
   Pokémon carry as their original trainer shows as `{TRAINER}`. Type them the same way to put them back. A name that

@@ -467,7 +467,47 @@ button.danger { color: var(--danger); }
 .friend-label { font-weight: 600; }
 .friend-controls { display: grid; grid-template-columns: 1fr 92px; gap: 12px; align-items: center; margin: 14px 0 4px; }
 .friend-controls input[type="range"] { width: 100%; min-height: 32px; padding: 0; accent-color: var(--button); box-shadow: none; background: none; border: 0; }
-.pika-reaction { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2, transparent); }
+/* the live picture of how Pikachu reacts; it stays in view under the tab bar while the sliders below are used */
+.pika-preview {
+  position: sticky; top: 47px; z-index: 4; display: flex; align-items: center; gap: 14px; margin: 0 0 16px; padding: 8px 14px 8px 8px;
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: 0 6px 8px -6px rgb(0 0 0 / 0.35);
+}
+.pika-screen { flex: none; background: #f8f8f8; border: 3px solid var(--pin); border-radius: 6px; }
+.pika-pic { display: block; position: relative; width: 80px; height: 80px; }
+.pika-frame { width: 80px; height: 80px; image-rendering: pixelated; }
+.pika-pic.animated .pika-frame-2 { position: absolute; inset: 0; opacity: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .pika-pic.animated .pika-frame-2 { animation: pika-flip 1.2s steps(1, end) infinite; }
+}
+@keyframes pika-flip { 0% { opacity: 0; } 50% { opacity: 1; } }
+.pika-text { min-width: 0; display: grid; gap: 2px; }
+.pika-kicker { font-size: 0.75rem; color: var(--muted); }
+.pika-says { margin: 0; font-size: 1.0625rem; font-weight: 600; line-height: 1.25; }
+.pika-context { margin: 0; font-size: 0.8125rem; color: var(--muted); }
+
+.pika-chart { width: 100%; max-width: 480px; border-collapse: separate; border-spacing: 2px; table-layout: fixed; }
+.pika-chart thead th { font: 600 0.75rem var(--font-body); text-align: center; vertical-align: bottom; padding-bottom: 4px; }
+.pika-chart thead th small { display: block; font-weight: 400; color: var(--muted); }
+.pika-chart thead th:first-child, .pika-chart tbody th { width: 54px; }
+.pika-chart tbody th { font: 500 0.6875rem var(--font-mono); color: var(--muted); text-align: right; padding-right: 4px; white-space: nowrap; }
+.pika-chart td { text-align: center; vertical-align: top; padding: 0 0 4px; background: var(--surface-2); border: 2px solid var(--line); border-radius: 6px; }
+.pika-chart td.now { border-color: var(--button); box-shadow: 0 0 0 1px var(--button); }
+.pika-chart .pika-pic { margin: 0 auto; }
+.pika-cap { display: block; padding: 0 2px; font-size: 0.6875rem; line-height: 1.2; }
+.pika-chart td.now .pika-cap { font-weight: 700; }
+
+.pika-rules { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.pika-rules th, .pika-rules td { padding: 6px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.pika-rules thead th { font-weight: 600; text-align: right; white-space: nowrap; color: var(--text); }
+.pika-rules thead th:first-child { text-align: left; }
+.pika-rules tbody th { font-weight: 400; text-align: left; color: var(--text); }
+.pika-rules td { text-align: right; font-family: var(--font-mono); white-space: nowrap; }
+.pika-rules td.now { background: color-mix(in srgb, var(--button) 14%, transparent); font-weight: 700; }
+.pika-rules tr.group th { background: var(--surface-2); font-weight: 600; }
+@media (max-width: 359px) {
+  .pika-chart .pika-pic, .pika-chart .pika-frame { width: 40px; height: 40px; }
+  .pika-kicker { display: none; }
+}
 .pikachu-card .lcd.second { margin-top: 18px; }
 .pikachu-card .button-row + p { margin-top: 10px; }
 .starter-status { margin-top: 12px; display: grid; gap: 8px; justify-items: start; }
