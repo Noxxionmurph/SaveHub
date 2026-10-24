@@ -442,7 +442,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     const repaint = () => { tiles.forEach((t) => t.paint()); paintSummary(); };
     paintSummary();
     return h('div', {},
-      intro('Tap a Pokémon to cycle it: not seen, then seen, then owned. A dark shape is not seen, colour is seen, and green with a Poké Ball is owned.'),
+      intro('Tap a Pokémon to cycle it: not seen, then seen, then owned. A dark shape is not seen, colour is seen, and a highlighted tile with a Poké Ball is owned.'),
       summary,
       h('div', { class: 'button-row' },
         h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setOwned(i + 1, true)); markDirty(); repaint(); } }, 'Own all 151'),

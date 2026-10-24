@@ -66,6 +66,11 @@ export interface GameModule<S extends EditableSave = EditableSave> {
   readonly fileHint?: string;
   /** Optional cartridge-label color per game name (any CSS color), shown on the landing page. */
   readonly colors?: Readonly<Record<string, string>>;
+  /**
+   * Which handheld the page is styled as while this game's editor is open: 'gb' (the grey Game Boy with an olive screen,
+   * the default) or 'gbc' (the Game Boy Color, in teal). Colours only; the layout is the same. See styles.css.
+   */
+  readonly theme?: 'gb' | 'gbc';
   /** Optional small picture per game name (a path inside the artwork, e.g. "sprites/pokemon/25.png"), shown on the landing page. */
   readonly icons?: Readonly<Record<string, string>>;
   /**

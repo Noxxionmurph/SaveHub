@@ -43,6 +43,17 @@ function moduleLabel(g: GameModule): string {
 
 const setPageTitle = (name?: string) => { document.title = name ? `${name} · ${APP_NAME}` : APP_NAME; };
 
+/**
+ * Style the page as the handheld the open game ran on (see GameModule.theme and the data-console rules in styles.css).
+ * Adding ?console=gb or ?console=gbc to the address forces one for every screen, to preview a theme.
+ */
+const forcedConsole = new URLSearchParams(location.search).get('console');
+function applyConsole(game?: GameModule): void {
+  const wanted = forcedConsole === 'gb' || forcedConsole === 'gbc' ? forcedConsole : game?.theme ?? 'gb';
+  if (wanted === 'gb') delete document.documentElement.dataset.console;
+  else document.documentElement.dataset.console = wanted;
+}
+
 function exportName(): string {
   const m = fileName.match(/^(.*?)(\.[^./\\]+)?$/);
   return `${m?.[1] || 'save'}-edited${m?.[2] ?? '.sav'}`;
@@ -159,6 +170,7 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
     }
   };
   drawName();
+  applyConsole(game);
 
   const dlNote = h('p', { class: 'muted dl-note' });
   void hostedDownloads.then((d) => { if (d) dlNote.textContent = 'This page can only download certain file types, so Save gives you a .zip with your edited file inside. Unzip it in your Files app.'; });
@@ -212,6 +224,7 @@ function sampleRow(): HTMLElement | null {
 
 function renderWelcome(): void {
   setPageTitle();
+  applyConsole();
   clear(root);
 
   const slot = h('div', { class: 'slot', tabIndex: 0, role: 'button', onclick: pickFile },

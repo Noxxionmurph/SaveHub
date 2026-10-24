@@ -24,7 +24,7 @@ HERE = Path(__file__).resolve().parent
 OUT = HERE / 'out'
 
 # Checks that use the build that carries the artwork inside dist/ (./assets/) ...
-LOCAL = ['redblue_flow', 'sample_flow', 'yellow', 'blue_footer', 'pikachu', 'mood', 'drag', 'bag', 'names', 'hosted_download']
+LOCAL = ['redblue_flow', 'sample_flow', 'yellow', 'blue_footer', 'pikachu', 'mood', 'drag', 'bag', 'names', 'hosted_download', 'console_theme']
 # ... and checks that need the build as it is deployed (pictures and fonts loaded by address).
 HOSTED = ['art', 'fonts']
 
@@ -34,13 +34,18 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+class Server(http.server.ThreadingHTTPServer):
+    def handle_error(self, request, client_address):  # a page that closes mid-download is not an error worth a traceback
+        pass
+
+
 def node(*args):
     subprocess.run(['node', *args], cwd=REPO, check=True, env={**os.environ, 'NODE_NO_WARNINGS': '1'})
 
 
 def serve():
     handler = functools.partial(Quiet, directory=str(REPO / 'dist'))
-    server = http.server.ThreadingHTTPServer(('127.0.0.1', 0), handler)
+    server = Server(('127.0.0.1', 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server, f'http://127.0.0.1:{server.server_address[1]}/'
 

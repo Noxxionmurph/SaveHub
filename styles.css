@@ -1,5 +1,5 @@
 /* SaveForge: the page is the handheld. Grey plastic shell, olive LCD where data is shown, magenta action buttons.
-   Every token is defined on bare :root; the dark blocks only redefine them. */
+   Every token is defined on bare :root; the dark blocks only redefine them, and so does the Game Boy Color block below. */
 :root {
   --bg: #d6d9de;
   --surface: #e8eaed;
@@ -45,6 +45,35 @@
   --cart: #a9afba; --cart-shade: #8d93a0; --pin: #d0d4db; --slot-bar: #0e1014;
   --focus: #7fb0ff; --danger: #ff9a9a;
   color-scheme: dark;
+}
+
+/* Game Boy Color (teal), for games that set theme: 'gbc' (see GameModule.theme; ?console=gbc previews it). Colours only:
+   a pale cool-grey screen with a dark bezel in place of the olive one, a teal shell, dark teal buttons. */
+:root[data-console="gbc"] {
+  --bg: #bfe0db; --surface: #d7ece9; --surface-2: #e8f5f3; --line: #93c4be; --line-strong: #5f9d96;
+  --text: #0f2427; --muted: #2e5557;
+  --button: #24515a; --button-edge: #123038; --button-ink: #ffffff;
+  --lcd: #e4e9e4; --lcd-ink: #14262a; --lcd-dim: #4a6266; --lcd-edge: #2f4a4f;
+  --cart: #34a89c; --cart-shade: #23857b; --pin: #3c4a4d; --slot-bar: #12292d;
+  --focus: #0b5cad; --danger: #a4161a;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-console="gbc"]:not([data-theme="light"]) {
+    --bg: #0f1d20; --surface: #172a2e; --surface-2: #1d3338; --line: #284348; --line-strong: #3f6a6f;
+    --text: #e3f3f1; --muted: #9cc0bc;
+    --button: #5fd8c9; --button-edge: #35a89a; --button-ink: #04201c;
+    --lcd: #0d1a1d; --lcd-ink: #cfeee8; --lcd-dim: #8fb8b2; --lcd-edge: #4b7a76;
+    --cart: #4fc3b5; --cart-shade: #39a396; --pin: #cfe6e3; --slot-bar: #07181b;
+    --focus: #8bd0ff; --danger: #ff9a9a;
+  }
+}
+:root[data-console="gbc"][data-theme="dark"] {
+  --bg: #0f1d20; --surface: #172a2e; --surface-2: #1d3338; --line: #284348; --line-strong: #3f6a6f;
+  --text: #e3f3f1; --muted: #9cc0bc;
+  --button: #5fd8c9; --button-edge: #35a89a; --button-ink: #04201c;
+  --lcd: #0d1a1d; --lcd-ink: #cfeee8; --lcd-dim: #8fb8b2; --lcd-edge: #4b7a76;
+  --cart: #4fc3b5; --cart-shade: #39a396; --pin: #cfe6e3; --slot-bar: #07181b;
+  --focus: #8bd0ff; --danger: #ff9a9a;
 }
 
 * { box-sizing: border-box; }
