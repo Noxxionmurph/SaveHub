@@ -8,6 +8,7 @@ const BASE = 'assets/sprites';
 
 export const pokemonIconUrl = (dex: number) => `${BASE}/pokemon/${dex}.png`;
 export const itemIconUrl = (path: string) => `${BASE}/items/${path}.png`;
+export const badgeIconUrl = (n: number) => `${BASE}/badges/${n}.png`;
 
 function icon(src: string, w: number, h_: number, cls: string): HTMLImageElement {
   const img = h('img', { class: `sprite ${cls}`, src, alt: '', width: w, height: h_, loading: 'lazy', decoding: 'async', draggable: false });
@@ -24,6 +25,11 @@ export function pokemonIcon(dex: number, cls = ''): HTMLElement {
 /** Item icon (32x32) from a "<category>/<name>" path. */
 export function itemIcon(path: string, cls = ''): HTMLImageElement {
   return icon(itemIconUrl(path), 32, 32, `item-icon ${cls}`.trim());
+}
+
+/** Kanto gym badge (16x16): 1 = Boulder ... 8 = Earth. Drawn with hard pixel edges. */
+export function badgeIcon(n: number, cls = ''): HTMLImageElement {
+  return icon(badgeIconUrl(n), 16, 16, `badge-icon ${cls}`.trim());
 }
 
 /** Point an existing icon at another file (and un-hide it if the last one failed). */

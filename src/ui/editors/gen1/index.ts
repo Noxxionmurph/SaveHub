@@ -6,7 +6,7 @@ import {
 import { newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
 import type { EditorHost, MountEditor } from '../../../core/types.ts';
 import { askConfirm, clear, field, h, numberInput, selectInput, textInput } from '../../dom.ts';
-import { itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
+import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
 import { openMonEditor } from './monEditor.ts';
 import { typeChips } from './typeChip.ts';
@@ -72,7 +72,10 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
             stat('Money', `¥${s.money.toLocaleString('en-US')}`),
             stat('Coins', s.coins.toLocaleString('en-US')),
             stat('Time', `${s.playHours}:${String(s.playMinutes).padStart(2, '0')}`),
-            stat('Badges', `${popcount(s.badges)}/8`))),
+            stat('Badges', `${popcount(s.badges)}/8`)),
+          h('div', { class: 'tcard-badges', role: 'img', 'aria-label': `${popcount(s.badges)} of 8 badges earned` },
+            BADGES.map((_, i) => badgeIcon(i + 1, (s.badges >> i) & 1 ? 'earned' : ''))),
+        ),
         h('div', { class: 'party-strip', role: 'group', 'aria-label': 'Party' }, Array.from({ length: 6 }, (_, i) => {
           const mon = s.party[i];
           if (!mon) return h('span', { class: 'party-slot empty', 'aria-hidden': 'true' });
@@ -93,7 +96,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   function trainerTab(): Node {
     const badgeRow = h('div', { class: 'badge-grid' }, BADGES.map((name, i) => {
       const btn = h('button', { class: 'badge-btn', 'aria-pressed': String(Boolean((s.badges >> i) & 1)) },
-        h('span', { class: 'gem', 'aria-hidden': 'true' }, String(i + 1)), name);
+        h('span', { class: 'gem', 'aria-hidden': 'true' }, badgeIcon(i + 1)), name);
       btn.addEventListener('click', () => {
         s.badges ^= 1 << i;
         btn.setAttribute('aria-pressed', String(Boolean((s.badges >> i) & 1)));

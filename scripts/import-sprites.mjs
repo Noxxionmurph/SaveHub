@@ -19,7 +19,8 @@ if (!src || !existsSync(join(src, 'data', 'pokemon.json'))) {
 }
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'assets', 'sprites');
-await rm(out, { recursive: true, force: true });
+await rm(join(out, 'pokemon'), { recursive: true, force: true });
+await rm(join(out, 'items'), { recursive: true, force: true });
 
 const missing = [];
 const pokemon = JSON.parse(await readFile(join(src, 'data', 'pokemon.json'), 'utf8'));
@@ -46,6 +47,10 @@ await writeFile(join(out, 'CREDITS.md'), `# Sprite credits
 The Pokémon box icons and item icons in this folder come from **PokéSprite** by msikma
 (https://github.com/msikma/pokesprite), copied unchanged except for renaming the Pokémon files to their
 National Dex number.
+
+The eight gym badges in `badges/` are cut from the Red/Blue "Trainer Card" sheet on The Spriters Resource
+(https://www.spriters-resource.com/game_boy_gbc/pokemonredblue/asset/8733/, ripped by FrenchOrange), using the
+Super Game Boy colour panel. `scripts/extract-badges.py` redoes the cut.
 
 The images are © Nintendo / Creatures Inc. / GAME FREAK Inc. PokéSprite's own code is MIT licensed; the
 artwork is not covered by that licence. Remove this folder to take the artwork out. The site still works

@@ -23,3 +23,7 @@ test('TMs and HMs get a disc coloured by move type', () => {
   assert.equal(itemSpritePath(0xc9 + 37), 'tm/fire'); // TM38 Fire Blast
   assert.equal(itemSpritePath(0xc4 + 2), 'hm/water'); // HM03 Surf
 });
+
+test('all eight Kanto badges have a sprite', () => {
+  for (let n = 1; n <= 8; n++) assert.ok(has(`badges/${n}.png`), `missing badges/${n}.png`);
+});
