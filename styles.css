@@ -76,6 +76,45 @@
   --focus: #8bd0ff; --danger: #ff9a9a;
 }
 
+/* Game Boy Advance (indigo), for games that set theme: 'gba' (the Gen 3 games; ?console=gba previews it). Colours, plus one
+   detail from the games themselves: the big readout windows (trainer card, stats, hex view, review list) get the two-line
+   frame and the faint ruled paper of the Gen 3 trainer card and summary screens. The window's screen colour is a bright,
+   cool white-blue, since the GBA screen shows full colour, not an olive or grey LCD. */
+:root[data-console="gba"] {
+  --bg: #dcd8ef; --surface: #ebe8f7; --surface-2: #f6f4fc; --line: #b9b3de; --line-strong: #7b72b8;
+  --text: #1c1840; --muted: #4a4478;
+  --button: #4b3d9a; --button-edge: #2c2266; --button-ink: #ffffff;
+  --lcd: #e8eefa; --lcd-ink: #131f4a; --lcd-dim: #3e4e82; --lcd-edge: #2b3f8f;
+  --lcd-inner: #a9b8e6; --lcd-rule: rgba(43, 63, 143, 0.07);
+  --cart: #6556b8; --cart-shade: #4d3f9c; --pin: #2f2b52; --slot-bar: #1a1740;
+  --focus: #0b5cad; --danger: #a4161a;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-console="gba"]:not([data-theme="light"]) {
+    --bg: #14122b; --surface: #1d1a3d; --surface-2: #25214d; --line: #342f66; --line-strong: #5a52a0;
+    --text: #e9e6fb; --muted: #aaa4d8;
+    --button: #9a8bff; --button-edge: #6657d6; --button-ink: #0d0a2a;
+    --lcd: #0c1233; --lcd-ink: #e1e9ff; --lcd-dim: #98a8e0; --lcd-edge: #4a5fb5;
+    --lcd-inner: #2b3a80; --lcd-rule: rgba(160, 180, 255, 0.07);
+    --cart: #7b6dd2; --cart-shade: #6154b8; --pin: #ddd9f7; --slot-bar: #0a0820;
+    --focus: #a9c4ff; --danger: #ff9a9a;
+  }
+}
+:root[data-console="gba"][data-theme="dark"] {
+  --bg: #14122b; --surface: #1d1a3d; --surface-2: #25214d; --line: #342f66; --line-strong: #5a52a0;
+  --text: #e9e6fb; --muted: #aaa4d8;
+  --button: #9a8bff; --button-edge: #6657d6; --button-ink: #0d0a2a;
+  --lcd: #0c1233; --lcd-ink: #e1e9ff; --lcd-dim: #98a8e0; --lcd-edge: #4a5fb5;
+  --lcd-inner: #2b3a80; --lcd-rule: rgba(160, 180, 255, 0.07);
+  --cart: #7b6dd2; --cart-shade: #6154b8; --pin: #ddd9f7; --slot-bar: #0a0820;
+  --focus: #a9c4ff; --danger: #ff9a9a;
+}
+/* Only the large windows: the small screens (level badge, PP box, stepper) are too small for a double line. */
+:root[data-console="gba"] .lcd:is(.tcard, .stats, .hex, .review-list) {
+  background-image: repeating-linear-gradient(to bottom, transparent 0 3px, var(--lcd-rule) 3px 4px);
+  box-shadow: inset 0 0 0 2px var(--lcd), inset 0 0 0 3px var(--lcd-inner);
+}
+
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {

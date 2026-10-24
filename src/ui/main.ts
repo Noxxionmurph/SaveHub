@@ -45,11 +45,12 @@ const setPageTitle = (name?: string) => { document.title = name ? `${name} · ${
 
 /**
  * Style the page as the handheld the open game ran on (see GameModule.theme and the data-console rules in styles.css).
- * Adding ?console=gb or ?console=gbc to the address forces one for every screen, to preview a theme.
+ * Adding ?console=gb, ?console=gbc or ?console=gba to the address forces one for every screen, to preview a theme.
  */
-const forcedConsole = new URLSearchParams(location.search).get('console');
+const CONSOLES = ['gb', 'gbc', 'gba'] as const;
+const forcedConsole = CONSOLES.find((c) => c === new URLSearchParams(location.search).get('console'));
 function applyConsole(game?: GameModule): void {
-  const wanted = forcedConsole === 'gb' || forcedConsole === 'gbc' ? forcedConsole : game?.theme ?? 'gb';
+  const wanted = forcedConsole ?? game?.theme ?? 'gb';
   if (wanted === 'gb') delete document.documentElement.dataset.console;
   else document.documentElement.dataset.console = wanted;
 }

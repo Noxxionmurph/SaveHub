@@ -1,4 +1,4 @@
-"""The handheld themes: the Game Boy (default) and the teal Game Boy Color. Text stays readable in every combination of
+"""The handheld themes: the Game Boy (default), the teal Game Boy Color and the indigo Game Boy Advance. Text stays readable in every combination of
 theme and light/dark, ?console= previews a theme, and a game module's own `theme` restyles the page while it is open."""
 import sys
 from playwright.sync_api import sync_playwright
@@ -26,7 +26,7 @@ PAIRS = [('--text', '--bg', 4.5), ('--text', '--surface', 4.5), ('--text', '--su
 
 with sync_playwright() as p:
     b = p.chromium.launch()
-    for console in ('gb', 'gbc'):
+    for console in ('gb', 'gbc', 'gba'):
         for scheme in ('light', 'dark'):
             ctx = b.new_context(viewport={'width': 390, 'height': 844}, color_scheme=scheme)
             page = ctx.new_page()
