@@ -15,7 +15,7 @@ const OFF = {
   bagCount: 0x25c9, // count, then 20 × (id, qty), 0xFF terminator
   money: 0x25f3, // 3 bytes BCD
   rivalName: 0x25f6, // 11 bytes
-  options: 0x2601, // bits 0-5 text speed, bit 6 battle style (1 = Set), bit 7 battle animation (1 = Off)
+  options: 0x2601, // bits 0-3 text speed, bits 4-5 sound (Yellow only), bit 6 battle style (1 = Set), bit 7 battle animation (1 = Off)
   badges: 0x2602,
   playerId: 0x2605, // u16 big-endian
   pcItemCount: 0x27e6, // count, then 50 × (id, qty), 0xFF
@@ -38,6 +38,8 @@ const OFF = {
   bank2: 0x4000,
   bank3: 0x6000,
 } as const;
+/** The save offsets, for scripts/verify-against-rom.mjs to check against a ROM. */
+export const GEN1_OFFSETS = OFF;
 
 const YELLOW_BLOCK_LEN = 128;
 /** Internal species index of Pikachu, the starter you're handed in Yellow. */
@@ -58,7 +60,7 @@ const PC_MAX = 50;
 export const DEX_BYTES = 19;
 
 export interface Gen1Options {
-  /** Raw value of bits 0-5. 1 / 3 / 5 are the three menu choices; anything else is kept as it was. */
+  /** Raw value of bits 0-3. 1 / 3 / 5 are the three menu choices; anything else is kept as it was. */
   textSpeed: number;
   /** Battle style: true = "Set" (no free switch prompt), false = "Shift". */
   battleStyleSet: boolean;
@@ -67,12 +69,15 @@ export interface Gen1Options {
 }
 
 export function readOptions(byte: number): Gen1Options {
-  return { textSpeed: byte & 0x3f, battleStyleSet: !!(byte & 0x40), battleAnimationsOff: !!(byte & 0x80) };
+  return { textSpeed: byte & 0x0f, battleStyleSet: !!(byte & 0x40), battleAnimationsOff: !!(byte & 0x80) };
 }
 
-/** The options byte for these settings. Bits 0-5 round-trip as read, so nothing the game stored is lost. */
-export function writeOptions(o: Gen1Options): number {
-  return (o.textSpeed & 0x3f) | (o.battleStyleSet ? 0x40 : 0) | (o.battleAnimationsOff ? 0x80 : 0);
+/** Bits 4-5 aren't text speed: Yellow keeps its sound setting (mono, earphone 1-3) there, and the editor leaves it alone. */
+const OPTIONS_OTHER_BITS = 0x30;
+
+/** The options byte for these settings. `original` is the byte the file had, so the bits the editor doesn't offer carry over. */
+export function writeOptions(o: Gen1Options, original = 0): number {
+  return (o.textSpeed & 0x0f) | (original & OPTIONS_OTHER_BITS) | (o.battleStyleSet ? 0x40 : 0) | (o.battleAnimationsOff ? 0x80 : 0);
 }
 
 /** True for a Pokémon Yellow save (the Pikachu block is only ever written by Yellow). */
@@ -458,7 +463,7 @@ export class Gen1Save implements EditableSave {
     bcdEncode(d, OFF.money, 3, this.money);
     bcdEncode(d, OFF.coins, 2, this.coins);
     d[OFF.badges] = this.badges & 0xff;
-    d[OFF.options] = writeOptions(this.options);
+    d[OFF.options] = writeOptions(this.options, d[OFF.options]);
     if (this.isYellow) {
       d[OFF.pikachuFriendship] = this.pikachuFriendship & 0xff;
       d[OFF.pikachuMood] = this.pikachuMood & 0xff;

@@ -160,16 +160,16 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   formulas. A Red save hasn't been tried, but Red and Blue share one layout. Try copies of your own and report mismatches.
 - The built-in tables (base stats, types, growth curves, species ids, every move's type/power/accuracy/PP and name, item
   names) were checked against Pokémon Red and Pokémon Yellow ROMs with `scripts/verify-against-rom.mjs`: all match.
-  Against Yellow it also checks Pikachu's reaction table (friendship and mood limits, which reactions repeat) and the
-  Celadon Mansion granny's six lines against the friendship wording. The ROMs aren't in the repo and the script copies
-  nothing from them. The granny's friendship limits (51, 101, 131, 161, 201) and Melanie's Bulbasaur limit (above 146)
-  come from the disassembly and community notes; they couldn't be located in the ROM's code, so they are the one thing
-  not checked against a ROM.
+  The same script finds the game code behind the rules the editor relies on: which bits of the options byte hold text
+  speed, battle style and animation (and Yellow's sound setting), and the PP Up bonus (one fifth of the base PP each,
+  at most 7). Against Yellow it also checks Pikachu's reaction table (friendship and mood limits, which reactions
+  repeat), the Celadon Mansion granny's table (the friendship limit and wording of each of her six lines) and Melanie's
+  Bulbasaur limit. The ROMs aren't in the repo and the script copies nothing from them.
 - Gen 1: English only (Japanese uses different offsets and text encoding). Event flags and map position are left untouched.
-- The options byte (text speed, battle style, animations) and the max-PP rules come from the pokered disassembly, not
-  from a real cartridge; check them against one of your own saves.
-- Yellow's Pikachu offsets (friendship at 0x271C, mood at 0x271D) come from the pokeyellow disassembly and were
-  checked against one real Yellow save.
+- Which bit is which in the options byte, and the PP Up rule, are confirmed in the game code (see above). The save
+  offsets themselves come from the pokered and pokeyellow disassemblies and match the two real saves.
+- Yellow's Pikachu offsets (friendship at 0x271C, mood at 0x271D) come from the pokeyellow disassembly. The ROM check
+  finds the game copying the friendship byte to 0x271C, and the offsets match one real Yellow save.
 - Mood only changes how Pikachu reacts when you talk to it (the editor shows which reaction, worked out from the game's
   own friendship and mood tables and tested against them for all 65,536 combinations). It also drifts: every step you
   walk moves it 1 closer to 128, so an edited mood fades, and the card says roughly how many steps that takes. The

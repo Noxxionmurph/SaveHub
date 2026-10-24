@@ -1,7 +1,7 @@
 // Pokémon Yellow only: the starter Pikachu's friendship and mood, how it will react when you talk to it, and whether
 // the game still counts it as yours.
 
-import { MOOD_NEUTRAL, friendshipLabel, moodLabel, pikachuReactionInfo } from '../../../core/gen1/data.ts';
+import { BULBASAUR_FRIENDSHIP, MOOD_NEUTRAL, friendshipLabel, moodLabel, pikachuReactionInfo } from '../../../core/gen1/data.ts';
 import { PIKACHU_INTERNAL, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
 import { clear, h, numberInput } from '../../dom.ts';
 import { pikachuPic, pokemonIcon, setPikachuPic } from '../../sprites.ts';
@@ -99,7 +99,7 @@ export function pikachuCard(s: Gen1Save, host: PikachuCardHost): Node {
     friend.lcd, friend.controls,
     h('div', { class: 'button-row' }, h('button', { onclick: () => friend.set(255) }, 'Max friendship')),
     h('p', { class: 'muted' },
-      'The words under the number are what the granny in Celadon Mansion says about it. Melanie in Cerulean City only gives you her Bulbasaur if friendship is above 146.'),
+      `The words under the number are what the granny in Celadon Mansion says about it. Melanie in Cerulean City only gives you her Bulbasaur if friendship is above ${BULBASAUR_FRIENDSHIP - 1}.`),
     mood.lcd, mood.controls,
     h('div', { class: 'button-row' },
       h('button', { onclick: () => mood.set(0) }, 'Upset'),

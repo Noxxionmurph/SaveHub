@@ -229,6 +229,18 @@ test('in-game options read and write the right bits and nothing else', () => {
   assert.equal(new Gen1Save(raw).serialize()[0x2601], 7);
 });
 
+test('Yellow\'s sound setting (bits 4-5 of the options byte) is not text speed and survives edits', () => {
+  const raw = blankSave();
+  raw[0x2601] = 0b0010_0011; // medium text, sound set to the third earphone option
+  raw[0x3523] = checksum8(raw, 0x2598, 0x3523);
+  const s = new Gen1Save(raw);
+  assert.equal(s.options.textSpeed, 3, 'text speed reads from bits 0-3 only');
+  assert.deepEqual(s.serialize(), raw);
+  s.options.textSpeed = 5;
+  s.options.battleStyleSet = true;
+  assert.equal(s.serialize()[0x2601], 0b0110_0101);
+});
+
 test('nameProblems and nameWarning say what the game would change in a typed name', () => {
   assert.deepEqual(nameProblems('Ashley{PK}', 10), { unsupported: [], extra: 0 });
   assert.deepEqual(nameProblems('Zoë@@ ✓', 10), { unsupported: ['ë', '@', '✓'], extra: 0 });

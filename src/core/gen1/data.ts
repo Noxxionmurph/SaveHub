@@ -400,6 +400,9 @@ export const FRIENDSHIP_BANDS = [
 export const friendshipLabel = (friendship: number): string =>
   FRIENDSHIP_BANDS.find((b) => friendship < b.below)?.label ?? FRIENDSHIP_BANDS[FRIENDSHIP_BANDS.length - 1].label;
 
+/** Melanie, in Cerulean City, gives you her Bulbasaur once Pikachu's friendship is this high or higher. scripts/verify-against-rom.mjs checks it. */
+export const BULBASAUR_FRIENDSHIP = 147;
+
 /** Pikachu's mood is one byte; 128 is neutral, and every step you walk moves it 1 closer to 128 (pokeyellow: UpdatePikachuHappinessAndMood). */
 export const MOOD_NEUTRAL = 128;
 
