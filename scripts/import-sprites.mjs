@@ -6,6 +6,7 @@
 //
 // Pokémon box icons for dex #1-151 -> assets/sprites/pokemon/<dex>.png (68x56)
 // Item icons used by Gen 1      -> assets/sprites/items/<category>/<name>.png (32x32)
+// Type icons for the 15 Gen 1 types -> assets/sprites/types/<type>.png (128x128, shown small)
 import { copyFile, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -21,6 +22,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = join(root, 'assets', 'sprites');
 await rm(join(out, 'pokemon'), { recursive: true, force: true });
 await rm(join(out, 'items'), { recursive: true, force: true });
+await rm(join(out, 'types'), { recursive: true, force: true });
 
 const missing = [];
 const pokemon = JSON.parse(await readFile(join(src, 'data', 'pokemon.json'), 'utf8'));
@@ -42,20 +44,29 @@ for (const p of allItemSpritePaths()) {
   nItem++;
 }
 
+const GEN1_TYPES = ['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon'];
+await mkdir(join(out, 'types'), { recursive: true });
+let nType = 0;
+for (const t of GEN1_TYPES) {
+  const from = join(src, 'misc', 'types', 'gen8', `${t}.png`);
+  if (existsSync(from)) { await copyFile(from, join(out, 'types', `${t}.png`)); nType++; }
+  else missing.push(`type ${t}`);
+}
+
 await writeFile(join(out, 'CREDITS.md'), `# Sprite credits
 
-The Pokémon box icons and item icons in this folder come from **PokéSprite** by msikma
+The Pokémon box icons, item icons and type icons in this folder come from **PokéSprite** by msikma
 (https://github.com/msikma/pokesprite), copied unchanged except for renaming the Pokémon files to their
 National Dex number.
 
-The eight gym badges in `badges/` are cut from the Red/Blue "Trainer Card" sheet on The Spriters Resource
+The eight gym badges in \`badges/\` are cut from the Red/Blue "Trainer Card" sheet on The Spriters Resource
 (https://www.spriters-resource.com/game_boy_gbc/pokemonredblue/asset/8733/, ripped by FrenchOrange), using the
-Super Game Boy colour panel. `scripts/extract-badges.py` redoes the cut.
+Super Game Boy colour panel. \`scripts/extract-badges.py\` redoes the cut.
 
 The images are © Nintendo / Creatures Inc. / GAME FREAK Inc. PokéSprite's own code is MIT licensed; the
 artwork is not covered by that licence. Remove this folder to take the artwork out. The site still works
 without it (icons just don't show).
 `);
 
-console.log(`Copied ${nMon} Pokémon icons and ${nItem} item icons into assets/sprites/`);
+console.log(`Copied ${nMon} Pokémon icons, ${nItem} item icons and ${nType} type icons into assets/sprites/`);
 if (missing.length) { console.error('MISSING:', missing.join(', ')); process.exit(1); }

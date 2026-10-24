@@ -182,7 +182,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           showNick ? h('span', { class: 'muted' }, `(${name})`) : null),
         h('span', { class: 'mon-meta' },
           h('span', { class: 'lcd lv' }, `Lv ${mon.level}`),
-          typeChips(baseStatsFor(mon.species))),
+          typeChips(baseStatsFor(mon.species), false)),
       ),
       ...extra,
     );

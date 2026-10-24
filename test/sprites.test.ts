@@ -27,3 +27,8 @@ test('TMs and HMs get a disc coloured by move type', () => {
 test('all eight Kanto badges have a sprite', () => {
   for (let n = 1; n <= 8; n++) assert.ok(has(`badges/${n}.png`), `missing badges/${n}.png`);
 });
+
+test('all 15 Gen 1 types have an icon', () => {
+  const types = ['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon'];
+  for (const t of types) assert.ok(has(`types/${t}.png`), `missing types/${t}.png`);
+});

@@ -9,6 +9,7 @@ const BASE = 'assets/sprites';
 export const pokemonIconUrl = (dex: number) => `${BASE}/pokemon/${dex}.png`;
 export const itemIconUrl = (path: string) => `${BASE}/items/${path}.png`;
 export const badgeIconUrl = (n: number) => `${BASE}/badges/${n}.png`;
+export const typeIconUrl = (type: string) => `${BASE}/types/${type.toLowerCase()}.png`;
 
 function icon(src: string, w: number, h_: number, cls: string): HTMLImageElement {
   const img = h('img', { class: `sprite ${cls}`, src, alt: '', width: w, height: h_, loading: 'lazy', decoding: 'async', draggable: false });
@@ -30,6 +31,11 @@ export function itemIcon(path: string, cls = ''): HTMLImageElement {
 /** Kanto gym badge (16x16): 1 = Boulder ... 8 = Earth. Drawn with hard pixel edges. */
 export function badgeIcon(n: number, cls = ''): HTMLImageElement {
   return icon(badgeIconUrl(n), 16, 16, `badge-icon ${cls}`.trim());
+}
+
+/** Round type icon (Fire, Water, ...). The file is 128px; CSS sizes it. */
+export function typeIcon(type: string, cls = ''): HTMLImageElement {
+  return icon(typeIconUrl(type), 128, 128, `type-icon ${cls}`.trim());
 }
 
 /** Point an existing icon at another file (and un-hide it if the last one failed). */

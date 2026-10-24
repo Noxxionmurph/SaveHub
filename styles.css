@@ -246,7 +246,14 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .lv { align-self: start; padding: 1px 8px; border-radius: 4px; font: 600 0.875rem var(--font-mono); }
 .mon-types { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; min-height: 0; }
 .mon-types:empty { display: none; }
-.type-chip { padding: 1px 9px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; line-height: 1.5; }
+.type-chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 3px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--line); font-size: 0.75rem; font-weight: 600; line-height: 1.4;
+}
+.type-chip .type-icon { width: 18px; height: 18px; }
+.type-chip.bare { padding: 0; border: 0; background: none; }
+.type-chip.bare .type-icon { width: 26px; height: 26px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .mon > .icon { align-self: center; }
 
 .dex-summary { display: inline-block; padding: 6px 12px; font: 500 0.875rem var(--font-mono); }
