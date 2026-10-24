@@ -52,7 +52,7 @@ with sync_playwright() as p:
     # Dex tab
     page.click('button.tab:has-text("Pokédex")')
     page.click('text=Own all 151')
-    assert 'Owned 151/151' in page.inner_text('.panel')
+    assert page.locator('.dex-summary').get_attribute('aria-label') == 'Seen 151 of 151, owned 151 of 151'
     page.screenshot(path=f'{SP}/5-dex.png')
     page.click('.save-btn')
     page.wait_for_selector('dialog.review-dialog[open]')

@@ -33,6 +33,10 @@ with sync_playwright() as p:
     page.on('console', lambda m: errors.append(f'console.{m.type}: {m.text}') if m.type == 'error' and 'ERR_TUNNEL' not in m.text else None)
     page.goto(BASE); page.click('.sample-row button'); page.wait_for_selector('.tabs')
 
+    # the trainer card types itself in the first time it is drawn: an animation only, so the text is there at once
+    assert page.locator('.tcard.boot').count() == 1
+    assert page.eval_on_selector('.tcard-name', 'e => getComputedStyle(e).animationName') == 'type-in'
+    assert page.inner_text('.tcard-name') == 'ASH' and page.inner_text('.tcard-stats') != ''
     # the open tab has the menu cursor, which is there for the open tab only and takes no room
     def cursor(tab):
         return page.evaluate("""t => { const el = [...document.querySelectorAll('.tab')].find((e) => e.textContent.trim() === t);
@@ -88,6 +92,7 @@ with sync_playwright() as p:
     assert page.locator('.mon-main .hp-bar').count() == 6
     assert bar_state(page.locator('.mon-main').nth(1).locator('.hp-bar'))[0] == 'hp-green'
     page.click('button.tab:has-text("Trainer")')
+    assert page.locator('.tcard.boot').count() == 0, 'coming back to the tab does not replay the type-in'
     strip = page.locator('.party-slot .hp-bar')
     assert strip.count() == 6 and bar_state(strip.nth(0)) == ('hp-yellow', 15)
     page.click('button.tab:has-text("Boxes")')
@@ -106,6 +111,46 @@ with sync_playwright() as p:
     dlg.locator('button.dialog-x').click(); page.wait_for_selector('dialog.confirm-dialog[open]')
     page.click('dialog.confirm-dialog button:has-text("Discard")'); page.wait_for_selector('dialog.mon-dialog', state='detached')
     assert bar_state(page.locator('.mon-main').nth(1).locator('.hp-bar'))[0] == 'hp-green'
+
+    # the Options card is the game's OPTION screen: every choice visible, the chosen one inverted, arrow keys work
+    page.click('button.tab:has-text("Trainer")')
+    rows = page.locator('.options-window .opt-row')
+    assert rows.count() == 3 and page.locator('.options-window.lcd').count() == 1
+    assert rows.locator('.opt-label').all_inner_texts() == ['TEXT SPEED', 'BATTLE ANIMATIONS', 'BATTLE STYLE'], rows.locator('.opt-label').all_inner_texts()
+    assert [r.get_attribute('role') for r in rows.all()] == ['radiogroup'] * 3
+    def checked(group):
+        return page.locator(f'.opt-row:has(.opt-label:text-is("{group}")) input:checked + span').inner_text()
+    assert (checked('Text speed'), checked('Battle animations'), checked('Battle style')) == ('MEDIUM', 'ON', 'SHIFT')
+    for span in page.locator('.opt-choice span').all():
+        assert span.bounding_box()['height'] >= 40, 'a touch-sized target'
+    on = page.locator('.opt-choice input:checked + span').first
+    assert on.evaluate('e => getComputedStyle(e).backgroundColor') != page.locator('.opt-choice input:not(:checked) + span').first.evaluate('e => getComputedStyle(e).backgroundColor')
+    assert on.evaluate("e => getComputedStyle(e, '::before').visibility") == 'visible'
+    page.locator('.opt-row:has(.opt-label:text-is("Text speed")) input:checked').focus()
+    page.keyboard.press('ArrowRight')
+    assert checked('Text speed') == 'SLOW'
+    page.click('.opt-row:has(.opt-label:text-is("Battle style")) label:has-text("Set")')
+    assert checked('Battle style') == 'SET'
+    page.screenshot(path=f'{SP}/flair-options.png')
+    page.click('.opt-row:has(.opt-label:text-is("Text speed")) label:has-text("Medium")')
+    page.click('.opt-row:has(.opt-label:text-is("Battle style")) label:has-text("Shift")')
+
+    # the dex totals are the game's SEEN / OWN window and follow the tiles
+    page.click('button.tab:has-text("Pokédex")')
+    totals = page.locator('.dex-summary')
+    assert totals.locator('dt').all_inner_texts() == ['SEEN', 'OWN']
+    seen0, own0 = [int(x.split('/')[0]) for x in totals.locator('dd').all_inner_texts()]
+    assert totals.get_attribute('aria-label') == f'Seen {seen0} of 151, owned {own0} of 151'
+    tile = page.locator('.dex-tile:not(.seen):not(.owned)').first       # a Pokémon the sample hasn't seen
+    tile.click()
+    seen1, own1 = [int(x.split('/')[0]) for x in totals.locator('dd').all_inner_texts()]
+    assert (seen1, own1) == (seen0 + 1, own0), ((seen0, own0), (seen1, own1))
+    page.screenshot(path=f'{SP}/flair-dex.png')
+    page.locator('.dex-tile.seen:not(.owned)').first.click()             # seen -> owned
+    assert [int(x.split('/')[0]) for x in totals.locator('dd').all_inner_texts()] == [seen0 + 1, own0 + 1]
+    page.locator('.dex-tile.owned').first.click()                        # owned -> not seen (the first owned tile; totals drop by one each)
+    seen2, own2 = [int(x.split('/')[0]) for x in totals.locator('dd').all_inner_texts()]
+    assert (seen2, own2) == (seen0, own0), ((seen0, own0), (seen2, own2))
 
     # the save window at the top of the review dialog says whose save this is, as edited
     page.click('button.tab:has-text("Trainer")')
@@ -126,6 +171,13 @@ with sync_playwright() as p:
     page.click('.save-btn'); page.wait_for_selector('dialog.review-dialog[open]')
     assert page.locator('dialog.review-dialog dl.save-window dd').all_inner_texts() == ['RED', '8', '151', '20:34'], \
         page.locator('dialog.review-dialog dl.save-window dd').all_inner_texts()
+    ctx.close()
+
+    # people who ask for less motion get no type-in
+    ctx = b.new_context(viewport={'width': 390, 'height': 844}, reduced_motion='reduce')
+    page = ctx.new_page()
+    page.goto(BASE); page.click('.sample-row button'); page.wait_for_selector('.tabs')
+    assert page.eval_on_selector('.tcard-name', 'e => getComputedStyle(e).animationName') == 'none'
     ctx.close()
 
     # ---------------------------------------------------------------- the Game Boy Advance theme keeps the frame and adds ruled paper

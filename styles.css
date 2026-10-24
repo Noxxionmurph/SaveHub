@@ -111,7 +111,7 @@
 }
 /* Only the large windows: the small screens (level badge, PP box, stepper) are too small for a double line. This one adds the
    ruled paper to the frame every theme's windows get (see .lcd below). */
-:root[data-console="gba"] .lcd:is(.tcard, .stats, .hex, .review-list, .save-window) {
+:root[data-console="gba"] .lcd:is(.tcard, .stats, .hex, .review-list, .save-window, .options-window, .dex-summary) {
   background-image: repeating-linear-gradient(to bottom, transparent 0 3px, var(--lcd-rule) 3px 4px);
   box-shadow: inset 0 0 0 2px var(--lcd), inset 0 0 0 3px var(--lcd-inner);
 }
@@ -202,13 +202,47 @@ a { color: inherit; text-underline-offset: 3px; }
   box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.12), inset 0 0 18px rgba(0, 0, 0, 0.08);
 }
 /* The big readout windows get a two-line frame, like the game's own text boxes. */
-.lcd:is(.tcard, .stats, .hex, .review-list, .save-window) {
+.lcd:is(.tcard, .stats, .hex, .review-list, .save-window, .options-window, .dex-summary) {
   box-shadow: inset 0 0 0 2px var(--lcd), inset 0 0 0 3px color-mix(in srgb, var(--lcd-edge) 60%, var(--lcd));
 }
 /* The window the game shows when you save (PLAYER, BADGES, POKÉDEX, TIME), at the top of the review dialog. */
 .save-window { display: grid; grid-template-columns: auto 1fr; gap: 3px 20px; margin: 0 0 14px; padding: 12px 16px; font: 500 1.0625rem/1.4 var(--font-display); }
 .save-window dt { color: var(--lcd-dim); }
 .save-window dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+
+/* The Options card, like the game's OPTION screen: every choice shown, the chosen one inverted and marked with the menu cursor. */
+.options-window { display: grid; margin: 4px 0 10px; padding: 4px 14px; font-family: var(--font-display); }
+.opt-row { display: grid; grid-template-columns: minmax(8.5em, auto) 1fr; align-items: center; gap: 2px 14px; padding: 6px 0; }
+.opt-row + .opt-row { border-top: 1px dashed color-mix(in srgb, var(--lcd-edge) 45%, transparent); }
+.opt-label { color: var(--lcd-dim); font-size: 1rem; text-transform: uppercase; }
+.opt-choices { display: flex; flex-wrap: wrap; gap: 6px; }
+.opt-choice { position: relative; cursor: pointer; touch-action: manipulation; }
+.opt-choice input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
+.opt-choice span {
+  position: relative; display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px 0 22px;
+  border: 2px solid transparent; border-radius: 4px; font-size: 1.0625rem; text-transform: uppercase;
+}
+.opt-choice span::before {
+  content: ''; position: absolute; left: 8px; top: 50%; width: 6px; height: 10px; margin-top: -5px;
+  background: currentColor; clip-path: polygon(0 0, 100% 50%, 0 100%); visibility: hidden;
+}
+.opt-choice:hover span { border-color: var(--lcd-edge); }
+.opt-choice input:checked + span { background: var(--lcd-ink); color: var(--lcd); border-color: var(--lcd-ink); }
+.opt-choice input:checked + span::before { visibility: visible; }
+.opt-choice input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+@media (max-width: 480px) { .opt-row { grid-template-columns: 1fr; } }
+
+/* The trainer card types itself in once, the first time it is drawn after a file opens (not on each return to the tab). */
+@keyframes type-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+@media (prefers-reduced-motion: no-preference) {
+  .tcard.boot .tcard-name, .tcard.boot .tcard-id { display: inline-block; animation: type-in 0.5s steps(8) both; }
+  .tcard.boot .tcard-id { animation-delay: 0.3s; }
+  .tcard.boot .tcard-stats dd { animation: type-in 0.4s steps(6) both; }
+  .tcard.boot .tcard-stats > div:nth-child(1) dd { animation-delay: 0.5s; }
+  .tcard.boot .tcard-stats > div:nth-child(2) dd { animation-delay: 0.65s; }
+  .tcard.boot .tcard-stats > div:nth-child(3) dd { animation-delay: 0.8s; }
+  .tcard.boot .tcard-stats > div:nth-child(4) dd { animation-delay: 0.95s; }
+}
 
 /* HP bars, drawn like the game's: they fill with HP and go green, yellow, then red (core/gen1/hp.ts has the cut-offs). */
 .hp-bar {
@@ -288,7 +322,6 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .grid.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.one { grid-template-columns: minmax(0, 32em); }
 .grid.trio { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 8px; }
-.grid.options-grid { align-items: end; }
 .card > .grid + .grid { margin-top: 12px; }
 .card > .grid + p { margin-top: 10px; }
 .subgroup { margin-top: 14px; }
@@ -374,7 +407,13 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .mon > .icon { align-self: center; }
 
-.dex-summary { display: inline-block; padding: 4px 12px; font: 500 0.875rem var(--font-mono); }
+.dex-summary { display: inline-block; padding: 6px 16px; }
+.dex-summary dl { display: flex; flex-wrap: wrap; gap: 2px 28px; font: 500 1rem/1.5 var(--font-display); text-transform: uppercase; }
+.dex-summary dl > div { display: flex; gap: 10px; }
+.dex-summary dt { color: var(--lcd-dim); }
+.dex-summary dd { margin: 0; }
+/* Numbers use the mono face: at this size the pixel face's 5 reads as an S ("151" looks like "1S1"). */
+.dex-summary dd, .save-window dd { font-family: var(--font-mono); font-weight: 600; font-size: 0.9375rem; }
 .dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; margin-top: 12px; }
 /* ---- dialogs ---- */
 dialog {

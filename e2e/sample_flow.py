@@ -34,8 +34,8 @@ with sync_playwright() as p:
 
     # --- trainer tab: options card + dirty dot
     page.screenshot(path=f'{SP}/c2-trainer.png', full_page=True)
-    page.select_option('.field:has(.field-label:text-is("Text speed")) select', label='Fast')
-    page.select_option('.field:has(.field-label:text-is("Battle animations")) select', label='Off')
+    page.click('.opt-row:has(.opt-label:text-is("Text speed")) label:has-text("Fast")')
+    page.click('.opt-row:has(.opt-label:text-is("Battle animations")) label:has-text("Off")')
     assert page.locator('.save-btn.dirty').count() == 1
     assert 'unsaved' in page.get_attribute('.save-btn', 'aria-label')
 

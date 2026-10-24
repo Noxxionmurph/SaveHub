@@ -16,7 +16,10 @@ the tokens (and that one frame rule) change, in the `data-console` blocks of `st
 Add `?console=gbc` or `?console=gba` (or `?console=gb`) to the address to preview a theme on every screen.
 Touches borrowed from the games themselves: HP bars use the game's own length and colour rules (`src/core/gen1/hp.ts`, from
 the disassembly in pret/pokered), the review dialog opens with the PLAYER / BADGES / POKÉDEX / TIME window the game shows when you
-save, the open tab has the menu cursor, and the big readouts have a two-line frame like the in-game text boxes. Fonts (Pixelify Sans, Instrument Sans, JetBrains Mono) are bundled in `fonts/` (SIL Open Font License, Latin only,
+save, the open tab has the menu cursor, the big readouts have a two-line frame like the in-game text boxes, the Options card is
+drawn like the game's OPTION screen (every choice shown, the chosen one marked with the cursor; real radio buttons underneath),
+the Pokédex totals are the game's SEEN / OWN window, and the trainer card types itself in once when a file opens (not for
+people who ask for less motion). Fonts (Pixelify Sans, Instrument Sans, JetBrains Mono) are bundled in `fonts/` (SIL Open Font License, Latin only,
 ~100 KB together), so the page makes no request to Google or any other font host; a character a font lacks falls back to
 the system font. `scripts/make-fonts.py` remakes the files from the google/fonts repository. (The Claude-hosted copy
 of the page is the one exception: it still links Google Fonts.) A game can set `colors` on its module to give each title a cartridge-label colour on the landing page.

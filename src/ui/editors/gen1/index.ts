@@ -10,6 +10,7 @@ import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '..
 import { enableDrag } from '../../drag.ts';
 import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
+import { choiceRow } from './gameChoice.ts';
 import { monHpBar } from './hpBar.ts';
 import { openMonEditor } from './monEditor.ts';
 import { openMonMenu } from './monMenu.ts';
@@ -35,6 +36,8 @@ const intro = (...children: (Node | string)[]) => h('p', { class: 'tab-intro' },
 export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
   let boxView = s.currentBoxIndex;
+  /** The trainer card types itself in the first time it is drawn after a file opens, and not on every return to the tab. */
+  let cardIntroPlayed = false;
   const markDirty = () => host.markDirty();
   /** Redraw hooks for parts of the Trainer tab that depend on its fields (card summary, starter Pikachu). */
   let refreshers: (() => void)[] = [];
@@ -109,12 +112,14 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     refreshers.push(paintCard);
     paintCard();
     paintParty();
-    return h('section', { class: 'card overview' },
-      h('div', { class: 'lcd tcard' },
+    const card = h('section', { class: 'card overview' },
+      h('div', { class: `lcd tcard${cardIntroPlayed ? '' : ' boot'}` },
         h('div', { class: 'tcard-top' }, name, id),
         h('dl', { class: 'tcard-stats' }, money.node, coins.node, time.node, badges.node),
         badgeRow),
       strip);
+    cardIntroPlayed = true;
+    return card;
   }
 
   function trainerTab(): Node {
@@ -184,12 +189,13 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     return h('section', { class: 'card' },
       h('h3', {}, 'Game options'),
       h('p', { class: 'muted card-note' }, 'The same settings as OPTION in the game’s start menu. Text speed is how fast text appears.'),
-      h('div', { class: 'grid trio options-grid' },
-        field('Text speed', selectInput(speeds, s.options.textSpeed, (v) => { s.options.textSpeed = Number(v); edited(); })),
-        field('Battle animations', selectInput([{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
-          s.options.battleAnimationsOff ? 'off' : 'on', (v) => { s.options.battleAnimationsOff = v === 'off'; edited(); })),
-        field('Battle style', selectInput([{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }],
-          s.options.battleStyleSet ? 'set' : 'shift', (v) => { s.options.battleStyleSet = v === 'set'; edited(); })),
+      h('div', { class: 'lcd options-window' },
+        choiceRow('Text speed', speeds.map((t) => ({ value: String(t.value), label: t.label })), String(s.options.textSpeed),
+          (v) => { s.options.textSpeed = Number(v); edited(); }),
+        choiceRow('Battle animations', [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
+          s.options.battleAnimationsOff ? 'off' : 'on', (v) => { s.options.battleAnimationsOff = v === 'off'; edited(); }),
+        choiceRow('Battle style', [{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }],
+          s.options.battleStyleSet ? 'set' : 'shift', (v) => { s.options.battleStyleSet = v === 'set'; edited(); }),
       ),
       h('p', { class: 'muted section-note' },
         'Animations Off skips the move animations in battle. Shift asks if you want to switch Pokémon after you knock one out; Set doesn’t ask.'));
@@ -415,11 +421,16 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   function dexTab(): Node {
     type DexState = 'unseen' | 'seen' | 'owned';
     const stateOf = (n: number): DexState => (s.isOwned(n) ? 'owned' : s.isSeen(n) ? 'seen' : 'unseen');
-    const summary = h('p', { class: 'lcd dex-summary' });
+    // The game's own SEEN / OWN window.
+    const seenEl = h('dd'), ownEl = h('dd');
+    const summary = h('div', { class: 'lcd dex-summary', role: 'group' },
+      h('dl', {}, h('div', {}, h('dt', {}, 'Seen'), seenEl), h('div', {}, h('dt', {}, 'Own'), ownEl)));
     const paintSummary = () => {
       const owned = DEX_NAMES.filter((_, i) => s.isOwned(i + 1)).length;
       const seen = DEX_NAMES.filter((_, i) => s.isSeen(i + 1)).length;
-      summary.textContent = `Owned ${owned}/151 · Seen ${seen}/151`;
+      seenEl.textContent = `${seen}/151`;
+      ownEl.textContent = `${owned}/151`;
+      summary.setAttribute('aria-label', `Seen ${seen} of 151, owned ${owned} of 151`);
     };
     const tiles = DEX_NAMES.map((name, i) => {
       const n = i + 1;
