@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { DEX_TO_INTERNAL } from '../src/core/gen1/data.ts';
+import { DEX_TO_INTERNAL, moodLabel, pikachuReaction, pikachuReactionName } from '../src/core/gen1/data.ts';
 import { Gen1Save, PIKACHU_INTERNAL, checksum8, looksLikeYellow, newMon } from '../src/core/gen1/save.ts';
 import { blankGen1Save } from '../src/core/gen1/sample.ts';
 import pokemonGen1 from '../src/games/pokemon-gen1.ts';
@@ -87,4 +87,46 @@ test('a name with the PK symbol shows as {PK} and is still matched byte for byte
   s.party = [pika];
   const out = s.serialize();
   assert.deepEqual([...out.slice(0x2598, 0x259f)], [0x80, 0xb2, 0xa7, 0xab, 0xa4, 0xb8, 0xe1]); // glyph kept
+});
+
+test('Yellow save: editing only the mood changes only the mood byte and the checksum', () => {
+  const raw = yellowBytes(226, 0x80);
+  const s = new Gen1Save(raw);
+  s.pikachuMood = 255;
+  const out = s.serialize();
+  assert.equal(out[0x271d], 255);
+  assert.ok(Gen1Save.checksumValid(out));
+  assert.deepEqual([...out.keys()].filter((i) => out[i] !== raw[i]), [0x271d, 0x3523]);
+  assert.equal(new Gen1Save(out).pikachuMood, 255);
+});
+
+test('mood words: below 128 is upset, 128 neutral, above cheerful', () => {
+  assert.deepEqual([0, 127, 128, 129, 255].map(moodLabel), ['Upset', 'Upset', 'Neutral', 'Cheerful', 'Cheerful']);
+});
+
+/**
+ * The game picks Pikachu's reaction with two tables (pokeyellow: GetPikaPicAnimationScriptIndex). This runs them
+ * as they are written there and checks the editor's shorter table gives the same answer for every friendship and mood.
+ */
+test('the reaction shown matches the game’s own lookup for every friendship and mood', () => {
+  const MOODS: [number, number][] = [[40, 1], [127, 2], [128, 3], [210, 4], [255, 5]]; // mood limit, column
+  const ROWS: [number, string[]][] = [ // friendship limit, one animation per column
+    [50, ['AngryBolt', 'AngryBolt', 'SideBlink', 'Side', 'Side']],
+    [100, ['BackTurn', 'BackTurn', 'Sad', 'Bored', 'Bored']],
+    [130, ['EarTwitch', 'EarTwitch', 'Blink2', 'Smile', 'Smile']],
+    [160, ['EarTwitch', 'EarTwitch', 'Happy', 'FistPump', 'FistPump']],
+    [200, ['Mad', 'Mad', 'Jump', 'Excited', 'Excited']],
+    [250, ['Mad', 'Mad', 'Heart', 'Joy', 'Joy']],
+    [255, ['Mad', 'Mad', '2Hearts', 'Love', 'Love']],
+  ];
+  const game = (friendship: number, mood: number): string => {
+    const col = MOODS.find(([limit]) => limit >= mood)![1];
+    return ROWS.find(([limit]) => limit >= friendship)![1][col - 1];
+  };
+  for (let f = 0; f < 256; f++) for (let m = 0; m < 256; m++) {
+    assert.equal(pikachuReactionName(f, m), game(f, m), `friendship ${f}, mood ${m}`);
+  }
+  assert.equal(pikachuReaction(226, 128), 'shows a heart'); // the real save
+  assert.equal(pikachuReaction(226, 20), 'looks mad');
+  assert.equal(pikachuReaction(30, 255), 'looks off to the side');
 });

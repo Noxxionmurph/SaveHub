@@ -467,6 +467,9 @@ button.danger { color: var(--danger); }
 .friend-label { font-weight: 600; }
 .friend-controls { display: grid; grid-template-columns: 1fr 92px; gap: 12px; align-items: center; margin: 14px 0 4px; }
 .friend-controls input[type="range"] { width: 100%; min-height: 32px; padding: 0; accent-color: var(--button); box-shadow: none; background: none; border: 0; }
+.pika-reaction { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2, transparent); }
+.pikachu-card .lcd.second { margin-top: 18px; }
+.pikachu-card .button-row + p { margin-top: 10px; }
 .starter-status { margin-top: 12px; display: grid; gap: 8px; justify-items: start; }
 .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font: 600 0.75rem var(--font-body); }
 .tag.starter { background: var(--button); color: var(--button-ink); }

@@ -124,6 +124,17 @@ test('Yellow: friendship changes are listed, and losing the starter Pikachu is c
   assert.deepEqual(lines(f, 'Pikachu'), ['Friendship: 160 → 255']);
 });
 
+test('Yellow: a mood change is listed with the mood words and the numbers', () => {
+  const raw = buildSampleSave();
+  const f = { before: new Gen1Save(raw), after: new Gen1Save(raw) };
+  f.after.pikachuMood = 255;
+  assert.deepEqual(lines(f, 'Pikachu'), ['Mood: Neutral (128) → Cheerful (255)']);
+  f.after.pikachuMood = 20;
+  assert.deepEqual(lines(f, 'Pikachu'), ['Mood: Neutral (128) → Upset (20)']);
+  f.after.pikachuMood = f.before.pikachuMood;
+  assert.deepEqual(diff(f), []);
+});
+
 test('Red/Blue saves never get a Pikachu section', () => {
   const f = fixture();
   f.after.pikachuFriendship = 7;

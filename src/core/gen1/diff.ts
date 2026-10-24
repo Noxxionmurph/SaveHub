@@ -2,7 +2,7 @@
 // Compares two models of the same save (as first loaded vs. now). Nothing here touches bytes.
 
 import type { ChangeGroup } from '../types.ts';
-import { BADGE_NAMES, MOVE_NAMES, TEXT_SPEEDS, itemName, speciesName } from './data.ts';
+import { BADGE_NAMES, MOVE_NAMES, TEXT_SPEEDS, itemName, moodLabel, speciesName } from './data.ts';
 import type { BagItem, Gen1Mon, Gen1Save } from './save.ts';
 
 const CAP = 12;
@@ -199,6 +199,9 @@ function pikachuLines(b: Gen1Save, a: Gen1Save): string[] {
   if (!a.isYellow) return [];
   const out: string[] = [];
   if (b.pikachuFriendship !== a.pikachuFriendship) out.push(`Friendship: ${b.pikachuFriendship} → ${a.pikachuFriendship}`);
+  if (b.pikachuMood !== a.pikachuMood) {
+    out.push(`Mood: ${moodLabel(b.pikachuMood)} (${b.pikachuMood}) → ${moodLabel(a.pikachuMood)} (${a.pikachuMood})`);
+  }
   // The game finds your Pikachu by its original trainer, so editing your name or ID (or moving it out of the
   // party) quietly stops it following you.
   if (b.party.some((m) => b.isStarterPikachu(m)) && !a.party.some((m) => a.isStarterPikachu(m))) {

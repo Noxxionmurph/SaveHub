@@ -1,7 +1,7 @@
 // Gen 1 (Red / Blue / Yellow) editor UI. Loaded lazily by the shell via the game module.
 
 import {
-  BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, TEXT_SPEEDS, baseStatsFor, friendshipLabel, itemName, speciesName,
+  BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, MOOD_NEUTRAL, TEXT_SPEEDS, baseStatsFor, friendshipLabel, itemName, moodLabel, pikachuReaction, speciesName,
 } from '../../../core/gen1/data.ts';
 import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, dropMon, listAt, placeName, shiftMon } from '../../../core/gen1/roster.ts';
 import { PIKACHU_INTERNAL, newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
@@ -164,22 +164,50 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   }
 
 
-  /** Pokémon Yellow only: how much your starter Pikachu likes you, and whether the game still counts it as yours. */
+  /** Pokémon Yellow only: how much your starter Pikachu likes you, how it feels, and whether the game still counts it as yours. */
   function pikachuCard(): Node | null {
     if (!s.isYellow) return null;
-    const label = h('span', { class: 'friend-label' });
-    const value = h('output', { class: 'friend-value', 'aria-label': 'Friendship' });
-    const slider = h('input', { type: 'range', min: 0, max: 255, step: 1, value: String(s.pikachuFriendship), 'aria-label': 'Friendship' });
-    const number = numberInput(s.pikachuFriendship, 0, 255, (v) => set(v), { 'aria-label': 'Friendship number' });
-    const paint = () => { value.textContent = String(s.pikachuFriendship); label.textContent = friendshipLabel(s.pikachuFriendship); };
-    function set(v: number): void {
-      s.pikachuFriendship = v;
-      slider.value = String(v);
-      number.value = String(v);
+    const reaction = h('p', { class: 'pika-reaction', 'aria-live': 'polite' });
+    const paintReaction = () => {
+      reaction.replaceChildren(h('strong', {}, 'Talk to it: '),
+        `Pikachu ${pikachuReaction(s.pikachuFriendship, s.pikachuMood)}.`);
+    };
+
+    /** A 0 to 255 value shown as a big number and a label, with a slider and a number box that stay in step. */
+    function dial(title: string, get: () => number, put: (v: number) => void, describe: (v: number) => string, extra = '') {
+      const label = h('span', { class: 'friend-label' });
+      const value = h('output', { class: 'friend-value', 'aria-label': title });
+      const slider = h('input', { type: 'range', min: 0, max: 255, step: 1, value: String(get()), 'aria-label': title });
+      const number = numberInput(get(), 0, 255, (v) => set(v), { 'aria-label': `${title} number` });
+      const paint = () => { value.textContent = String(get()); label.textContent = describe(get()); };
+      function set(v: number): void {
+        put(v);
+        slider.value = String(v);
+        number.value = String(v);
+        paint();
+        paintReaction();
+        markDirty();
+      }
+      slider.addEventListener('input', () => set(Number(slider.value)));
       paint();
-      markDirty();
+      return {
+        set,
+        lcd: h('div', { class: `lcd friend ${extra}`.trim() }, h('span', { class: 'friend-head' }, title), value, label),
+        controls: h('div', { class: 'friend-controls' }, slider, number),
+      };
     }
-    slider.addEventListener('input', () => set(Number(slider.value)));
+
+    const friend = dial('Friendship', () => s.pikachuFriendship, (v) => { s.pikachuFriendship = v; }, friendshipLabel);
+    const fade = h('p', { class: 'muted' });
+    const mood = dial('Mood', () => s.pikachuMood, (v) => { s.pikachuMood = v; paintFade(); }, moodLabel, 'second');
+    function paintFade(): void {
+      const steps = Math.abs(s.pikachuMood - MOOD_NEUTRAL);
+      fade.textContent = steps === 0
+        ? 'Neutral is where the mood settles. Walking moves it 1 step back toward neutral, so a changed mood fades as you walk.'
+        : `Walking moves the mood 1 step back toward neutral, so this fades after about ${steps} step${steps === 1 ? '' : 's'}. Set it just before you want to see it.`;
+    }
+    paintFade();
+    paintReaction();
 
     const status = h('div', { class: 'starter-status', 'aria-live': 'polite' });
     const drawStatus = () => {
@@ -201,17 +229,22 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         h('button', { onclick: () => { s.makeStarter(s.party[other]); markDirty(); drawStatus(); } }, `Make ${monLabel(s.party[other])} my starter`));
     };
     refreshers.push(drawStatus);
-    paint();
     drawStatus();
 
     return h('section', { class: 'card pikachu-card' },
       h('div', { class: 'card-title' }, pokemonIcon(25, 'card-icon'), h('h3', {}, 'Pikachu')),
-      h('p', { class: 'muted card-note' }, 'How much your starter Pikachu likes you, from 0 to 255. Some characters react to it.'),
-      h('div', { class: 'lcd friend' }, h('span', { class: 'friend-head' }, 'Friendship'), value, label),
-      h('div', { class: 'friend-controls' }, slider, number),
+      h('p', { class: 'muted card-note' }, 'How much your starter Pikachu likes you, and how it feels right now. Both run from 0 to 255.'),
+      friend.lcd, friend.controls,
       h('div', { class: 'button-row' },
-        h('button', { onclick: () => set(255) }, 'Max friendship')),
-      h('p', { class: 'muted' }, 'For example, the hiker at the Museum of Science needs 101 or more, and Melanie in Cerulean City only gives you her Bulbasaur at 147 or more.'),
+        h('button', { onclick: () => friend.set(255) }, 'Max friendship')),
+      h('p', { class: 'muted' }, 'Some characters react to friendship. For example, the hiker at the Museum of Science needs 101 or more, and Melanie in Cerulean City only gives you her Bulbasaur at 147 or more.'),
+      mood.lcd, mood.controls,
+      h('div', { class: 'button-row' },
+        h('button', { onclick: () => mood.set(0) }, 'Upset'),
+        h('button', { onclick: () => mood.set(MOOD_NEUTRAL) }, 'Neutral'),
+        h('button', { onclick: () => mood.set(255) }, 'Cheerful')),
+      fade,
+      reaction,
       status);
   }
 

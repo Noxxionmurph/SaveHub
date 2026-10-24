@@ -377,3 +377,45 @@ export const FRIENDSHIP_BANDS = [
 
 export const friendshipLabel = (friendship: number): string =>
   FRIENDSHIP_BANDS.find((b) => friendship < b.below)?.label ?? FRIENDSHIP_BANDS[FRIENDSHIP_BANDS.length - 1].label;
+
+/** Pikachu's mood is one byte; 128 is neutral, and every step you walk moves it 1 closer to 128 (pokeyellow: UpdatePikachuHappinessAndMood). */
+export const MOOD_NEUTRAL = 128;
+
+export const moodLabel = (mood: number): 'Upset' | 'Neutral' | 'Cheerful' =>
+  mood < MOOD_NEUTRAL ? 'Upset' : mood === MOOD_NEUTRAL ? 'Neutral' : 'Cheerful';
+
+/**
+ * What the game makes Pikachu do when you talk to it (pokeyellow: GetPikaPicAnimationScriptIndex). The game looks up
+ * one row by friendship (the first whose limit is at or above it), then one column by mood. Its mood table has five
+ * columns, but they only ever differ as below 128, exactly 128, or above 128, so there are three here.
+ * The names are the game's own animation names.
+ */
+const REACTION_ROWS: { upTo: number; below: string; at: string; above: string }[] = [
+  { upTo: 50, below: 'AngryBolt', at: 'SideBlink', above: 'Side' },
+  { upTo: 100, below: 'BackTurn', at: 'Sad', above: 'Bored' },
+  { upTo: 130, below: 'EarTwitch', at: 'Blink2', above: 'Smile' },
+  { upTo: 160, below: 'EarTwitch', at: 'Happy', above: 'FistPump' },
+  { upTo: 200, below: 'Mad', at: 'Jump', above: 'Excited' },
+  { upTo: 250, below: 'Mad', at: 'Heart', above: 'Joy' },
+  { upTo: 255, below: 'Mad', at: '2Hearts', above: 'Love' },
+];
+
+/** The game's animation name for how Pikachu reacts to being talked to. */
+export function pikachuReactionName(friendship: number, mood: number): string {
+  const row = REACTION_ROWS.find((r) => friendship <= r.upTo) ?? REACTION_ROWS[REACTION_ROWS.length - 1];
+  return mood < MOOD_NEUTRAL ? row.below : mood === MOOD_NEUTRAL ? row.at : row.above;
+}
+
+const REACTION_TEXT: Record<string, string> = {
+  AngryBolt: 'looks angry, with sparks', SideBlink: 'glances away and blinks', Side: 'looks off to the side',
+  BackTurn: 'turns its back on you', Sad: 'looks sad', Bored: 'looks bored',
+  EarTwitch: 'twitches its ears', Blink2: 'blinks', Smile: 'smiles',
+  Happy: 'looks happy', FistPump: 'pumps its fist',
+  Mad: 'looks mad', Jump: 'jumps', Excited: 'looks excited',
+  Heart: 'shows a heart', Joy: 'looks overjoyed',
+  '2Hearts': 'shows two hearts', Love: 'looks full of love',
+};
+
+/** Plain-English version of pikachuReactionName, to follow "Pikachu ". */
+export const pikachuReaction = (friendship: number, mood: number): string =>
+  REACTION_TEXT[pikachuReactionName(friendship, mood)] ?? 'reacts';
