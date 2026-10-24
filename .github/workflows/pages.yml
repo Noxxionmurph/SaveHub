@@ -22,6 +22,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      # The artwork lives in its own repository and the deployed site loads it from there. It is only checked out
+      # here so the tests that read the picture files can run, so a missing or removed artwork repository must not
+      # stop the editor from deploying (those tests skip themselves).
+      - uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          repository: Noxxionmurph/SaveHub-assets
+          path: assets
       - run: npm test
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3

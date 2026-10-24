@@ -12,25 +12,43 @@ Pokédex totals, the example bytes), magenta action buttons. Colours are CSS tok
 light and a dark set. Fonts (Pixelify Sans, Instrument Sans, JetBrains Mono) load from Google Fonts and fall back to
 system fonts. A game can set `colors` on its module to give each title a cartridge-label colour on the landing page.
 
-## Sprites
+## Artwork
 
-Pokémon box icons (dex #1-151), item icons and type icons live in `assets/sprites/` and come from
-[PokéSprite](https://github.com/msikma/pokesprite); the eight gym badges are cut from the Trainer Card sheet on
-The Spriters Resource (see `assets/sprites/CREDITS.md`). The images are © Nintendo /
-Creatures Inc. / GAME FREAK Inc.; delete the folder to remove them and the site still works, just without icons.
-To refresh them from a PokéSprite checkout: `node scripts/import-sprites.mjs <path>`.
-The box icons are drawn with their feet on a common baseline, so the art sits low in its canvas;
-`scripts/measure-icons.mjs` measures where the visible pixels really are and writes `src/ui/spriteOffsets.ts`, and
-the UI nudges each icon by that much so Pokémon look vertically centred wherever they appear (the import script
-runs it for you, and `npm test` fails if the table is stale). Which file shows for which
-Gen 1 item is one table in `src/ui/editors/gen1/itemSprites.ts`, and `npm test` checks that every file it names exists.
+The pictures (Pokémon box icons for dex #1-151, item icons, type icons, gym badges and Pikachu's reactions) are **not in
+this repository**. They live in [SaveHub-assets](https://github.com/Noxxionmurph/SaveHub-assets), which is served as its
+own site (`https://noxxionmurph.github.io/SaveHub-assets/`); the editor loads them from there. The images are
+© Nintendo / Creatures Inc. / GAME FREAK Inc. and come from PokéSprite, The Spriters Resource and Serebii (see
+[CREDITS.md](CREDITS.md)). Keeping them apart means a request to remove artwork only ever touches that repository, and
+the editor carries on without pictures (a picture that can't load hides itself, and the Pikachu preview box is dropped).
+
+- **One place decides where they come from**: `ART_BASE` in `src/ui/art.ts`. Nothing else names a path to the artwork
+  (`npm test` checks), so moving or removing it is a one-line change.
+- **Working on the code**: `git clone https://github.com/Noxxionmurph/SaveHub-assets assets` inside this folder (it is
+  git-ignored), then `npm run dev`. `npm run build:local` does the same build without serving. A plain `npm run build`
+  makes the site as it is deployed: no pictures inside it, loaded from the artwork site. Without the checkout the
+  tests that read the picture files skip themselves.
+- **Changing the artwork**: edit it in the `assets` checkout and push that repository; the editor picks it up with no
+  rebuild. To refresh from a PokéSprite checkout: `node scripts/import-sprites.mjs <path>`.
+- **If the artwork has to come down**: delete the files (or the repository) in SaveHub-assets. The editor keeps working.
+  To point at another place, change `ART_BASE`.
+- The box icons are drawn with their feet on a common baseline, so the art sits low in its canvas;
+  `scripts/measure-icons.mjs` measures where the visible pixels really are and writes `src/ui/spriteOffsets.ts`, and
+  the UI nudges each icon by that much so Pokémon look vertically centred wherever they appear (the import script
+  runs it for you, and `npm test` fails if the table is stale, when the artwork is checked out). Which file shows for which
+  Gen 1 item is one table in `src/ui/editors/gen1/itemSprites.ts`, and `npm test` checks that every file it names exists.
+
+## Not affiliated
+
+SaveForge is an unofficial fan tool, free and non-commercial, with no ads or donation links. It is not affiliated with
+or endorsed by Nintendo, Game Freak or Creatures Inc. The site says so in its footer, with links to this repository, the
+issue tracker (the contact address) and the credits.
 
 ## Run it
 
 Requires Node 22.18+ (uses Node's built-in TypeScript stripping — **no npm dependencies**).
 
 ```
-npm run dev          # builds to dist/ and serves http://localhost:5173
+npm run dev          # builds to dist/ (artwork from ./assets/, see Artwork) and serves http://localhost:5173
 npm test             # unit tests (data tables, round-trips, checksums)
 node scripts/make-sample.ts sample.sav   # the same made-up save the "Try a sample save" button opens
 node scripts/gen-moves.mjs <pokered checkout>   # regenerates src/core/gen1/moves.ts (type, power, accuracy, PP)
@@ -178,8 +196,8 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   condition, in Pokémon Tower, the Pokémon Fan Club, the Pewter Pokémon Center and Bill's house, and for a short
   while after some events (catching a Pokémon, fishing, a Thunderstone, Thunder and Thunderbolt).
 - The reaction pictures are Pokémon Yellow's own, cut from the Serebii sheet by `scripts/extract-pikachu.py` into one
-  file (`assets/sprites/pikachu.png`, so the card costs one request however many reactions you look at) and
-  credited in `assets/sprites/CREDITS.md`. Which reaction shows comes from the game's own tables, not from Serebii,
+  file (`sprites/pikachu.png` in the artwork repository, so the card costs one request however many reactions you look at) and
+  credited in `CREDITS.md`. Which reaction shows comes from the game's own tables, not from Serebii,
   which ranks reactions by friendship alone where the game uses friendship and mood together.
 - Red and Blue saves are byte-identical in structure, so the site asks which version yours is.
 - Names that use the game's "PK" / "MN" symbols show as `{PK}` / `{MN}` in the editor, and the "TRAINER" text some

@@ -3,6 +3,7 @@
 
 import { GAMES, detectGames, gamesByFamily, type Match } from '../core/registry.ts';
 import type { ChangeGroup, EditableSave, EditorHost, GameIdentity, GameModule } from '../core/types.ts';
+import { initArt } from './art.ts';
 import { cartridge } from './brand.ts';
 import { askConfirm, clear, h, toast } from './dom.ts';
 import { askReview } from './review.ts';
@@ -178,6 +179,7 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
       identity.note && names.length > 1 ? h('p', { class: 'muted version-note' }, identity.note) : null,
       dlNote),
     container,
+    siteFooter(),
   );
   try {
     const mount = await game.loadEditor();
@@ -277,12 +279,21 @@ function renderWelcome(): void {
       h('p', { class: 'request' }, 'Want another game? ', externalLink(`${REPO}/issues/new`, 'Request it on GitHub'), '.'),
     ),
 
-    h('footer', { class: 'site-foot' },
-      h('span', {}, 'Runs entirely in your browser. Your save never leaves your device.'),
-      h('span', {}, 'Sprites from ', externalLink('https://github.com/msikma/pokesprite', 'PokéSprite'),
-        ', © Nintendo / Creatures Inc. / GAME FREAK Inc.'),
-      externalLink(REPO, 'Source on GitHub')),
+    siteFooter(),
   );
+}
+
+/** Bottom of every page: what the site is, who it isn't, and how to reach the person who runs it. */
+function siteFooter(): HTMLElement {
+  return h('footer', { class: 'site-foot' },
+    h('span', {}, 'Runs entirely in your browser. Your save never leaves your device.'),
+    h('nav', { class: 'foot-links', 'aria-label': 'About this site' },
+      externalLink(REPO, 'Source on GitHub'),
+      externalLink(`${REPO}/issues`, 'Contact'),
+      externalLink(`${REPO}/blob/main/CREDITS.md`, 'Credits')),
+    h('p', { class: 'legal' },
+      'Unofficial fan tool, free and non-commercial. Not affiliated with or endorsed by Nintendo, Game Freak or Creatures Inc. ',
+      'Pokémon and its artwork belong to their owners.'));
 }
 
 /** Shown when a file matches no game, or more than one. The user decides; load() validates. */
@@ -323,4 +334,5 @@ function renderError(title: string, detail: string, back: () => void): void {
 }
 
 window.addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
+initArt();
 renderWelcome();

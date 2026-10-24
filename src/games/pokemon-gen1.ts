@@ -13,9 +13,9 @@ export default defineGame<Gen1Save>({
   colors: { 'Pokémon Red': '#c0392b', 'Pokémon Blue': '#2d62b8', 'Pokémon Yellow': '#e2b007' },
   // Each box's mascot: Charizard, Blastoise, Pikachu.
   icons: {
-    'Pokémon Red': 'assets/sprites/pokemon/6.png',
-    'Pokémon Blue': 'assets/sprites/pokemon/9.png',
-    'Pokémon Yellow': 'assets/sprites/pokemon/25.png',
+    'Pokémon Red': 'sprites/pokemon/6.png',
+    'Pokémon Blue': 'sprites/pokemon/9.png',
+    'Pokémon Yellow': 'sprites/pokemon/25.png',
   },
   detect: (data) => (gen1Handler.detect(data) ? { confidence: 'certain' } : null),
   // Yellow writes Pikachu's state into the save, so it can be told apart. Red and Blue are byte-for-byte the

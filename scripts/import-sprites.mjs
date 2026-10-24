@@ -1,5 +1,6 @@
 // Copies the sprites the app uses out of a checkout of PokéSprite (https://github.com/msikma/pokesprite)
-// into assets/sprites/. Run once, then commit the result; the site itself needs no network access to it.
+// into assets/sprites/ (the artwork repository, SaveHub-assets, checked out as ./assets/). Run once, then commit and push
+// the result in that repository; the site itself needs no network access to PokéSprite.
 //
 //   git clone --depth 1 https://github.com/msikma/pokesprite /tmp/pokesprite
 //   node scripts/import-sprites.mjs /tmp/pokesprite

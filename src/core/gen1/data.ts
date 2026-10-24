@@ -433,7 +433,7 @@ export function pikachuReactionName(friendship: number, mood: number): string {
 }
 
 /**
- * For each of the game's reaction names: its picture (row `row` of assets/sprites/pikachu.png, frame 1 on the left
+ * For each of the game's reaction names: its picture (row `row` of sprites/pikachu.png in the artwork, frame 1 on the left
  * and frame 2 on the right; `slug` is the name scripts/extract-pikachu.py gives that row) and a sentence to follow
  * "Pikachu ".
  */

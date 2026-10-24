@@ -2,3 +2,5 @@ node_modules/
 dist/
 artifact/
 __pycache__/
+# The artwork lives in its own repository (SaveHub-assets); this is where a checkout of it goes.
+assets/

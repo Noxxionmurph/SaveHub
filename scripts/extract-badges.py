@@ -4,7 +4,8 @@ The Spriters Resource (ripped by FrenchOrange), using the bottom-left Super Game
     python3 scripts/extract-badges.py path/to/trainer-card.png
 
 Writes assets/sprites/badges/1.png ... 8.png (16x16, transparent background).
-The finished files are committed, so you only need this to redo the cut. Needs Pillow."""
+The finished files live in the artwork repository (checked out as ./assets/), so you only need this to redo the cut.
+Needs Pillow."""
 import sys
 from pathlib import Path
 from PIL import Image

@@ -1,11 +1,11 @@
-// Sprite images (see assets/sprites/CREDITS.md). Paths are relative to the page, so they work on any
-// host or sub-path. A missing file hides its <img> instead of showing a broken-image icon, so the
-// site still works if the assets folder is removed.
+// Sprite images (credits in CREDITS.md). They are loaded from the separate artwork site (see art.ts). A file that
+// can't be loaded hides its <img> instead of showing a broken-image icon, so the editor still works without them.
 
+import { artUrl } from './art.ts';
 import { h } from './dom.ts';
 import { ICON_OFFSETS, ICON_SIZE } from './spriteOffsets.ts';
 
-const BASE = 'assets/sprites';
+const BASE = artUrl('sprites');
 
 export const pokemonIconUrl = (dex: number) => `${BASE}/pokemon/${dex}.png`;
 export const itemIconUrl = (path: string) => `${BASE}/items/${path}.png`;
@@ -54,7 +54,7 @@ export function typeIcon(type: string, cls = ''): HTMLImageElement {
 }
 
 /**
- * One of Pikachu's talk-to reactions, cut from assets/sprites/pikachu.png (one file: a row of two 40x40 frames
+ * One of Pikachu's talk-to reactions, cut from sprites/pikachu.png in the artwork repository (one file: a row of two 40x40 frames
  * for each reaction, hard pixel edges). The stylesheet picks the row from `--row`. With `animated` it also holds
  * the second frame, which the stylesheet flips on and off (and leaves off for people who ask for less motion).
  * An empty `alt` marks the picture as decoration. Change it later with setPikachuPic.
@@ -79,9 +79,9 @@ export function setIconSrc(img: HTMLImageElement, src: string): void {
   img.src = src;
 }
 
-/** A generic icon from any page-relative path (used for the per-game pictures on the landing page). */
-export function pictureIcon(src: string, w: number, h_: number, cls = ''): HTMLImageElement {
-  const img = icon(src, w, h_, cls);
-  const dex = Number(src.match(/\/pokemon\/(\d+)\.png$/)?.[1]);
+/** An icon from any path inside the artwork (used for the per-game pictures on the landing page). */
+export function pictureIcon(path: string, w: number, h_: number, cls = ''): HTMLImageElement {
+  const img = icon(artUrl(path), w, h_, cls);
+  const dex = Number(path.match(/\/pokemon\/(\d+)\.png$/)?.[1]);
   return dex ? centre(img, dex) : img;
 }

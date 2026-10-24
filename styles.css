@@ -324,6 +324,8 @@ dialog.confirm-dialog { width: min(360px, 100vw - 32px); padding: 18px 18px 6px;
 
 /* ---- sprites ---- */
 .sprite { display: block; flex: none; max-width: none; }
+/* a picture that failed to load hides itself (sprites.ts); the display rules above and below would otherwise beat the browser's [hidden] */
+img[hidden] { display: none !important; }
 .sprite.empty { width: 68px; height: 56px; }
 .mon-icon.big { width: 88px; height: auto; }
 .item-icon { width: 32px; height: 32px; }
@@ -369,7 +371,11 @@ dialog.confirm-dialog { width: min(360px, 100vw - 32px); padding: 18px 18px 6px;
 .dex-tile.owned .dex-no { color: var(--lcd-dim); }
 .dex-tile.owned .dex-ball { display: block; }
 
-.site-foot > span:nth-child(2) { flex-basis: 100%; order: 3; }
+/* the legal line gets a row to itself */
+.site-foot .legal { flex-basis: 100%; margin: 0; }
+.foot-links { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+/* artwork that can't be loaded (see art.ts): drop the Pikachu picture box rather than leave it empty */
+html[data-art='off'] .pika-screen { display: none; }
 
 .mon-main { grid-template-columns: auto 1fr; align-items: center; gap: 2px 8px; }
 .mon-main > .mon-icon { grid-row: 1 / span 2; margin-left: -4px; }
@@ -468,7 +474,8 @@ button.danger { color: var(--danger); }
 .reorder button { min-height: 0; width: 100%; padding: 0; font-size: 1.0625rem; line-height: 1; }
 
 /* ---- Yellow: the starter Pikachu ---- */
-.card-title { display: flex; align-items: center; gap: 8px; }
+/* tall enough for the icon, so the card looks the same if the icon can't load */
+.card-title { display: flex; align-items: center; gap: 8px; min-height: 40px; }
 .card-title h3 { margin: 0; }
 .card-icon { width: 48px; height: auto; }
 .friend { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 14px; padding: 6px 14px; }
@@ -483,11 +490,11 @@ button.danger { color: var(--danger); }
   background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; box-shadow: 0 6px 8px -6px rgb(0 0 0 / 0.35);
 }
 .pika-screen { flex: none; background: #f8f8f8; border: 3px solid var(--pin); border-radius: 6px; }
-/* every picture is a window onto assets/sprites/pikachu.png: 40px frames drawn at --s, row --row, frame 2 to the right */
+/* every picture is a window onto sprites/pikachu.png (--pika-sheet, set by initArt): 40px frames drawn at --s, row --row, frame 2 to the right */
 .pika-pic { --s: 80px; display: block; position: relative; width: var(--s); height: var(--s); }
 .pika-frame {
   display: block; width: var(--s); height: var(--s); image-rendering: pixelated;
-  background: url(assets/sprites/pikachu.png) no-repeat; background-size: calc(var(--s) * 2) auto;
+  background: var(--pika-sheet) no-repeat; background-size: calc(var(--s) * 2) auto;
   background-position: 0 calc(var(--row, 0) * var(--s) * -1);
 }
 .pika-frame-2 { background-position: calc(var(--s) * -1) calc(var(--row, 0) * var(--s) * -1); }

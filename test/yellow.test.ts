@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { DEX_TO_INTERNAL, REACTIONS, REACTION_ROWS, moodLabel, pikachuReaction, pikachuReactionInfo, pikachuReactionName } from '../src/core/gen1/data.ts';
 import { Gen1Save, PIKACHU_INTERNAL, checksum8, looksLikeYellow, newMon } from '../src/core/gen1/save.ts';
 import { blankGen1Save } from '../src/core/gen1/sample.ts';
@@ -144,12 +144,19 @@ test('the reaction rows cover friendship 0 to 255 with no gaps, and every reacti
 });
 
 test('the picture sheet has one row per reaction, in the order the cut script writes them', () => {
-  const png = readFileSync(new URL('../assets/sprites/pikachu.png', import.meta.url));
-  assert.equal(png.readUInt32BE(16), 80, 'two 40px frames across');
-  assert.equal(png.readUInt32BE(20), 40 * Object.keys(REACTIONS).length, 'one 40px row per reaction');
   const script = readFileSync(new URL('../scripts/extract-pikachu.py', import.meta.url), 'utf8');
   const names = [...script.match(/NAMES = \[([^\]]*)\]/)![1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
   const byRow = Object.values(REACTIONS).sort((a, b) => a.row - b.row);
   assert.deepEqual(byRow.map((r) => r.row), names.map((_, i) => i), 'rows 0, 1, 2 ... with no gaps or repeats');
   assert.deepEqual(byRow.map((r) => r.slug), names);
+});
+
+// The sheet itself is artwork, kept in the separate artwork repository (checked out as ./assets/).
+const sheetUrl = new URL('../assets/sprites/pikachu.png', import.meta.url);
+test('the picture sheet file is two 40px frames wide with a row for every reaction', {
+  skip: existsSync(sheetUrl) ? false : 'artwork not checked out (git clone https://github.com/Noxxionmurph/SaveHub-assets assets)',
+}, () => {
+  const png = readFileSync(sheetUrl);
+  assert.equal(png.readUInt32BE(16), 80, 'two 40px frames across');
+  assert.equal(png.readUInt32BE(20), 40 * Object.keys(REACTIONS).length, 'one 40px row per reaction');
 });
