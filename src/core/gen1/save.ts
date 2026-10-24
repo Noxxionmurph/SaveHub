@@ -1,7 +1,7 @@
 // Gen 1 (Red / Blue / Yellow, international) save file model.
 // Layout reference: pret/pokered wram + SRAM map, PKHeX's SAV1.
 
-import type { ChangeGroup, EditableSave } from '../types.ts';
+import type { ChangeGroup, EditableSave, SummaryLine } from '../types.ts';
 import { baseStatsFor, speciesName, TYPE_BYTE } from './data.ts';
 import { describeGen1Changes } from './diff.ts';
 import { decodeText, encodeText } from './text.ts';
@@ -447,6 +447,20 @@ export class Gen1Save implements EditableSave {
     mon.otId = this.trainerId;
     mon.otName = this.trainerName;
     mon.otRaw = this.nameRaw.slice();
+  }
+
+  /** The rows the game's own save window shows (PLAYER, BADGES, POKÉDEX, TIME), for the top of the review dialog. */
+  summary(): SummaryLine[] {
+    let badges = 0;
+    for (let v = this.badges & 0xff; v; v &= v - 1) badges++;
+    let owned = 0;
+    for (let n = 1; n <= 151; n++) if (this.isOwned(n)) owned++;
+    return [
+      { label: 'PLAYER', value: this.trainerName || '—' },
+      { label: 'BADGES', value: String(badges) },
+      { label: 'POKÉDEX', value: String(owned) },
+      { label: 'TIME', value: `${this.playHours}:${String(this.playMinutes).padStart(2, '0')}` },
+    ];
   }
 
   /** What differs from `before` (the same save as first loaded), grouped for the review dialog. */

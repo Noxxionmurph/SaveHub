@@ -10,6 +10,7 @@ import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '..
 import { enableDrag } from '../../drag.ts';
 import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
+import { monHpBar } from './hpBar.ts';
 import { openMonEditor } from './monEditor.ts';
 import { openMonMenu } from './monMenu.ts';
 import { nameField } from './nameField.ts';
@@ -101,7 +102,8 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           onclick: () => openMonEditor({ mon, party: true, onDone: (changed) => { if (changed) edited(); paintParty(); } }),
         }, pokemonIcon(INTERNAL_TO_DEX[mon.species]),
         h('span', { class: 'slot-name' }, monLabel(mon)),
-        h('span', { class: 'lv-tag' }, `Lv ${mon.level}`));
+        h('span', { class: 'lv-tag' }, `Lv ${mon.level}`),
+        monHpBar(mon, true, 'small'));
       }));
     };
     refreshers.push(paintCard);
@@ -247,6 +249,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           h('span', { class: 'lcd lv' }, `Lv ${mon.level}`),
           typeChips(baseStatsFor(mon.species), false),
           s.isYellow && s.isStarterPikachu(mon) ? h('span', { class: 'tag starter', title: 'Your starter Pikachu' }, 'Starter') : null),
+        monHpBar(mon, true, 'in-card'),
       ),
       ...extra,
     );
@@ -356,7 +359,8 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           dataset: { slot: key, pick: '' },
           onclick: () => menuFor(where, i, draw),
         }, pokemonIcon(INTERNAL_TO_DEX[mon.species]),
-        h('span', { class: 'lv-tag' }, `Lv ${mon.level}`));
+        h('span', { class: 'lv-tag' }, `Lv ${mon.level}`),
+        monHpBar(mon, where === PARTY, 'small'));
       }
       // Only the first empty slot of a box gets a + button: boxes are packed, the game has no gaps. The other
       // empty spots still accept a drop, which puts the Pokémon at the end.

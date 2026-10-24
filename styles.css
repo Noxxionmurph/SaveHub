@@ -109,8 +109,9 @@
   --cart: #7b6dd2; --cart-shade: #6154b8; --pin: #ddd9f7; --slot-bar: #0a0820;
   --focus: #a9c4ff; --danger: #ff9a9a;
 }
-/* Only the large windows: the small screens (level badge, PP box, stepper) are too small for a double line. */
-:root[data-console="gba"] .lcd:is(.tcard, .stats, .hex, .review-list) {
+/* Only the large windows: the small screens (level badge, PP box, stepper) are too small for a double line. This one adds the
+   ruled paper to the frame every theme's windows get (see .lcd below). */
+:root[data-console="gba"] .lcd:is(.tcard, .stats, .hex, .review-list, .save-window) {
   background-image: repeating-linear-gradient(to bottom, transparent 0 3px, var(--lcd-rule) 3px 4px);
   box-shadow: inset 0 0 0 2px var(--lcd), inset 0 0 0 3px var(--lcd-inner);
 }
@@ -200,6 +201,28 @@ a { color: inherit; text-underline-offset: 3px; }
   background: var(--lcd); color: var(--lcd-ink); border: 2px solid var(--lcd-edge); border-radius: 6px;
   box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.12), inset 0 0 18px rgba(0, 0, 0, 0.08);
 }
+/* The big readout windows get a two-line frame, like the game's own text boxes. */
+.lcd:is(.tcard, .stats, .hex, .review-list, .save-window) {
+  box-shadow: inset 0 0 0 2px var(--lcd), inset 0 0 0 3px color-mix(in srgb, var(--lcd-edge) 60%, var(--lcd));
+}
+/* The window the game shows when you save (PLAYER, BADGES, POKÉDEX, TIME), at the top of the review dialog. */
+.save-window { display: grid; grid-template-columns: auto 1fr; gap: 3px 20px; margin: 0 0 14px; padding: 12px 16px; font: 500 1.0625rem/1.4 var(--font-display); }
+.save-window dt { color: var(--lcd-dim); }
+.save-window dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+
+/* HP bars, drawn like the game's: they fill with HP and go green, yellow, then red (core/gen1/hp.ts has the cut-offs). */
+.hp-bar {
+  --hp-color: #3fb65f; display: block; height: 8px; border-radius: 2px; overflow: hidden;
+  background: var(--line); border: 1px solid var(--line-strong);
+}
+.hp-bar.hp-yellow { --hp-color: #e8b923; }
+.hp-bar.hp-red { --hp-color: #e0483c; }
+.hp-fill { display: block; height: 100%; width: var(--fill); background: var(--hp-color); }
+.hp-bar.small { width: calc(100% - 10px); height: 6px; margin-top: 3px; }
+.hp-bar.in-card { grid-column: 2; height: 6px; max-width: 220px; }
+.hp-row { display: flex; align-items: center; gap: 8px; max-width: 220px; margin-top: 8px; }
+.hp-row .hp-bar { flex: 1; }
+.hp-label { font: 600 0.75rem var(--font-display); color: var(--muted); }
 .hex { padding: 12px 14px; overflow-x: auto; }
 .hex figcaption { font-size: 0.8125rem; color: var(--lcd-dim); margin-bottom: 8px; max-width: 34em; }
 .hex table { border-collapse: collapse; width: 100%; font: 0.8125rem var(--font-mono); }
@@ -302,6 +325,11 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
   flex: 1 1 auto;
 }
 .tab.active { color: var(--text); border-bottom-color: var(--button); font-weight: 600; }
+/* The game's menu cursor, just left of the open tab's name. It takes no room: its width is cancelled by its margins. */
+.tab.active::before {
+  content: ''; display: inline-block; width: 6px; height: 10px; margin: 0 3px 0 -9px; vertical-align: -1px;
+  background: var(--button); clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
 
 /* ---- trainer ---- */
 .badge-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; max-width: 420px; }
@@ -404,7 +432,7 @@ button.dialog-x {
 @media (prefers-reduced-motion: no-preference) { .toast { animation: toast-in 0.18s ease-out; } }
 @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
-@media (max-width: 380px) { .tab { padding-inline: 7px; } }
+@media (max-width: 380px) { .tab { padding-inline: 7px; } .tab.active::before { width: 5px; margin: 0 2px 0 -7px; } }
 
 /* ---- sprites ---- */
 .sprite { display: block; flex: none; max-width: none; }
@@ -462,7 +490,7 @@ img[hidden] { display: none !important; }
 html[data-art='off'] .pika-screen { display: none; }
 
 .mon-main { grid-template-columns: auto 1fr; align-items: center; gap: 2px 8px; }
-.mon-main > .mon-icon { grid-row: 1 / span 2; margin-left: -4px; }
+.mon-main > .mon-icon { grid-row: 1 / span 3; margin-left: -4px; }
 .mon-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .mon-meta .mon-types { display: contents; }
 .mon-meta .lv { align-self: auto; }

@@ -2,7 +2,7 @@
 // Nothing here knows about any particular game.
 
 import { GAMES, detectGames, gamesByFamily, type Match } from '../core/registry.ts';
-import type { ChangeGroup, EditableSave, EditorHost, GameIdentity, GameModule } from '../core/types.ts';
+import type { ChangeGroup, EditableSave, EditorHost, GameIdentity, GameModule, SummaryLine } from '../core/types.ts';
 import { initArt } from './art.ts';
 import { cartridge } from './brand.ts';
 import { askConfirm, clear, h, toast } from './dom.ts';
@@ -105,7 +105,9 @@ async function reviewThenSave(game: GameModule, save: EditableSave, original: Ui
   if (save.describeChanges) {
     let groups: ChangeGroup[] = [];
     try { groups = save.describeChanges(game.load(original)); } catch { groups = []; }
-    if (!await askReview(groups, !sameBytes(save.serialize(), original))) return;
+    let summary: SummaryLine[] = [];
+    try { summary = save.summary?.() ?? []; } catch { summary = []; }
+    if (!await askReview(groups, !sameBytes(save.serialize(), original), summary)) return;
   }
   await download(save);
 }

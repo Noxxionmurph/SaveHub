@@ -1,14 +1,19 @@
 // The "review your changes" dialog shown before Save: what will differ from the file the user opened.
 
-import type { ChangeGroup } from '../core/types.ts';
+import type { ChangeGroup, SummaryLine } from '../core/types.ts';
 import { h } from './dom.ts';
 
 /**
  * Resolves true if the user chooses to save. `unlisted` means the bytes differ even though the game
- * had nothing to list (for example, checksums that get recalculated).
+ * had nothing to list (for example, checksums that get recalculated). `summary` is shown first, in a framed
+ * window like the one the game shows when you save, so it's clear which file is about to be written.
  */
-export function askReview(groups: ChangeGroup[], unlisted: boolean): Promise<boolean> {
+export function askReview(groups: ChangeGroup[], unlisted: boolean, summary: SummaryLine[] = []): Promise<boolean> {
   return new Promise((resolve) => {
+    const saveWindow = summary.length
+      ? h('dl', { class: 'lcd save-window', 'aria-label': `This save: ${summary.map((l) => `${l.label.toLowerCase()} ${l.value}`).join(', ')}` },
+        summary.map((l) => [h('dt', {}, l.label), h('dd', {}, l.value)]))
+      : null;
     const nothing = groups.length === 0 && !unlisted;
     const total = groups.reduce((n, g) => n + g.lines.length + (g.more ?? 0), 0);
     const list = groups.length
@@ -24,6 +29,7 @@ export function askReview(groups: ChangeGroup[], unlisted: boolean): Promise<boo
         h('p', { class: 'muted review-sub' }, nothing
           ? "You haven't edited anything, so saving gives you an identical copy."
           : `${total ? `${total} ${total === 1 ? 'change' : 'changes'}. ` : ''}Saving makes a new file. The one you opened isn't changed.`),
+        saveWindow,
         list,
         !groups.length && unlisted
           ? h('p', { class: 'review-sub' }, 'Nothing you edited, but the file will be tidied up (for example, checksums are recalculated).')

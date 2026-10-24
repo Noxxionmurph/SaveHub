@@ -10,6 +10,7 @@ import {
 import { askConfirm, clear, field, h, numberInput, selectInput } from '../../dom.ts';
 import { maxPp, moveInfo } from '../../../core/gen1/moves.ts';
 import { pokemonIcon, typeIcon } from '../../sprites.ts';
+import { monHpBar } from './hpBar.ts';
 import { nameField } from './nameField.ts';
 import { typeChips } from './typeChip.ts';
 
@@ -142,7 +143,8 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
           h('div', {},
             h('h2', {}, mon.nickname || speciesName(mon.species)),
             h('p', { class: 'muted' }, dex ? `#${String(dex).padStart(3, '0')} ${speciesName(mon.species)}` : speciesName(mon.species)),
-            typeChips(base))),
+            typeChips(base),
+            (() => { const bar = monHpBar(mon, party, '', true); return bar ? h('div', { class: 'hp-row' }, h('span', { class: 'hp-label', 'aria-hidden': 'true' }, 'HP'), bar) : null; })())),
         h('span', { class: 'lcd lv' }, `Lv ${mon.level}`)),
       h('dl', { class: 'lcd stats', 'aria-label': party ? 'Current stats' : 'Calculated stats' },
         (['hp', 'atk', 'def', 'spe', 'spc'] as const).map((k) =>
@@ -170,7 +172,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
         nameField('Original trainer', mon.otName, (v) => { mon.otName = v; }, 'The name of whoever caught it.'),
         field('Original trainer ID', numberInput(mon.otId, 0, 65535, (v) => { mon.otId = v; }),
           'If this isn’t your Trainer ID, the game counts this Pokémon as traded.'),
-        field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; })),
+        field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; refresh(); })),
       ),
 
       h('h3', {}, 'Moves'),

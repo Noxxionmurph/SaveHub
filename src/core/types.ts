@@ -10,10 +10,21 @@ export interface ChangeGroup {
   more?: number;
 }
 
+/** One line of a save's summary, like a row of the game's own save window ("BADGES  3"). */
+export interface SummaryLine {
+  label: string;
+  value: string;
+}
+
 /** An editable, in-memory model of one save file. */
 export interface EditableSave {
   /** Produce a ready-to-write save file with every checksum recalculated. */
   serialize(): Uint8Array;
+  /**
+   * A few lines that say whose save this is and how far it has got (the rows the game shows when you save), for the top
+   * of the review dialog. They describe the file as edited, so they are what will be written. Optional.
+   */
+  summary?(): SummaryLine[];
   /**
    * Plain-language list of what differs from `before` (a fresh load of the same file), for the review
    * dialog shown ahead of Save. Omit if a game can't describe its edits; the dialog then just confirms.
