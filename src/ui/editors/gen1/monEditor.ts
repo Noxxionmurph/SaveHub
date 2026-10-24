@@ -38,11 +38,17 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
   const body = h('div', { class: 'dialog-body' });
   dialog.append(body);
 
+  // A close button that stays at the top right while the form scrolls, so leaving doesn't mean scrolling down to
+  // Done. It closes exactly as Done and Escape do: edits are already applied as they're made, and nothing is
+  // written to the file until Save on the main page.
+  const closeBar = h('div', { class: 'dialog-x-bar' },
+    h('button', { class: 'dialog-x', type: 'button', title: 'Close', 'aria-label': 'Close', onclick: () => { dialog.close(); } }));
+
   let refreshing = false;
   const refresh = () => {
     if (refreshing) return;
     refreshing = true;
-    try { clear(body); body.append(...render().filter((n): n is Node => n !== null)); } finally { refreshing = false; }
+    try { clear(body); body.append(closeBar, ...render().filter((n): n is Node => n !== null)); } finally { refreshing = false; }
   };
   const touched = () => { if (party) recalcPartyStats(mon); };
 
