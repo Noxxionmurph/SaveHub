@@ -129,7 +129,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     return h('div', { class: 'stack' },
       intro('Your trainer card, money, badges and game settings. Edit any field. Nothing is written to a file until you tap Save.'),
       overview(),
-      // The fields follow the trainer card above: name, ID, money, coins, time, badges. Yellow's Pikachu comes last.
+      // The fields follow the trainer card above: name, ID, money, coins, time, badges.
       h('section', { class: 'card' },
         h('h3', {}, 'Trainer'),
         h('p', { class: 'muted card-note' }, 'The game shows up to 7 characters of a name. Type {PK} or {MN} for the PK and MN symbols.'),
@@ -164,15 +164,14 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           h('button', { onclick: () => { s.badges = 0; markDirty(); render(); } }, 'Clear badges'),
         )),
       optionsCard(),
-      pikachuSection(),
     );
   }
 
 
-  /** Pokémon Yellow only: the starter Pikachu's friendship and mood (see pikachuCard.ts). */
-  function pikachuSection(): Node | null {
+  /** Pokémon Yellow only, under the party list: the starter Pikachu's friendship and mood (see pikachuCard.ts). */
+  function pikachuSection(onRefresh: (fn: () => void) => void): Node | null {
     if (!s.isYellow) return null;
-    return pikachuCard(s, { markDirty, onRefresh: (fn) => refreshers.push(fn), monLabel });
+    return pikachuCard(s, { markDirty, onRefresh, monLabel });
   }
 
   /** The three settings from the in-game OPTION menu. */
@@ -278,6 +277,8 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
 
   function partyTab(): Node {
     const wrap = h('div', { class: 'mon-list' });
+    /** Things below the list (the Pikachu card's starter status) that depend on who is in the party. */
+    const afterDraw: (() => void)[] = [];
     const draw = (focus?: { index: number; delta: -1 | 1 }) => {
       clear(wrap);
       s.party.forEach((mon, i) => {
@@ -305,11 +306,13 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           draw();
         },
       }, s.party.length >= PARTY_MAX ? `Party full (${PARTY_MAX} of ${PARTY_MAX})` : `+ Add Pokémon (${s.party.length}/${PARTY_MAX})`));
+      afterDraw.forEach((f) => f());
     };
     draw();
-    return h('div', {},
+    return h('div', { class: 'stack' },
       intro('Up to 6 Pokémon. The first one battles first, so use the arrows to change the order. Tap a Pokémon to edit it, or ⋯ to move, duplicate or remove it.'),
-      wrap);
+      wrap,
+      pikachuSection((fn) => afterDraw.push(fn)));
   }
 
   function boxesTab(): Node {

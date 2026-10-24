@@ -8,7 +8,7 @@ import { pikachuPic, pokemonIcon, setPikachuPic } from '../../sprites.ts';
 
 export interface PikachuCardHost {
   markDirty(): void;
-  /** Register a redraw that runs whenever another part of the Trainer tab changes (name, Trainer ID, party). */
+  /** Register a redraw that runs whenever the party list below the card changes. */
   onRefresh(fn: () => void): void;
   monLabel(m: Gen1Mon): string;
 }
@@ -77,7 +77,7 @@ export function pikachuCard(s: Gen1Save, host: PikachuCardHost): Node {
     const other = s.party.findIndex((m) => m.species === PIKACHU_INTERNAL);
     if (other < 0) {
       status.append(h('p', {}, h('strong', {}, 'No Pikachu in your party. '),
-        'The game only follows a Pikachu whose original trainer is your name and Trainer ID. Add a Pikachu on the Party tab and a button to make it your starter will appear here.'));
+        'The game only follows a Pikachu whose original trainer is your name and Trainer ID. Add a Pikachu to your party and a button to make it your starter will appear here.'));
       return;
     }
     status.append(
