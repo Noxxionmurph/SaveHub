@@ -504,6 +504,8 @@ button.danger { color: var(--danger); }
 .tab-intro { margin: 0 0 14px; max-width: 46em; color: var(--muted); font-size: 0.9375rem; }
 .card-note { margin: -4px 0 10px; font-size: 0.8125rem; }
 .section-note { margin: -2px 0 10px; font-size: 0.8125rem; max-width: 46em; }
+/* a note under fields or buttons (not under a heading) needs room above it */
+.mon-dialog .grid + p, .mon-dialog .button-row + p { margin-top: 12px; }
 .family-edits { max-width: 46em; margin: 2px 0 12px; font-size: 0.875rem; }
 .family-edits strong { color: var(--text); font-weight: 600; }
 .tips { margin-top: 12px; font-size: 0.875rem; color: var(--muted); }
@@ -513,5 +515,5 @@ button.danger { color: var(--danger); }
 .tips summary::before { content: '▸'; font-size: 0.875em; color: var(--muted); }
 .tips[open] summary::before { content: '▾'; }
 .tips ul { margin: 0 0 4px; padding-left: 1.25em; display: grid; gap: 6px; }
-.dialog-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 16px; }
+.dialog-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 20px; }
 .dialog-foot .muted { flex: 1 1 14em; font-size: 0.8125rem; }
