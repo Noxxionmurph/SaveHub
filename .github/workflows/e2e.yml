@@ -1,0 +1,41 @@
+name: Browser checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The checks look at the pictures, so they need the artwork repository (see README). If it is ever removed
+      # this job fails; the deploy workflow does not depend on it.
+      - uses: actions/checkout@v4
+        with:
+          repository: Noxxionmurph/SaveHub-assets
+          path: assets
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install playwright
+      - run: python -m playwright install --with-deps chromium
+      - run: python e2e/run.py
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-output
+          path: e2e/out
+          retention-days: 7

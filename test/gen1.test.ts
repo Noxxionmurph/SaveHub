@@ -58,11 +58,11 @@ test('text encoding round-trips and keeps unknown bytes intact', () => {
 });
 
 test('the PK and MN symbols show as {PK} and {MN} and encode back to the same bytes', () => {
-  // "Ashley" followed by the PK symbol: the trainer name in a real Yellow save
-  const real = new Uint8Array([0x80, 0xb2, 0xa7, 0xab, 0xa4, 0xb8, 0xe1, 0x50, 0x00, 0x00, 0x00]);
-  assert.equal(decodeText(real), 'Ashley{PK}');
-  assert.equal(decodeText(encodeText('Ashley{PK}', 11)), 'Ashley{PK}');
-  assert.deepEqual(encodeText('Ashley{PK}', 11).slice(0, 8), real.slice(0, 8));
+  // "Ember" followed by the PK symbol, as the game stores it
+  const real = new Uint8Array([0x84, 0xac, 0xa1, 0xa4, 0xb1, 0xe1, 0x50, 0x00, 0x00, 0x00, 0x00]);
+  assert.equal(decodeText(real), 'Ember{PK}');
+  assert.equal(decodeText(encodeText('Ember{PK}', 11)), 'Ember{PK}');
+  assert.deepEqual(encodeText('Ember{PK}', 11).slice(0, 7), real.slice(0, 7));
   assert.deepEqual(encodeText('{MN}', 11).slice(0, 2), new Uint8Array([0xe2, 0x50]));
   // the letters P and K are different bytes from the symbol
   assert.deepEqual(encodeText('PK', 11).slice(0, 3), new Uint8Array([0x8f, 0x8a, 0x50]));
@@ -74,7 +74,7 @@ test('the PK and MN symbols show as {PK} and {MN} and encode back to the same by
 
 test('isEncodable says which names the game can show', () => {
   assert.equal(isEncodable('Ash♂ Jr.'), true);
-  assert.equal(isEncodable('Ashley{PK}'), true);
+  assert.equal(isEncodable('Ember{PK}'), true);
   assert.equal(isEncodable('Zoë'), false);
   assert.equal(isEncodable('😀'), false);
   assert.equal(isEncodable('{PKX}'), false);
@@ -242,11 +242,11 @@ test('Yellow\'s sound setting (bits 4-5 of the options byte) is not text speed a
 });
 
 test('nameProblems and nameWarning say what the game would change in a typed name', () => {
-  assert.deepEqual(nameProblems('Ashley{PK}', 10), { unsupported: [], extra: 0 });
+  assert.deepEqual(nameProblems('Ember{PK}', 10), { unsupported: [], extra: 0 });
   assert.deepEqual(nameProblems('Zoë@@ ✓', 10), { unsupported: ['ë', '@', '✓'], extra: 0 });
   assert.deepEqual(nameProblems('ABCDEFGHIJKL', 10), { unsupported: [], extra: 2 });
   assert.deepEqual(nameProblems('{PK}{PK}{PK}{PK}{PK}{PK}', 10), { unsupported: [], extra: 0 }, 'a symbol is one character');
-  assert.equal(nameWarning('Ashley{PK}'), '');
+  assert.equal(nameWarning('Ember{PK}'), '');
   assert.equal(nameWarning('Zoë'), 'The game can’t show “ë”. It is saved as “?”.');
   assert.equal(nameWarning('Zoë@'), 'The game can’t show “ë” “@”. They are saved as “?”.');
   assert.equal(nameWarning('ABCDEFGHIJKL'), 'Only the first 10 characters are kept.');

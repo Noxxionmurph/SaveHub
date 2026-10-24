@@ -52,6 +52,7 @@ Requires Node 22.18+ (uses Node's built-in TypeScript stripping — **no npm dep
 ```
 npm run dev          # builds to dist/ (artwork from ./assets/, see Artwork) and serves http://localhost:5173
 npm test             # unit tests (data tables, round-trips, checksums)
+python3 e2e/run.py    # browser checks in a real Chromium (see e2e/README.md; needs Playwright and the artwork checkout)
 node scripts/make-sample.ts sample.sav   # the same made-up save the "Try a sample save" button opens
 node scripts/gen-moves.mjs <pokered checkout>   # regenerates src/core/gen1/moves.ts (type, power, accuracy, PP)
 node scripts/verify-against-rom.mjs rom.gb      # checks the Gen 1 tables below against a Red/Blue ROM you own (copies nothing)
