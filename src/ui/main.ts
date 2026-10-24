@@ -2,18 +2,27 @@
 // Nothing here knows about any particular game.
 
 import { GAMES, detectGames, gamesByFamily, type Match } from '../core/registry.ts';
-import type { EditableSave, EditorHost, GameIdentity, GameModule } from '../core/types.ts';
+import type { ChangeGroup, EditableSave, EditorHost, GameIdentity, GameModule } from '../core/types.ts';
 import { cartridge } from './brand.ts';
 import { askConfirm, clear, h, toast } from './dom.ts';
+import { askReview } from './review.ts';
 import { pictureIcon } from './sprites.ts';
 import { makeZip } from './zip.ts';
 
 const root = document.getElementById('app')!;
 let fileName = 'save.sav';
 let dirty = false;
+let saveButton: HTMLElement | null = null;
 const APP_NAME = 'SaveForge';
 const REPO = 'https://github.com/Noxxionmurph/SaveHub';
-const host: EditorHost = { markDirty: () => { dirty = true; } };
+
+/** Tracks unsaved edits, and shows them as a dot on the Save button. */
+function setDirty(on: boolean): void {
+  dirty = on;
+  saveButton?.classList.toggle('dirty', on);
+  saveButton?.setAttribute('aria-label', on ? 'Save edited file (you have unsaved changes)' : 'Save edited file');
+}
+const host: EditorHost = { markDirty: () => setDirty(true) };
 
 // ---------- file handling ----------
 
@@ -59,7 +68,7 @@ async function download(save: EditableSave): Promise<void> {
   if (hosted) {
     try {
       await hosted.save({ filename: `${name}.zip`, data: makeZip(name, bytes) });
-      dirty = false;
+      setDirty(false);
       toast(`Saved ${name}.zip. Unzip it to get your edited save. Your original file isn't changed.`);
     } catch (e) {
       const code = (e as { code?: string })?.code;
@@ -72,8 +81,30 @@ async function download(save: EditableSave): Promise<void> {
   document.body.append(a);
   a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  dirty = false;
+  setDirty(false);
   toast(`Saved ${name}. Your original file isn't changed.`);
+}
+
+const sameBytes = (x: Uint8Array, y: Uint8Array) => x.length === y.length && x.every((v, i) => v === y[i]);
+
+/** Save button: show what changed first (for games that can say), then write the file. */
+async function reviewThenSave(game: GameModule, save: EditableSave, original: Uint8Array): Promise<void> {
+  if (save.describeChanges) {
+    let groups: ChangeGroup[] = [];
+    try { groups = save.describeChanges(game.load(original)); } catch { groups = []; }
+    if (!await askReview(groups, !sameBytes(save.serialize(), original))) return;
+  }
+  await download(save);
+}
+
+async function openSample(game: GameModule): Promise<void> {
+  try {
+    const sample = await game.sample!();
+    fileName = sample.fileName;
+    await openGame(game, sample.data, true);
+  } catch (e) {
+    renderError("Couldn't build the sample save.", e instanceof Error ? e.message : String(e), renderWelcome);
+  }
 }
 
 function pickFile(): void {
@@ -93,7 +124,7 @@ const externalLink = (href: string, label: string) =>
 
 // ---------- editor ----------
 
-async function openGame(game: GameModule, data: Uint8Array): Promise<void> {
+async function openGame(game: GameModule, data: Uint8Array, isSample = false): Promise<void> {
   let save: EditableSave;
   try {
     save = game.load(data);
@@ -137,11 +168,12 @@ async function openGame(game: GameModule, data: Uint8Array): Promise<void> {
       h('div', { class: 'editor-bar' },
         wordmark(22),
         h('div', { class: 'bar-actions' },
-          h('button', { onclick: async () => { if (!dirty || await askConfirm('Discard unsaved changes?', 'Discard')) { dirty = false; setPageTitle(); renderWelcome(); } } }, 'Close'),
-          h('button', { class: 'primary', 'aria-label': 'Save edited file', onclick: () => void download(save) }, 'Save'),
+          h('button', { onclick: async () => { if (!dirty || await askConfirm('Discard unsaved changes?', 'Discard')) { setDirty(false); saveButton = null; setPageTitle(); renderWelcome(); } } }, 'Close'),
+          saveButton = h('button', { class: 'primary save-btn', 'aria-label': 'Save edited file', onclick: () => void reviewThenSave(game, save, data) }, 'Save'),
         )),
       nameEl,
       h('p', { class: 'muted file-line' }, h('span', {}, fileName), h('span', {}, game.platform)),
+      isSample ? h('p', { class: 'sample-note' }, 'This is a made-up sample save. Edit anything, then tap Save to see what you get.') : null,
       picker,
       identity.note && names.length > 1 ? h('p', { class: 'muted version-note' }, identity.note) : null,
       dlNote),
@@ -150,7 +182,7 @@ async function openGame(game: GameModule, data: Uint8Array): Promise<void> {
   try {
     const mount = await game.loadEditor();
     clear(container);
-    dirty = false;
+    setDirty(false);
     mount(container, save, host);
   } catch (e) {
     renderError('The editor failed to load.', e instanceof Error ? e.message : String(e), renderWelcome);
@@ -165,6 +197,16 @@ const HEX_ROWS: [offset: string, bytes: string, means: string][] = [
   ['0x2605', '30 39', 'Trainer ID: 12345'],
   ['0x25F3', '00 30 00', 'Money: ¥3,000'],
 ];
+
+/** "No save handy? Try a sample save" for every game that can build one. */
+function sampleRow(): HTMLElement | null {
+  const withSample = GAMES.filter((g) => g.sample);
+  if (!withSample.length) return null;
+  return h('div', { class: 'sample-row' },
+    h('span', { class: 'muted' }, 'No save handy?'),
+    withSample.map((g) => h('button', { onclick: () => void openSample(g) },
+      withSample.length === 1 ? 'Try a sample save' : `Try a sample ${g.family} save`)));
+}
 
 function renderWelcome(): void {
   setPageTitle();
@@ -200,6 +242,7 @@ function renderWelcome(): void {
     h('h1', { class: 'lede' }, 'Edit your retro game saves in the browser.'),
     h('p', { class: 'lede-sub' }, 'Open a save, and SaveForge works out which game it belongs to and loads the right editor. Your file never leaves your device.'),
     slot,
+    sampleRow(),
     h('p', { class: 'muted notice' }, 'Keep a backup of the original save file before you edit.'),
 
     h('section', { class: 'how' },

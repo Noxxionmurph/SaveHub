@@ -1,8 +1,9 @@
 // Gen 1 (Red / Blue / Yellow, international) save file model.
 // Layout reference: pret/pokered wram + SRAM map, PKHeX's SAV1.
 
-import type { EditableSave } from '../types.ts';
+import type { ChangeGroup, EditableSave } from '../types.ts';
 import { baseStatsFor, speciesName, TYPE_BYTE } from './data.ts';
+import { describeGen1Changes } from './diff.ts';
 import { decodeText, encodeText } from './text.ts';
 
 export const SAVE_SIZE = 0x8000;
@@ -14,6 +15,7 @@ const OFF = {
   bagCount: 0x25c9, // count, then 20 × (id, qty), 0xFF terminator
   money: 0x25f3, // 3 bytes BCD
   rivalName: 0x25f6, // 11 bytes
+  options: 0x2601, // bits 0-5 text speed, bit 6 battle style (1 = Set), bit 7 battle animation (1 = Off)
   badges: 0x2602,
   playerId: 0x2605, // u16 big-endian
   pcItemCount: 0x27e6, // count, then 50 × (id, qty), 0xFF
@@ -43,6 +45,24 @@ const BOX_COUNT = 12;
 const BAG_MAX = 20;
 const PC_MAX = 50;
 export const DEX_BYTES = 19;
+
+export interface Gen1Options {
+  /** Raw value of bits 0-5. 1 / 3 / 5 are the three menu choices; anything else is kept as it was. */
+  textSpeed: number;
+  /** Battle style: true = "Set" (no free switch prompt), false = "Shift". */
+  battleStyleSet: boolean;
+  /** Battle animation: true = off, false = on. */
+  battleAnimationsOff: boolean;
+}
+
+export function readOptions(byte: number): Gen1Options {
+  return { textSpeed: byte & 0x3f, battleStyleSet: !!(byte & 0x40), battleAnimationsOff: !!(byte & 0x80) };
+}
+
+/** The options byte for these settings. Bits 0-5 round-trip as read, so nothing the game stored is lost. */
+export function writeOptions(o: Gen1Options): number {
+  return (o.textSpeed & 0x3f) | (o.battleStyleSet ? 0x40 : 0) | (o.battleAnimationsOff ? 0x80 : 0);
+}
 
 export interface Gen1Mon {
   species: number; // internal index
@@ -307,6 +327,7 @@ export class Gen1Save implements EditableSave {
   money: number;
   coins: number;
   badges: number;
+  options: Gen1Options;
   playHours: number;
   playMinutes: number;
   playSeconds: number;
@@ -334,6 +355,7 @@ export class Gen1Save implements EditableSave {
     this.money = bcdDecode(d, OFF.money, 3);
     this.coins = bcdDecode(d, OFF.coins, 2);
     this.badges = d[OFF.badges];
+    this.options = readOptions(d[OFF.options]);
     this.playHours = d[OFF.playHours];
     this.playMinutes = d[OFF.playMinutes];
     this.playSeconds = d[OFF.playSeconds];
@@ -371,6 +393,11 @@ export class Gen1Save implements EditableSave {
     if (!on) this.setOwned(dex, false);
   }
 
+  /** What differs from `before` (the same save as first loaded), grouped for the review dialog. */
+  describeChanges(before: EditableSave): ChangeGroup[] {
+    return describeGen1Changes(before as Gen1Save, this);
+  }
+
   serialize(): Uint8Array {
     const d = this.original.slice();
 
@@ -380,6 +407,7 @@ export class Gen1Save implements EditableSave {
     bcdEncode(d, OFF.money, 3, this.money);
     bcdEncode(d, OFF.coins, 2, this.coins);
     d[OFF.badges] = this.badges & 0xff;
+    d[OFF.options] = writeOptions(this.options);
     d[OFF.playHours] = this.playHours & 0xff;
     d[OFF.playMinutes] = Math.min(59, this.playMinutes);
     d[OFF.playSeconds] = Math.min(59, this.playSeconds);

@@ -14,8 +14,9 @@ system fonts. A game can set `colors` on its module to give each title a cartrid
 
 ## Sprites
 
-Pokémon box icons (dex #1-151) and item icons live in `assets/sprites/` and come from
-[PokéSprite](https://github.com/msikma/pokesprite) (see `assets/sprites/CREDITS.md`). The images are © Nintendo /
+Pokémon box icons (dex #1-151), item icons and type icons live in `assets/sprites/` and come from
+[PokéSprite](https://github.com/msikma/pokesprite); the eight gym badges are cut from the Trainer Card sheet on
+The Spriters Resource (see `assets/sprites/CREDITS.md`). The images are © Nintendo /
 Creatures Inc. / GAME FREAK Inc.; delete the folder to remove them and the site still works, just without icons.
 To refresh them from a PokéSprite checkout: `node scripts/import-sprites.mjs <path>`. Which file shows for which
 Gen 1 item is one table in `src/ui/editors/gen1/itemSprites.ts`, and `npm test` checks that every file it names exists.
@@ -27,18 +28,24 @@ Requires Node 22.18+ (uses Node's built-in TypeScript stripping — **no npm dep
 ```
 npm run dev          # builds to dist/ and serves http://localhost:5173
 npm test             # unit tests (data tables, round-trips, checksums)
-node scripts/make-sample.ts sample.sav   # synthetic save to try the UI
+node scripts/make-sample.ts sample.sav   # the same made-up save the "Try a sample save" button opens
+node scripts/gen-moves.mjs <pokered checkout>   # regenerates src/core/gen1/moves.ts (type, power, accuracy, PP)
 ```
 
 Everything runs client-side; saves never leave the browser. **Back up your real .sav before editing.**
 
 ## Gen 1 features
 
-- Trainer: name, rival, ID, money, coins, play time, badges
-- Bag and PC item storage
-- Party and all 12 boxes: add / delete / reorder, full Pokémon editor
-  (species, nickname, OT, level, exp + growth curve, status, moves, PP / PP Ups, DVs, EVs, battle stats)
+- Trainer: name, rival, ID, money, coins, play time, badges; in-game options (text speed, battle animations,
+  battle style)
+- Bag and PC item storage (only items the game can actually put there)
+- Party and all 12 boxes, shown as a 4 x 5 grid like the PC. Tap a Pokémon to edit it, move it between the party
+  and any box, copy it, reorder it or remove it. The last Pokémon in the party can't be moved out or removed.
+- Full Pokémon editor: species, nickname, OT, level, exp + growth curve, status, moves (with type icons), PP capped
+  at each move's real maximum, PP Ups, DVs, EVs, battle stats
 - Pokédex seen / owned
+- **Save** first shows a plain-language list of everything that changed (and "No changes yet" if nothing did)
+- "Try a sample save" on the landing page opens a made-up save, so nothing needs to be uploaded to look around
 - All checksums recalculated on export (main + box banks); an unedited save round-trips byte-for-byte
 
 ## Layout
@@ -47,8 +54,9 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
 src/core/types.ts          GameModule / EditableSave contracts (the only thing the shell knows about)
 src/core/registry.ts       GAMES list + detectGames()
 src/games/*.ts             one small descriptor per game: detect, load, lazy editor import
-src/core/<game>/           format code per game: data tables, text encoding, parse/serialize, checksums
-src/ui/main.ts             game-agnostic shell: drop zone, detection, chooser, save
+src/core/<game>/           format code per game: data tables, text encoding, parse/serialize, checksums,
+                           plus what the shell can ask for: describeChanges (review list) and a sample save
+src/ui/main.ts             game-agnostic shell: drop zone, detection, chooser, review dialog, save
 src/ui/editors/<game>/     editor UI per game (lazy-loaded)
 scripts/build.mjs          strips types -> dist/ (rewrites .ts imports and import() to .js)
 test/                      node:test suite
@@ -67,6 +75,9 @@ test/                      node:test suite
    candidates and the site asks the user to confirm which one theirs is.
 3. **Editor** in `src/ui/editors/<game>/index.ts` exporting a `MountEditor`; call `host.markDirty()` on edits.
 4. **Register** it in the `GAMES` array in `src/core/registry.ts`.
+5. Optional, and the shell picks them up when present: `describeChanges(before)` on the save model (a list of
+   `ChangeGroup`s for the review dialog) and `sample()` on the descriptor (a made-up save for the "Try a sample
+   save" button, built in code so no binary file is shipped).
 
 The landing page's supported-games list, auto-detection, the manual chooser (used when a file matches zero or
 several games) and the Save button all pick the new game up automatically.
@@ -99,5 +110,8 @@ is wrapped in a `.zip`, since `.sav` isn't an allowed type) and in-page dialogs.
 ## Known limitations
 
 - Tested against synthetic saves built from documented offsets, not yet against real cartridge saves; try copies of your own and report mismatches.
-- Gen 1: English only (Japanese uses different offsets and text encoding). Event flags, map position and options are left untouched.
+- Gen 1: English only (Japanese uses different offsets and text encoding). Event flags and map position are left untouched.
+- The options byte (text speed, battle style, animations) and the max-PP rules come from the pokered disassembly, not
+  from a real cartridge; check them against one of your own saves.
+- Red and Blue saves are byte-identical in structure, so the site asks which version yours is.
 - Growth rate isn't stored in the save, so the editor infers it from level/exp and lets you override it.

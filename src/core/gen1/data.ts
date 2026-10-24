@@ -351,3 +351,13 @@ export function guessGrowth(level: number, exp: number): Growth {
   }
   return 'Medium Fast';
 }
+
+/** Kanto gym badges in the order the game stores them (bit 0 = Boulder ... bit 7 = Earth). */
+export const BADGE_NAMES = ['Boulder', 'Cascade', 'Thunder', 'Rainbow', 'Soul', 'Marsh', 'Volcano', 'Earth'] as const;
+
+/** Text speed as the game stores it in the low bits of the options byte (pokered: TEXT_DELAY_*). */
+export const TEXT_SPEEDS = [
+  { value: 1, label: 'Fast' },
+  { value: 3, label: 'Medium' },
+  { value: 5, label: 'Slow' },
+] as const;

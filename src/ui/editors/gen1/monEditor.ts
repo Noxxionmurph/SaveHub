@@ -8,7 +8,8 @@ import {
   applySpeciesTypes, calcStats, defaultNickname, hpDv, recalcPartyStats, type Gen1Mon,
 } from '../../../core/gen1/save.ts';
 import { clear, field, h, numberInput, selectInput, textInput } from '../../dom.ts';
-import { pokemonIcon } from '../../sprites.ts';
+import { maxPp, moveInfo } from '../../../core/gen1/moves.ts';
+import { pokemonIcon, typeIcon } from '../../sprites.ts';
 import { typeChips } from './typeChip.ts';
 
 const SPECIES_OPTIONS = DEX_NAMES.map((name, i) => ({
@@ -46,15 +47,34 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
     const base = baseStatsFor(mon.species);
     const calc = calcStats(mon.species, mon.level, mon.dvs, mon.evs);
 
-    const moveRow = (i: number) => h('div', { class: 'move-row' },
-      selectInput(MOVE_OPTIONS, mon.moves[i], (v) => {
-        mon.moves[i] = Number(v);
-        if (mon.moves[i] === 0) mon.pp[i] = 0;
-        else if (mon.pp[i] === 0) mon.pp[i] = 5;
-      }),
-      field('PP', numberInput(mon.pp[i], 0, 63, (v) => { mon.pp[i] = v; })),
-      field('PP Up', numberInput(mon.ppUps[i], 0, 3, (v) => { mon.ppUps[i] = v; })),
-    );
+    /** One move: its type icon and name, current PP (capped at the move's real maximum) and PP Ups. */
+    const moveRow = (i: number): HTMLElement => {
+      const redraw = () => row.replaceWith((row = build()));
+      const build = (): HTMLElement => {
+        const id = mon.moves[i];
+        const info = moveInfo(id);
+        const cap = maxPp(id, mon.ppUps[i]);
+        return h('div', { class: 'move-row' },
+          h('div', { class: 'move-pick' },
+            info ? typeIcon(info.type, 'move-type') : h('span', { class: 'move-type blank', 'aria-hidden': 'true' }),
+            selectInput(MOVE_OPTIONS, id, (v) => {
+              mon.moves[i] = Number(v);
+              mon.pp[i] = maxPp(mon.moves[i], mon.ppUps[i]); // a newly picked move starts with full PP
+              redraw();
+            })),
+          field('PP', numberInput(mon.pp[i], 0, cap, (v) => { mon.pp[i] = v; }, { disabled: !id }), id ? `max ${cap}` : undefined),
+          field('PP Up', numberInput(mon.ppUps[i], 0, 3, (v) => {
+            // Like using a PP Up in the game: the current PP grows by the same amount as the maximum.
+            const before = maxPp(id, mon.ppUps[i]);
+            mon.ppUps[i] = v;
+            const after = maxPp(id, v);
+            mon.pp[i] = Math.max(0, Math.min(after, mon.pp[i] + after - before));
+            redraw();
+          }, { disabled: !id })));
+      };
+      let row = build();
+      return row;
+    };
 
     const dvInputs = (['atk', 'def', 'spe', 'spc'] as const).map((k) =>
       field(STAT_LABELS[k], numberInput(mon.dvs[k], 0, 15, (v) => { mon.dvs[k] = v; touched(); refresh(); })));
@@ -135,6 +155,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
         h('button', { onclick: () => { mon.dvs = { atk: 15, def: 15, spe: 15, spc: 15 }; touched(); refresh(); } }, 'Max DVs'),
         h('button', { onclick: () => { mon.evs = { hp: 65535, atk: 65535, def: 65535, spe: 65535, spc: 65535 }; touched(); refresh(); } }, 'Max EVs'),
         h('button', { onclick: () => { mon.exp = expForLevel(growth, mon.level); refresh(); } }, 'Reset exp to level'),
+        h('button', { onclick: () => { mon.pp = mon.moves.map((m, i) => maxPp(m, mon.ppUps[i])) as typeof mon.pp; refresh(); } }, 'Restore PP'),
         party ? h('button', { onclick: () => { recalcPartyStats(mon, true); refresh(); } }, 'Recalc stats & heal') : null,
       ),
       h('div', { class: 'button-row end' },

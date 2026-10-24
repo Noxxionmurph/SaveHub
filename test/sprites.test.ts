@@ -21,6 +21,7 @@ test('every selectable Gen 1 item resolves to an icon file that exists', () => {
 test('TMs and HMs get a disc coloured by move type', () => {
   assert.equal(itemSpritePath(0xc9 + 23), 'tm/electric'); // TM24 Thunderbolt
   assert.equal(itemSpritePath(0xc9 + 37), 'tm/fire'); // TM38 Fire Blast
+  assert.equal(itemSpritePath(0xc9 + 42), 'tm/flying'); // TM43 Sky Attack (Flying in Gen 1 data)
   assert.equal(itemSpritePath(0xc4 + 2), 'hm/water'); // HM03 Surf
 });
 

@@ -178,3 +178,28 @@ test('bad checksum is rejected by detection', () => {
   assert.equal(gen1Handler.detect(raw), false);
   assert.equal(openSave(raw), null);
 });
+
+test('in-game options read and write the right bits and nothing else', () => {
+  const raw = blankSave();
+  raw[0x2601] = 0b1100_0011; // medium text, Set battle style, animations off
+  raw[0x3523] = checksum8(raw, 0x2598, 0x3523);
+  const s = new Gen1Save(raw);
+  assert.deepEqual(s.options, { textSpeed: 3, battleStyleSet: true, battleAnimationsOff: true });
+  assert.deepEqual(s.serialize(), raw); // untouched => byte-identical
+
+  s.options.textSpeed = 1;
+  s.options.battleAnimationsOff = false;
+  const out = s.serialize();
+  assert.equal(out[0x2601], 0b0100_0001);
+  assert.ok(Gen1Save.checksumValid(out));
+  const back = new Gen1Save(out);
+  assert.deepEqual(back.options, { textSpeed: 1, battleStyleSet: true, battleAnimationsOff: false });
+  // Only the options byte (and the checksum) differ from the original.
+  const diff = [...out.keys()].filter((i) => out[i] !== raw[i]);
+  assert.deepEqual(diff, [0x2601, 0x3523]);
+
+  // A text-speed value the menu doesn't offer is kept as the game left it.
+  raw[0x2601] = 0b0000_0111;
+  raw[0x3523] = checksum8(raw, 0x2598, 0x3523);
+  assert.equal(new Gen1Save(raw).serialize()[0x2601], 7);
+});

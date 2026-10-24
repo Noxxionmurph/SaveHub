@@ -4,13 +4,13 @@
 
 export const UNKNOWN_ITEM = 'etc/unknown-item';
 
-/** TM discs are coloured by the move's type (Gen 1 types, so Sky Attack is Normal). */
+/** TM discs are coloured by the move's type (checked against pokered's TM list by scripts/gen-moves.mjs). */
 const TM_TYPES = [
   'normal', 'normal', 'normal', 'normal', 'normal', 'poison', 'normal', 'normal', 'normal', 'normal', // 01-10
   'water', 'water', 'ice', 'ice', 'normal', 'normal', 'fighting', 'fighting', 'fighting', 'normal', // 11-20
   'grass', 'grass', 'dragon', 'electric', 'electric', 'ground', 'ground', 'ground', 'psychic', 'psychic', // 21-30
   'normal', 'normal', 'psychic', 'normal', 'normal', 'normal', 'normal', 'fire', 'normal', 'normal', // 31-40
-  'normal', 'psychic', 'normal', 'psychic', 'electric', 'psychic', 'normal', 'rock', 'normal', 'normal', // 41-50
+  'normal', 'psychic', 'flying', 'psychic', 'electric', 'psychic', 'normal', 'rock', 'normal', 'normal', // 41-50
 ] as const;
 const HM_TYPES = ['normal', 'flying', 'water', 'normal', 'normal'] as const; // Cut, Fly, Surf, Strength, Flash
 

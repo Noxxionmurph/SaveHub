@@ -1,14 +1,16 @@
 // Gen 1 (Red / Blue / Yellow) editor UI. Loaded lazily by the shell via the game module.
 
 import {
-  DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, baseStatsFor, itemName, speciesName,
+  BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, TEXT_SPEEDS, baseStatsFor, itemName, speciesName,
 } from '../../../core/gen1/data.ts';
+import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, listAt } from '../../../core/gen1/roster.ts';
 import { newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
 import type { EditorHost, MountEditor } from '../../../core/types.ts';
-import { askConfirm, clear, field, h, numberInput, selectInput, textInput } from '../../dom.ts';
+import { clear, field, h, numberInput, selectInput, textInput } from '../../dom.ts';
 import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
 import { openMonEditor } from './monEditor.ts';
+import { openMonMenu } from './monMenu.ts';
 import { typeChips } from './typeChip.ts';
 
 type Tab = 'trainer' | 'bag' | 'party' | 'boxes' | 'dex';
@@ -19,7 +21,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'boxes', label: 'Boxes' },
   { id: 'dex', label: 'Pokédex' },
 ];
-const BADGES = ['Boulder', 'Cascade', 'Thunder', 'Rainbow', 'Soul', 'Marsh', 'Volcano', 'Earth'];
+const BADGES = BADGE_NAMES;
 
 export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
@@ -132,7 +134,25 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           h('button', { onclick: () => { s.badges = 0xff; markDirty(); render(); } }, 'All badges'),
           h('button', { onclick: () => { s.badges = 0; markDirty(); render(); } }, 'Clear badges'),
         )),
+      optionsCard(),
     );
+  }
+
+  /** The three settings from the in-game OPTION menu. */
+  function optionsCard(): Node {
+    const speeds = TEXT_SPEEDS.map((t) => ({ value: t.value, label: t.label }));
+    // A value the menu can't produce (rare) stays selectable so it isn't silently changed.
+    if (!speeds.some((t) => t.value === s.options.textSpeed)) speeds.push({ value: s.options.textSpeed, label: `Custom (${s.options.textSpeed})` });
+    return h('section', { class: 'card' },
+      h('h3', {}, 'Game options'),
+      h('div', { class: 'grid' },
+        field('Text speed', selectInput(speeds, s.options.textSpeed, (v) => { s.options.textSpeed = Number(v); edited(); })),
+        field('Battle animations', selectInput([{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
+          s.options.battleAnimationsOff ? 'off' : 'on', (v) => { s.options.battleAnimationsOff = v === 'off'; edited(); })),
+        field('Battle style', selectInput([{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }],
+          s.options.battleStyleSet ? 'set' : 'shift', (v) => { s.options.battleStyleSet = v === 'set'; edited(); }),
+        'Shift asks if you want to switch after you knock one out. Set doesn’t.'),
+      ));
   }
 
   // ---------- bag ----------
@@ -188,57 +208,95 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     );
   }
 
-  function monList(mons: Gen1Mon[], max: number, party: boolean): Node {
+  /** Open the editor for a Pokémon, then redraw whatever list it is in. */
+  function editMon(where: number, index: number, redraw: () => void): void {
+    const mon = listAt(s, where)[index];
+    if (mon) openMonEditor({ mon, party: where === PARTY, onDone: () => { markDirty(); redraw(); } });
+  }
+
+  function menuFor(where: number, index: number, redraw: () => void): void {
+    openMonMenu({
+      save: s, where, index,
+      onEdit: () => editMon(where, index, redraw),
+      onChange: () => { markDirty(); redraw(); },
+    });
+  }
+
+  /** A brand-new Pokémon with the trainer as its original owner (Pikachu is just a starting point). */
+  function freshMon(party: boolean): Gen1Mon {
+    const mon = newMon(DEX_TO_INTERNAL[25], 5);
+    mon.otName = s.trainerName;
+    mon.otId = s.trainerId;
+    if (party) recalcPartyStats(mon, true);
+    return mon;
+  }
+
+  function partyTab(): Node {
     const wrap = h('div', { class: 'mon-list' });
     const draw = () => {
       clear(wrap);
-      mons.forEach((mon, i) => {
-        wrap.append(monCard(
-          mon,
-          () => openMonEditor({ mon, party, onDone: () => { markDirty(); draw(); } }),
-          [
-            h('button', { class: 'icon', 'aria-label': 'Move up', disabled: i === 0, onclick: () => { [mons[i - 1], mons[i]] = [mons[i], mons[i - 1]]; markDirty(); draw(); } }, '↑'),
-            h('button', { class: 'icon', 'aria-label': 'Move down', disabled: i === mons.length - 1, onclick: () => { [mons[i + 1], mons[i]] = [mons[i], mons[i + 1]]; markDirty(); draw(); } }, '↓'),
-            h('button', { class: 'icon', 'aria-label': 'Delete', onclick: async () => { if (await askConfirm(`Remove ${speciesName(mon.species)}?`, 'Remove')) { mons.splice(i, 1); markDirty(); draw(); } } }, '✕'),
-          ],
-        ));
+      s.party.forEach((mon, i) => {
+        wrap.append(monCard(mon, () => editMon(PARTY, i, draw), [
+          h('button', { class: 'icon', 'aria-label': `Actions for ${monLabel(mon)}`, onclick: () => menuFor(PARTY, i, draw) }, '⋯'),
+        ]));
       });
-      if (!mons.length) wrap.append(h('p', { class: 'muted' }, 'No Pokémon here yet.'));
+      if (!s.party.length) wrap.append(h('p', { class: 'muted' }, 'No Pokémon here yet.'));
       wrap.append(h('button', {
-        disabled: mons.length >= max,
+        disabled: s.party.length >= PARTY_MAX,
         onclick: () => {
-          const mon = newMon(DEX_TO_INTERNAL[25], 5);
-          mon.otName = s.trainerName;
-          mon.otId = s.trainerId;
-          if (party) recalcPartyStats(mon, true);
-          mons.push(mon);
+          s.party.push(freshMon(true));
           markDirty();
-          openMonEditor({ mon, party, onDone: () => { markDirty(); draw(); } });
+          editMon(PARTY, s.party.length - 1, draw);
           draw();
         },
-      }, `+ Add Pokémon (${mons.length}/${max})`));
+      }, `+ Add Pokémon (${s.party.length}/${PARTY_MAX})`));
     };
     draw();
-    return wrap;
+    return h('div', {},
+      h('p', { class: 'muted' }, 'Party Pokémon store their battle stats directly; use “Recalc stats & heal” in the editor after changing level, DVs or EVs. Tap ⋯ to move, copy or remove one.'),
+      wrap);
   }
 
-  const partyTab = () => h('div', {},
-    h('p', { class: 'muted' }, 'Party Pokémon store their battle stats directly; use “Recalc stats & heal” in the editor after changing level, DVs or EVs.'),
-    monList(s.party, 6, true));
-
   function boxesTab(): Node {
-    const holder = h('div');
+    const holder = h('div', { class: 'boxes' });
     const draw = () => {
       clear(holder);
+      const list = listAt(s, boxView);
+      const picker = selectInput(
+        Array.from({ length: BOX_TOTAL }, (_, i) => ({
+          value: i,
+          label: `Box ${i + 1}${i === s.currentBoxIndex ? ' (current)' : ''} · ${listAt(s, i).length}/${BOX_MAX}`,
+        })), boxView, (v) => { boxView = Number(v); draw(); });
+      picker.setAttribute('aria-label', 'Choose a box');
+      const step = (d: number) => { boxView = (boxView + d + BOX_TOTAL) % BOX_TOTAL; draw(); };
+
+      const cells = Array.from({ length: BOX_MAX }, (_, i) => {
+        const mon = list[i];
+        if (mon) {
+          const label = monLabel(mon);
+          return h('button', {
+            class: 'box-cell', 'aria-label': `${label}, level ${mon.level}, slot ${i + 1}. Actions`,
+            onclick: () => menuFor(boxView, i, draw),
+          }, pokemonIcon(INTERNAL_TO_DEX[mon.species]),
+          h('span', { class: 'lv-tag' }, `Lv ${mon.level}`));
+        }
+        // Only the first empty slot can take a new Pokémon: boxes are packed, the game has no gaps.
+        if (i === list.length) {
+          return h('button', {
+            class: 'box-cell add', 'aria-label': `Add a Pokémon to Box ${boxView + 1}`,
+            onclick: () => { list.push(freshMon(false)); markDirty(); editMon(boxView, list.length - 1, draw); draw(); },
+          }, h('span', { class: 'plus', 'aria-hidden': 'true' }, '+'));
+        }
+        return h('span', { class: 'box-cell empty', 'aria-hidden': 'true' });
+      });
+
       holder.append(
-        h('div', { class: 'box-picker' },
-          field('Box', selectInput(
-            Array.from({ length: 12 }, (_, i) => ({
-              value: i,
-              label: `Box ${i + 1}${i === s.currentBoxIndex ? ' (current)' : ''} — ${s.boxes[i]?.length ?? 0}/20`,
-            })), boxView, (v) => { boxView = Number(v); draw(); })),
-        ),
-        monList((s.boxes[boxView] ??= []), 20, false),
+        h('div', { class: 'box-nav' },
+          h('button', { class: 'icon', 'aria-label': 'Previous box', onclick: () => step(-1) }, '‹'),
+          picker,
+          h('button', { class: 'icon', 'aria-label': 'Next box', onclick: () => step(1) }, '›')),
+        h('div', { class: 'box-grid', role: 'group', 'aria-label': `Box ${boxView + 1}, ${list.length} of ${BOX_MAX}` }, cells),
+        h('p', { class: 'muted box-hint' }, 'Tap a Pokémon to edit it, move it to the party or another box, or copy it.'),
       );
     };
     draw();

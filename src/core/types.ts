@@ -2,10 +2,23 @@
 // so adding a game (another Pokémon generation, Final Fantasy, Mega Man Battle Network, ...)
 // never requires touching the shell.
 
+/** One heading in the "review your changes" list, with a plain-language line per change. */
+export interface ChangeGroup {
+  title: string;
+  lines: string[];
+  /** How many further changes were left out to keep the list short. */
+  more?: number;
+}
+
 /** An editable, in-memory model of one save file. */
 export interface EditableSave {
   /** Produce a ready-to-write save file with every checksum recalculated. */
   serialize(): Uint8Array;
+  /**
+   * Plain-language list of what differs from `before` (a fresh load of the same file), for the review
+   * dialog shown ahead of Save. Omit if a game can't describe its edits; the dialog then just confirms.
+   */
+  describeChanges?(before: EditableSave): ChangeGroup[];
 }
 
 export interface GameIdentity {
@@ -63,6 +76,11 @@ export interface GameModule<S extends EditableSave = EditableSave> {
    * Omit to report all of `games`. Must never throw.
    */
   identify?(data: Uint8Array): GameIdentity;
+  /**
+   * A made-up save for the "Try a sample save" button, so someone without a file can see the editor.
+   * Built in code (no binary file shipped); load it lazily so it costs nothing until used.
+   */
+  sample?(): Promise<{ fileName: string; data: Uint8Array }>;
   /** Parse into an editable model. May throw with a user-readable message if the file is unusable. */
   load(data: Uint8Array): S;
   /** Lazily import the editor UI, so visitors only download code for the game they open. */
