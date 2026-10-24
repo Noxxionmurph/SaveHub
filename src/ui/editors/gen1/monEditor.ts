@@ -51,9 +51,9 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
     const calc = calcStats(mon.species, mon.level, mon.dvs, mon.evs);
 
     /**
-     * One move: type icon and name on the first line; below, the current PP (read-only) and a PP Up stepper
-     * side by side, with the move's maximum PP centred underneath both. Each PP Up raises the maximum, and the
-     * current PP rises with it, like using a PP Up in the game.
+     * One move: type icon and name on the first line; below, on one line, the current PP (read-only) with the
+     * move's maximum, and a PP Up stepper. Each PP Up raises the maximum, and the current PP rises with it,
+     * like using a PP Up in the game.
      */
     const moveRow = (i: number): HTMLElement => {
       const redraw = () => row.replaceWith((row = build()));
@@ -77,16 +77,17 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
               mon.pp[i] = maxPp(mon.moves[i], mon.ppUps[i]); // a newly picked move starts with full PP
               redraw();
             })),
-          h('div', { class: 'field' },
-            h('span', { class: 'field-label' }, 'PP'),
-            h('output', { class: 'lcd pp-value', 'aria-label': 'PP' }, id ? String(mon.pp[i]) : '–')),
-          h('div', { class: 'field' },
-            h('span', { class: 'field-label' }, 'PP Up'),
-            h('div', { class: 'stepper', role: 'group', 'aria-label': 'PP Up' },
-              h('button', { class: 'icon', 'aria-label': 'Fewer PP Ups', disabled: !id || ups <= 0, onclick: () => setUps(ups - 1) }, '−'),
-              h('output', { class: 'lcd stepper-value', 'aria-label': 'PP Ups used' }, id ? String(ups) : '–'),
-              h('button', { class: 'icon', 'aria-label': 'More PP Ups', disabled: !id || ups >= 3, onclick: () => setUps(ups + 1) }, '+'))),
-          h('p', { class: 'max-pp' }, id ? `Max PP: ${maxPp(id, ups)}` : ' '));
+          h('div', { class: 'move-nums' },
+            h('div', { class: 'inline-field' },
+              h('span', { class: 'field-label' }, 'PP'),
+              h('output', { class: 'lcd pp-value', 'aria-label': 'PP' }, id ? String(mon.pp[i]) : '–'),
+              h('span', { class: 'max-pp' }, id ? `Max ${maxPp(id, ups)}` : '')),
+            h('div', { class: 'inline-field' },
+              h('span', { class: 'field-label' }, 'PP Up'),
+              h('div', { class: 'stepper', role: 'group', 'aria-label': 'PP Up' },
+                h('button', { class: 'icon', 'aria-label': 'Fewer PP Ups', disabled: !id || ups <= 0, onclick: () => setUps(ups - 1) }, '−'),
+                h('output', { class: 'lcd stepper-value', 'aria-label': 'PP Ups used' }, id ? String(ups) : '–'),
+                h('button', { class: 'icon', 'aria-label': 'More PP Ups', disabled: !id || ups >= 3, onclick: () => setUps(ups + 1) }, '+')))));
       };
       let row = build();
       return row;
@@ -94,6 +95,10 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
 
     const dvInputs = (['atk', 'def', 'spe', 'spc'] as const).map((k) =>
       field(STAT_LABELS[k], numberInput(mon.dvs[k], 0, 15, (v) => { mon.dvs[k] = v; touched(); refresh(); })));
+    /** HP's DV isn't stored; the game works it out from the other four, so it's shown as a fifth, read-only box. */
+    const hpDvCell = h('div', { class: 'field' },
+      h('span', { class: 'field-label' }, 'HP'),
+      h('output', { class: 'derived', 'aria-label': 'HP DV, worked out from the other four' }, String(hpDv(mon.dvs))));
     const evInputs = (['hp', 'atk', 'def', 'spe', 'spc'] as const).map((k) =>
       field(STAT_LABELS[k], numberInput(mon.evs[k], 0, 65535, (v) => { mon.evs[k] = v; touched(); refresh(); })));
 
@@ -143,21 +148,21 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
       ),
 
       h('h3', {}, 'Moves'),
-      h('p', { class: 'muted section-note' }, 'Each PP Up (0 to 3) raises a move’s maximum PP, and its current PP with it. Picking a different move refills its PP.'),
+      h('p', { class: 'muted section-note' }, 'Each PP Up (0 to 3) raises a move’s max PP and its current PP. A newly picked move starts with full PP.'),
       h('div', { class: 'moves' }, [0, 1, 2, 3].map(moveRow)),
 
       h('h3', {}, 'DVs (hidden genes)'),
-      h('p', { class: 'muted section-note' }, 'Values from 0 to 15 that help decide the stats. Higher is better. HP’s DV is worked out from the other four.'),
-      h('div', { class: 'grid compact' }, dvInputs, h('div', { class: 'readout' }, `HP DV: ${hpDv(mon.dvs)}`)),
+      h('p', { class: 'muted section-note' }, '0 to 15, higher is better. HP’s DV is worked out from the other four.'),
+      h('div', { class: 'grid compact cols5' }, dvInputs, hpDvCell),
       h('h3', {}, 'Stat experience (EVs)'),
-      h('p', { class: 'muted section-note' }, 'Training points, 0 to 65,535 for each stat. More raises the stats, and 65,535 is the most that counts.'),
-      h('div', { class: 'grid compact' }, evInputs),
+      h('p', { class: 'muted section-note' }, '0 to 65,535 for each stat. More raises the stat, and 65,535 is the most that counts.'),
+      h('div', { class: 'grid compact cols5' }, evInputs),
 
       party
         ? h('div', {},
           h('h3', {}, 'Battle stats'),
-          h('p', { class: 'muted section-note' }, 'Party Pokémon keep their battle stats in the save. They update when you change level, DVs or EVs, and you can also type your own.'),
-          h('div', { class: 'grid compact' },
+          h('p', { class: 'muted section-note' }, 'Saved with the Pokémon. They update when you change level, DVs or EVs, and you can also type your own.'),
+          h('div', { class: 'grid compact cols5' },
             field('Max HP', numberInput(mon.maxHp, 1, 999, (v) => { mon.maxHp = v; })),
             field('Attack', numberInput(mon.atk, 1, 999, (v) => { mon.atk = v; })),
             field('Defense', numberInput(mon.def, 1, 999, (v) => { mon.def = v; })),

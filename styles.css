@@ -193,7 +193,6 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .field-hint[hidden] { display: none; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px 12px; }
 .grid.compact { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
-.readout { align-self: end; padding-bottom: 10px; color: var(--muted); font-size: 0.875rem; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
 .card h3:first-child { margin-top: 0; }
 .stack > * + * { margin-top: 16px; }
@@ -277,7 +276,7 @@ dialog {
   color: var(--text); background: var(--bg); border: 1px solid var(--line-strong); border-radius: 12px; padding: 0;
 }
 dialog::backdrop { background: rgba(10, 12, 16, 0.62); }
-dialog.mon-dialog { width: min(680px, 100vw - 16px); max-height: calc(100dvh - 16px); }
+dialog.mon-dialog { width: min(680px, 100vw - 8px); max-width: calc(100vw - 8px); max-height: calc(100dvh - 16px); }
 .dialog-body { padding: 16px 16px 12px; overflow-y: auto; max-height: calc(100dvh - 18px); }
 dialog.review-dialog { width: min(520px, 100vw - 24px); max-height: calc(100dvh - 24px); background: var(--surface); }
 .review-sub { margin: 4px 0 12px; }
@@ -443,15 +442,17 @@ button.danger { color: var(--danger); }
 .tcard-stats { grid-template-columns: 1.6fr 1fr 1fr 1fr; }
 
 /* ---- a move: name on top, PP and PP Up in two matching boxes, max PP centred below ---- */
-.move-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; margin-bottom: 18px; }
-.move-row .move-pick { grid-column: 1 / -1; }
+.move-row { display: grid; gap: 6px; margin-bottom: 12px; }
+.move-nums { max-width: 26rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 8px; }
+.inline-field { display: flex; align-items: center; gap: 6px; }
 .pp-value, .stepper-value {
-  display: flex; align-items: center; justify-content: center; min-height: 42px; min-width: 0;
-  font: 600 1.0625rem var(--font-mono);
+  display: flex; align-items: center; justify-content: center; min-height: 34px; min-width: 0;
+  font: 600 1rem var(--font-mono);
 }
-.stepper { display: grid; grid-template-columns: 42px minmax(0, 1fr) 42px; gap: 6px; }
-.stepper button { padding: 0; font-size: 1.25rem; min-width: 0; }
-.max-pp { grid-column: 1 / -1; margin: -2px 0 0; text-align: center; font-size: 0.875rem; color: var(--muted); min-height: 1.3em; }
+.pp-value { min-width: 44px; padding: 0 6px; }
+.stepper { display: grid; grid-template-columns: 34px 40px 34px; gap: 3px; }
+.stepper button { padding: 0; font-size: 1.25rem; min-width: 0; min-height: 34px; }
+.max-pp { font-size: 0.875rem; color: var(--muted); }
 
 /* ---- party cards: up/down arrows on the left of each card ---- */
 .reorder { display: grid; grid-template-rows: 1fr 1fr; gap: 4px; width: 40px; flex: none; }
@@ -504,8 +505,26 @@ button.danger { color: var(--danger); }
 .tab-intro { margin: 0 0 14px; max-width: 46em; color: var(--muted); font-size: 0.9375rem; }
 .card-note { margin: -4px 0 10px; font-size: 0.8125rem; }
 .section-note { margin: -2px 0 10px; font-size: 0.8125rem; max-width: 46em; }
+/* ---- Pokémon editor: denser fields, so a phone shows more of it at once ---- */
+.mon-dialog input, .mon-dialog select { min-height: 36px; padding: 4px 9px; }
+.mon-dialog h3 { margin: 16px 0 6px; }
+.mon-dialog .section-note { margin-bottom: 8px; }
+.mon-dialog .grid { gap: 10px 12px; }
+.mon-dialog .button-row { gap: 6px; margin-top: 10px; }
+.mon-dialog .button-row button { min-height: 36px; padding: 3px 12px; }
+/* Five numbers in one row (DVs, EVs, battle stats). Digits are centred and the spin arrows are hidden so five digits fit. */
+.mon-dialog .grid.cols5 { grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); gap: 6px; }
+.mon-dialog .cols5 .field { gap: 2px; }
+.mon-dialog .cols5 .field-label { font-size: 0.75rem; }
+.mon-dialog .cols5 input { padding-inline: 3px; text-align: center; }
+.mon-dialog input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+.mon-dialog input[type="number"]::-webkit-inner-spin-button, .mon-dialog input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+.derived {
+  display: flex; align-items: center; justify-content: center; min-height: 36px; padding: 0 3px;
+  border: 1px dashed var(--line-strong); border-radius: 6px; color: var(--muted); font: 500 1rem var(--font-mono);
+}
 /* a note under fields or buttons (not under a heading) needs room above it */
-.mon-dialog .grid + p, .mon-dialog .button-row + p { margin-top: 12px; }
+.mon-dialog .grid + p, .mon-dialog .button-row + p { margin-top: 10px; }
 .family-edits { max-width: 46em; margin: 2px 0 12px; font-size: 0.875rem; }
 .family-edits strong { color: var(--text); font-weight: 600; }
 .tips { margin-top: 12px; font-size: 0.875rem; color: var(--muted); }
