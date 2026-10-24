@@ -7,7 +7,7 @@ import {
 import {
   applySpeciesTypes, calcStats, defaultNickname, hpDv, recalcPartyStats, type Gen1Mon,
 } from '../../../core/gen1/save.ts';
-import { clear, field, h, numberInput, selectInput } from '../../dom.ts';
+import { askConfirm, clear, field, h, numberInput, selectInput } from '../../dom.ts';
 import { maxPp, moveInfo } from '../../../core/gen1/moves.ts';
 import { pokemonIcon, typeIcon } from '../../sprites.ts';
 import { nameField } from './nameField.ts';
@@ -27,8 +27,12 @@ const STATUS_OPTIONS = [
 export interface MonEditorOptions {
   mon: Gen1Mon;
   party: boolean;
-  onDone: () => void;
+  /** Called once the window has closed. `changed` is whether the Pokémon now differs from how it was when the window opened. */
+  onDone: (changed: boolean) => void;
 }
+
+/** A comparable picture of a Pokémon (raw name bytes included), to tell whether anything was edited. */
+const fingerprint = (mon: Gen1Mon): string => JSON.stringify(mon, (_key, v) => (v instanceof Uint8Array ? Array.from(v) : v));
 
 export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
   /** The experience a Pokémon of this species has at a level. The curve is fixed by the species; a glitch species is guessed once, on opening. */
@@ -38,11 +42,27 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
   const body = h('div', { class: 'dialog-body' });
   dialog.append(body);
 
-  // A close button that stays at the top right while the form scrolls, so leaving doesn't mean scrolling down to
-  // Done. It closes exactly as Done and Escape do: edits are already applied as they're made, and nothing is
-  // written to the file until Save on the main page.
+  // Edits are applied to `mon` as they're made. Done (and Escape) keep them. The X at the top right throws them
+  // away: it puts the Pokémon back the way it was when this window opened, after asking if anything was changed.
+  const original = structuredClone(mon);
+  const originalPrint = fingerprint(mon);
+  const changed = () => fingerprint(mon) !== originalPrint;
+  const discardAndClose = async () => {
+    if (changed()) {
+      const label = original.nickname || speciesName(original.species);
+      if (!await askConfirm(`Discard your changes to ${label}?`, 'Discard', 'Keep editing')) return;
+      const target = mon as unknown as Record<string, unknown>;
+      for (const key of Object.keys(target)) if (!(key in original)) delete target[key];
+      Object.assign(mon, structuredClone(original));
+    }
+    dialog.close();
+  };
+  // Stays at the top right while the form scrolls, so leaving doesn't mean scrolling down to Done.
   const closeBar = h('div', { class: 'dialog-x-bar' },
-    h('button', { class: 'dialog-x', type: 'button', title: 'Close', 'aria-label': 'Close', onclick: () => { dialog.close(); } }));
+    h('button', {
+      class: 'dialog-x', type: 'button', title: 'Close without keeping changes', 'aria-label': 'Close without keeping changes',
+      onclick: () => { void discardAndClose(); },
+    }));
 
   let refreshing = false;
   const refresh = () => {
@@ -192,13 +212,13 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
         party ? 'Match exp to level sets experience to the lowest amount for the current level. Heal and recalculate stats refills HP and rebuilds the battle stats.'
           : 'Match exp to level sets experience to the lowest amount for the current level.'),
       h('div', { class: 'dialog-foot' },
-        h('span', { class: 'muted' }, 'Changes apply as you edit. Tap Save on the main page to write the file.'),
+        h('span', { class: 'muted' }, 'Done keeps your changes and the ✕ at the top throws them away. The file is only written when you tap Save on the main page.'),
         h('button', { class: 'primary', onclick: () => { dialog.close(); } }, 'Done'),
       ),
     ];
   }
 
-  dialog.addEventListener('close', () => { dialog.remove(); onDone(); });
+  dialog.addEventListener('close', () => { dialog.remove(); onDone(changed()); });
   document.body.append(dialog);
   refresh();
   dialog.showModal();

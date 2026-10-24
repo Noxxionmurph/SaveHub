@@ -98,7 +98,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         if (!mon) return h('span', { class: 'party-slot empty', 'aria-hidden': 'true' });
         return h('button', {
           class: 'party-slot', 'aria-label': `${monLabel(mon)}, level ${mon.level}. Edit`,
-          onclick: () => openMonEditor({ mon, party: true, onDone: () => { edited(); paintParty(); } }),
+          onclick: () => openMonEditor({ mon, party: true, onDone: (changed) => { if (changed) edited(); paintParty(); } }),
         }, pokemonIcon(INTERNAL_TO_DEX[mon.species]),
         h('span', { class: 'slot-name' }, monLabel(mon)),
         h('span', { class: 'lv-tag' }, `Lv ${mon.level}`));
@@ -255,7 +255,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   /** Open the editor for a Pokémon, then redraw whatever list it is in. */
   function editMon(where: number, index: number, redraw: () => void): void {
     const mon = listAt(s, where)[index];
-    if (mon) openMonEditor({ mon, party: where === PARTY, onDone: () => { markDirty(); redraw(); } });
+    if (mon) openMonEditor({ mon, party: where === PARTY, onDone: (changed) => { if (changed) markDirty(); redraw(); } });
   }
 
   function menuFor(where: number, index: number, redraw: () => void): void {

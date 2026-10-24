@@ -109,12 +109,12 @@ export function field(label: string, control: Node, hint?: string): HTMLLabelEle
 }
 
 /** In-page replacement for confirm(), which hosted viewers suppress (it returns false immediately). */
-export function askConfirm(message: string, okLabel = 'OK'): Promise<boolean> {
+export function askConfirm(message: string, okLabel = 'OK', cancelLabel = 'Cancel'): Promise<boolean> {
   return new Promise((resolve) => {
     const dlg = h('dialog', { class: 'confirm-dialog' },
       h('p', {}, message),
       h('div', { class: 'button-row end' },
-        h('button', { onclick: () => dlg.close('no') }, 'Cancel'),
+        h('button', { onclick: () => dlg.close('no') }, cancelLabel),
         h('button', { class: 'primary', onclick: () => dlg.close('yes') }, okLabel)));
     dlg.addEventListener('close', () => { resolve(dlg.returnValue === 'yes'); dlg.remove(); });
     document.body.append(dlg);

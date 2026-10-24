@@ -1,7 +1,8 @@
-"""The Pokémon window has a close button that stays at its top right while the form scrolls, closes the window the way
-Done and Escape do (edits made so far are kept; nothing is written to the file), doesn't sit on the level badge or the
-scrollbar, and survives the window redrawing itself after an edit. Also: the one-line guidance under each tab runs the
-full width, not a capped width that breaks the line early. Checked at desktop and phone width."""
+"""The Pokémon window has a close button (X) that stays at its top right while the form scrolls and doesn't sit on the
+level badge or the scrollbar. Done and Escape keep the edits made in the window; the X throws them away (after asking, if
+anything was changed) and puts the Pokémon back exactly as it was. Only edits that are kept mark the save as changed. Also:
+the one-line guidance under each tab runs the full width, not a capped width that breaks the line early. Checked at
+desktop and phone width."""
 import sys
 from playwright.sync_api import sync_playwright
 from lib import BASE
@@ -32,7 +33,7 @@ def check(p, name, size):
     page.locator('.mon-main').nth(0).click(); page.wait_for_selector('dialog.mon-dialog[open]')
     dlg = page.locator('dialog.mon-dialog')
     x = dlg.locator('button.dialog-x')
-    assert x.count() == 1 and x.get_attribute('aria-label') == 'Close' and x.get_attribute('title') == 'Close'
+    assert x.count() == 1 and x.get_attribute('aria-label') == 'Close without keeping changes' and x.get_attribute('title') == x.get_attribute('aria-label')
     assert x.inner_text() == '', 'the X is drawn, not typed'
 
     def place():
@@ -54,20 +55,54 @@ def check(p, name, size):
     assert xb2['x'] + xb2['width'] <= inner_right + 0.5, ('the X is over the scrollbar', xb2, inner_right)
     page.screenshot(path=f'{SP}/x-{name}-2-scrolled.png')
 
-    # an edit redraws the window; there is still exactly one X, and it still closes it, keeping the edit
+    # a window with no edits closes straight away, and opening it and leaving doesn't mark the save as changed
     dlg.evaluate('d => d.querySelector(".dialog-body").scrollTop = 0')
+    dlg.locator('button.dialog-x').click(); page.wait_for_selector('dialog.mon-dialog', state='detached')
+    assert page.locator('dialog.confirm-dialog').count() == 0, 'nothing was changed, so nothing to confirm'
+    assert page.locator('.save-btn.dirty').count() == 0
+    page.locator('.mon-main').nth(0).click(); page.wait_for_selector('dialog.mon-dialog[open]')
+    page.click('dialog.mon-dialog button.primary'); page.wait_for_selector('dialog.mon-dialog', state='detached')
+    assert page.locator('.save-btn.dirty').count() == 0, 'Done without an edit is not a change'
+
+    def level(): return page.locator('.mon .lcd.lv').first.inner_text()
+    def open_first():
+        page.locator('.mon-main').nth(0).click(); page.wait_for_selector('dialog.mon-dialog[open]')
+        return page.locator('dialog.mon-dialog')
+
+    # an edit redraws the window: still exactly one X. Closing with it asks first; "Keep editing" goes back to the form
+    dlg = open_first()
     lvl = dlg.locator('label.field:has-text("Level") input'); lvl.fill('29'); lvl.dispatch_event('change')
     assert 'Lv 29' in dlg.locator('.mon-head').inner_text()
     assert dlg.locator('button.dialog-x').count() == 1
-    dlg.locator('button.dialog-x').click(); page.wait_for_selector('dialog.mon-dialog', state='detached')
-    assert 'Lv 29' in page.locator('.party-list, .mon').first.inner_text() or page.locator('.lv-tag, .lcd.lv').filter(has_text='Lv 29').count() >= 1
-    assert page.locator('.save-btn.dirty').count() == 1, 'the edit was kept, so Save has something to write'
+    dlg.locator('button.dialog-x').click(); page.wait_for_selector('dialog.confirm-dialog[open]')
+    assert 'Discard your changes to SPARKY?' in page.inner_text('dialog.confirm-dialog')
+    page.screenshot(path=f'{SP}/x-{name}-3-confirm.png')
+    page.click('dialog.confirm-dialog button:has-text("Keep editing")'); page.wait_for_selector('dialog.confirm-dialog', state='detached')
+    assert dlg.evaluate('d => d.open') and 'Lv 29' in dlg.locator('.mon-head').inner_text(), 'still open, edit still there'
 
-    # Escape and Done still work as before
-    page.locator('.mon-main').nth(0).click(); page.wait_for_selector('dialog.mon-dialog[open]')
+    # "Discard" closes the window and puts everything back: level, experience, HP, stats; the save is not marked as changed
+    dlg.locator('button.dialog-x').click(); page.wait_for_selector('dialog.confirm-dialog[open]')
+    page.click('dialog.confirm-dialog button:has-text("Discard")')
+    page.wait_for_selector('dialog.mon-dialog', state='detached'); page.wait_for_selector('dialog.confirm-dialog', state='detached')
+    assert level() == 'Lv 28', level()
+    assert page.locator('.save-btn.dirty').count() == 0, 'a discarded edit is not a change'
+    dlg = open_first()
+    assert dlg.locator('label.field:has-text("Level") input').input_value() == '28'
+    assert dlg.locator('label.field:has(.field-label:text-is("Experience")) input').input_value() == '21952'
+    assert '62/62' in dlg.locator('.stats').inner_text()
+    dlg.locator('button.dialog-x').click(); page.wait_for_selector('dialog.mon-dialog', state='detached')
+
+    # Done keeps an edit (and marks the save as changed)
+    dlg = open_first()
+    lvl = dlg.locator('label.field:has-text("Level") input'); lvl.fill('29'); lvl.dispatch_event('change')
+    dlg.locator('button.primary').click(); page.wait_for_selector('dialog.mon-dialog', state='detached')
+    assert level() == 'Lv 29' and page.locator('.save-btn.dirty').count() == 1
+
+    # Escape keeps edits too, as it always has
+    dlg = open_first()
+    lvl = dlg.locator('label.field:has-text("Level") input'); lvl.fill('30'); lvl.dispatch_event('change')
     page.keyboard.press('Escape'); page.wait_for_selector('dialog.mon-dialog', state='detached')
-    page.locator('.mon-main').nth(0).click(); page.wait_for_selector('dialog.mon-dialog[open]')
-    page.click('dialog.mon-dialog button.primary'); page.wait_for_selector('dialog.mon-dialog', state='detached')
+    assert level() == 'Lv 30', level()
     ctx.close(); b.close()
 
 
