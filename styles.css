@@ -1,6 +1,9 @@
 /* SaveForge: the page is the handheld. Grey plastic shell, olive LCD where data is shown, magenta action buttons.
    Every token is defined on bare :root; the dark blocks only redefine them, and so does the Game Boy Color block below. */
 :root {
+  /* One screen pixel in CSS pixels. src/ui/pixels.ts keeps --dpr current; pixel art is sized in whole multiples of it. */
+  --dpr: 1;
+  --dpx: calc(1px / var(--dpr));
   --bg: #d6d9de;
   --surface: #e8eaed;
   --surface-2: #f4f5f7;
@@ -375,6 +378,13 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
   border: 2px dashed var(--line-strong); background: var(--surface-2);
 }
 .badge-btn .badge-icon { width: 48px; height: 48px; filter: grayscale(1); opacity: 0.35; }
+@supports (width: round(down, 10px, 3px)) {
+  /* the largest whole multiple of the 16px art up to 52px (about 48 on every common screen), so it can never touch the 60px inside the ring */
+  .badge-btn .badge-icon {
+    --size: max(calc(16 * var(--dpx)), round(down, 52px, calc(16 * var(--dpx))));
+    width: var(--size); height: var(--size);
+  }
+}
 .badge-btn[aria-pressed="true"] { color: var(--text); font-weight: 600; }
 .badge-btn[aria-pressed="true"] .gem { border: 2px solid var(--lcd-edge); background: var(--lcd); }
 .badge-btn[aria-pressed="true"] .badge-icon { filter: none; opacity: 1; }
@@ -549,6 +559,12 @@ html[data-art='off'] .pika-screen { display: none; }
 .badge-icon { image-rendering: pixelated; }
 .tcard-badges { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; margin-top: 10px; }
 .tcard-badges .badge-icon { width: 100%; max-width: 32px; height: auto; margin-inline: auto; filter: brightness(0); opacity: 0.18; }
+@supports (width: round(down, 10px, 3px)) {
+  /* as large as fits the cell (up to 40px), cut down to a whole multiple of the 16px art, and never below 1x */
+  .tcard-badges .badge-icon {
+    width: max(calc(16 * var(--dpx)), round(down, min(100%, 40px), calc(16 * var(--dpx)))); max-width: none;
+  }
+}
 .tcard-badges .badge-icon.earned { filter: none; opacity: 1; }
 
 .party-slot.empty { min-height: 56px; }

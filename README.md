@@ -43,6 +43,10 @@ the editor carries on without pictures (a picture that can't load hides itself, 
   rebuild. To refresh from a PokéSprite checkout: `node scripts/import-sprites.mjs <path>`.
 - **If the artwork has to come down**: delete the files (or the repository) in SaveHub-assets. The editor keeps working.
   To point at another place, change `ART_BASE`.
+- The 16x16 badges are drawn at a whole number of screen pixels per source pixel, whatever the screen scaling (100%,
+  125%, a 2.625 phone...); a fractional multiple is what makes pixel art look soft. `src/ui/pixels.ts` publishes the
+  scaling as `--dpr` and the stylesheet sizes the badges with `round()` (browsers without it keep the plain sizes).
+  `e2e/crisp.py` checks it at six scalings.
 - The box icons are drawn with their feet on a common baseline, so the art sits low in its canvas;
   `scripts/measure-icons.mjs` measures where the visible pixels really are and writes `src/ui/spriteOffsets.ts`, and
   the UI nudges each icon by that much so Pokémon look vertically centred wherever they appear (the import script

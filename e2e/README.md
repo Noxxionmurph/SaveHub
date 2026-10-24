@@ -2,7 +2,7 @@
 
 End-to-end checks that drive the built site in a real Chromium (through Playwright): open a save, edit it, look at
 the review list, download the result and compare its bytes, plus layout checks at phone width, the Pikachu card, the
-Pokémon window's close button, HP bars and the save window, drag and drop, the hosted-download path, the fonts and the artwork (with and without the pictures reachable).
+Pokémon window's close button, HP bars and the save window, sharp pixel art at every screen scaling, drag and drop, the hosted-download path, the fonts and the artwork (with and without the pictures reachable).
 
 ```
 pip install playwright && playwright install chromium     # once

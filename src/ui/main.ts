@@ -6,6 +6,7 @@ import type { ChangeGroup, EditableSave, EditorHost, GameIdentity, GameModule, S
 import { initArt } from './art.ts';
 import { cartridge } from './brand.ts';
 import { askConfirm, clear, h, toast } from './dom.ts';
+import { trackPixelRatio } from './pixels.ts';
 import { askReview } from './review.ts';
 import { pictureIcon } from './sprites.ts';
 import { makeZip } from './zip.ts';
@@ -351,4 +352,5 @@ function renderError(title: string, detail: string, back: () => void): void {
 
 window.addEventListener('beforeunload', (e) => { if (dirty) e.preventDefault(); });
 initArt();
+trackPixelRatio();
 renderWelcome();
