@@ -69,7 +69,7 @@ async function download(save: EditableSave): Promise<void> {
     try {
       await hosted.save({ filename: `${name}.zip`, data: makeZip(name, bytes) });
       setDirty(false);
-      toast(`Saved ${name}.zip. Unzip it to get your edited save. Your original file isn't changed.`);
+      toast(`Saved ${name}.zip. Unzip it to get your edited save. The file you opened is unchanged.`);
     } catch (e) {
       const code = (e as { code?: string })?.code;
       if (code !== 'declined') toast(`Couldn't save the file (${code ?? 'unknown error'}).`);
@@ -82,7 +82,7 @@ async function download(save: EditableSave): Promise<void> {
   a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   setDirty(false);
-  toast(`Saved ${name}. Your original file isn't changed.`);
+  toast(`Saved ${name}. Look in your downloads. The file you opened is unchanged.`);
 }
 
 const sameBytes = (x: Uint8Array, y: Uint8Array) => x.length === y.length && x.every((v, i) => v === y[i]);
@@ -103,7 +103,7 @@ async function openSample(game: GameModule): Promise<void> {
     fileName = sample.fileName;
     await openGame(game, sample.data, true);
   } catch (e) {
-    renderError("Couldn't build the sample save.", e instanceof Error ? e.message : String(e), renderWelcome);
+    renderError("Couldn't build the sample save.", `${e instanceof Error ? e.message : String(e)} Reload the page and try again.`, renderWelcome);
   }
 }
 
@@ -129,7 +129,7 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
   try {
     save = game.load(data);
   } catch (e) {
-    renderError(`Couldn't open this file as ${moduleLabel(game)}.`, e instanceof Error ? e.message : String(e), () => renderChooser(data, detectGames(data)));
+    renderError(`Couldn't open this file as ${moduleLabel(game)}.`, `${e instanceof Error ? e.message : String(e)} It may be damaged or from a different game.`, () => renderChooser(data, detectGames(data)));
     return;
   }
   const container = h('div', { class: 'editor' }, h('p', { class: 'muted' }, 'Loading editor…'));
@@ -149,7 +149,7 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
     clear(picker);
     if (names.length > 1) {
       picker.append(
-        h('span', { class: 'muted' }, chosen ? 'Version:' : 'Which version is yours?'),
+        h('span', { class: 'muted' }, chosen ? 'Version:' : 'Which game is this save from?'),
         ...names.map((n) => h('button', {
           class: n === chosen ? 'chip-btn on' : 'chip-btn', 'aria-pressed': String(n === chosen),
           onclick: () => { chosen = n; drawName(); },
@@ -160,7 +160,7 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
   drawName();
 
   const dlNote = h('p', { class: 'muted dl-note' });
-  void hostedDownloads.then((d) => { if (d) dlNote.textContent = 'Saving gives you a .zip that contains your edited file (this host only allows certain file types). Unzip it in your Files app.'; });
+  void hostedDownloads.then((d) => { if (d) dlNote.textContent = 'This page can only download certain file types, so Save gives you a .zip with your edited file inside. Unzip it in your Files app.'; });
 
   clear(root);
   root.append(
@@ -168,12 +168,12 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
       h('div', { class: 'editor-bar' },
         wordmark(22),
         h('div', { class: 'bar-actions' },
-          h('button', { onclick: async () => { if (!dirty || await askConfirm('Discard unsaved changes?', 'Discard')) { setDirty(false); saveButton = null; setPageTitle(); renderWelcome(); } } }, 'Close'),
+          h('button', { onclick: async () => { if (!dirty || await askConfirm('Close this file? Your edits since the last save will be lost.', 'Close file')) { setDirty(false); saveButton = null; setPageTitle(); renderWelcome(); } } }, 'Close file'),
           saveButton = h('button', { class: 'primary save-btn', 'aria-label': 'Save edited file', onclick: () => void reviewThenSave(game, save, data) }, 'Save'),
         )),
       nameEl,
       h('p', { class: 'muted file-line' }, h('span', {}, fileName), h('span', {}, game.platform)),
-      isSample ? h('p', { class: 'sample-note' }, 'This is a made-up sample save. Edit anything, then tap Save to see what you get.') : null,
+      isSample ? h('p', { class: 'sample-note' }, 'This is a made-up sample save. Edit anything, then tap Save to see the list of changes. Nothing leaves your device.') : null,
       picker,
       identity.note && names.length > 1 ? h('p', { class: 'muted version-note' }, identity.note) : null,
       dlNote),
@@ -185,7 +185,7 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
     setDirty(false);
     mount(container, save, host);
   } catch (e) {
-    renderError('The editor failed to load.', e instanceof Error ? e.message : String(e), renderWelcome);
+    renderError("The editor didn't load.", `${e instanceof Error ? e.message : String(e)} Check your connection, then reload the page.`, renderWelcome);
   }
 }
 
@@ -216,7 +216,7 @@ function renderWelcome(): void {
     h('div', { class: 'slot-art', 'aria-hidden': 'true' }, cartridge(92, 'slot-cart'), h('div', { class: 'slot-bar' })),
     h('div', { class: 'slot-text' },
       h('strong', {}, 'Open a save file'),
-      h('span', { class: 'muted' }, 'Drop a save here, or tap to browse. The game is detected automatically.'),
+      h('span', { class: 'muted' }, 'Drop a .sav file here, or tap to choose one. SaveForge detects the game for you.'),
       h('span', { class: 'slot-cta' }, 'Choose file'),
     ),
   );
@@ -230,9 +230,9 @@ function renderWelcome(): void {
   });
 
   const hex = h('figure', { class: 'lcd hex' },
-    h('figcaption', {}, 'Games are recognised from the bytes inside the file, not from its name. This is what a Gen 1 save looks like in there.'),
+    h('figcaption', {}, 'Curious how it works? SaveForge recognises a game by the bytes inside the file, not by its name. Here are three values from a Gen 1 Pokémon save.'),
     h('table', {},
-      h('thead', {}, h('tr', {}, h('th', {}, 'Offset'), h('th', {}, 'Bytes'), h('th', {}, 'Reads as'))),
+      h('thead', {}, h('tr', {}, h('th', {}, 'Position'), h('th', {}, 'Bytes'), h('th', {}, 'Means'))),
       h('tbody', {}, HEX_ROWS.map(([offset, bytes, means]) =>
         h('tr', {}, h('td', {}, offset), h('td', {}, bytes), h('td', {}, means))))),
   );
@@ -240,18 +240,18 @@ function renderWelcome(): void {
   root.append(
     h('header', { class: 'site-head' }, wordmark(30)),
     h('h1', { class: 'lede' }, 'Edit your retro game saves in the browser.'),
-    h('p', { class: 'lede-sub' }, 'Open a save, and SaveForge works out which game it belongs to and loads the right editor. Your file never leaves your device.'),
+    h('p', { class: 'lede-sub' }, 'Open a save file and SaveForge works out which game it is from and opens the right editor. Everything happens in your browser, so your file is never uploaded.'),
     slot,
     sampleRow(),
-    h('p', { class: 'muted notice' }, 'Keep a backup of the original save file before you edit.'),
+    h('p', { class: 'muted notice' }, 'SaveForge never changes the file you open. Saving makes a new copy, but keep a backup anyway.'),
 
     h('section', { class: 'how' },
       h('h2', {}, 'How it works'),
       h('div', { class: 'how-body' },
         h('ol', { class: 'steps' },
-          h('li', {}, h('strong', {}, 'Open your save'), h('span', {}, 'Use the file straight from your cartridge dumper or emulator.')),
-          h('li', {}, h('strong', {}, 'Edit what you like'), h('span', {}, 'Pokémon, items, money, badges. Checksums are fixed for you.')),
-          h('li', {}, h('strong', {}, 'Save it again'), h('span', {}, 'Copy the edited file back to your cartridge or emulator.')),
+          h('li', {}, h('strong', {}, 'Open your save'), h('span', {}, 'Use the .sav file (the battery save) from your emulator or cartridge dumper. Save states won’t work.')),
+          h('li', {}, h('strong', {}, 'Edit what you like'), h('span', {}, 'Use the tabs to change your trainer, items, Pokémon and Pokédex. Checksums, the numbers the game uses to spot damaged saves, are fixed for you.')),
+          h('li', {}, h('strong', {}, 'Save and use the new file'), h('span', {}, 'Tap Save, read the list of changes, then download your edited copy. Give it your original file’s name and put it where your game keeps its save.')),
         ),
         hex,
       ),
@@ -262,6 +262,7 @@ function renderWelcome(): void {
       ...[...gamesByFamily()].map(([family, games]) =>
         h('div', { class: 'family' },
           h('h3', {}, family),
+          ...games.filter((g) => g.editable).map((g) => h('p', { class: 'muted family-edits' }, h('strong', {}, 'You can edit: '), g.editable)),
           h('ul', { class: 'tiles' }, games.flatMap((g) => g.games.map((name) => {
             const picture = g.icons?.[name];
             const tile = h('li', { class: 'tile' },
@@ -277,7 +278,7 @@ function renderWelcome(): void {
     ),
 
     h('footer', { class: 'site-foot' },
-      h('span', {}, 'Runs entirely in your browser.'),
+      h('span', {}, 'Runs entirely in your browser. Your save never leaves your device.'),
       h('span', {}, 'Sprites from ', externalLink('https://github.com/msikma/pokesprite', 'PokéSprite'),
         ', © Nintendo / Creatures Inc. / GAME FREAK Inc.'),
       externalLink(REPO, 'Source on GitHub')),
@@ -289,16 +290,24 @@ function renderChooser(data: Uint8Array, matches: Match[]): void {
   clear(root);
   const ambiguous = matches.length > 1;
   const candidates = matches.length ? matches.map((m) => m.module) : GAMES;
+  const hints = candidates.map((g) => g.fileHint).filter((x): x is string => Boolean(x));
   root.append(
     h('header', { class: 'site-head' }, wordmark()),
     h('div', { class: ambiguous ? 'notice-box' : 'error' },
-      h('strong', {}, ambiguous ? 'This file could be more than one game' : "Couldn't identify this file"),
-      h('p', {}, ambiguous
-        ? 'Pick the game it belongs to.'
-        : `${fileName} is ${data.length.toLocaleString()} bytes and didn't match any supported game's checksum or layout. It may be corrupted, a different region or version, or a game that isn't supported yet. If you know which game it is, you can try opening it anyway; the checksum is recalculated on export.`),
+      h('strong', {}, ambiguous ? 'This file could be more than one game' : "SaveForge doesn't recognise this file"),
+      ambiguous
+        ? h('p', {}, 'Pick the game it belongs to. If you pick wrong, the editor may show nonsense, so keep a backup.')
+        : h('div', { class: 'why' },
+          h('p', {}, `${fileName} is ${data.length.toLocaleString()} bytes. ${hints.join(' ')}`),
+          h('ul', {},
+            h('li', {}, 'Use the battery save (usually a .sav file), not a save state.'),
+            h('li', {}, 'Only the versions listed on the home page are supported, in English.'),
+            h('li', {}, 'A damaged save can fail the checks too.')),
+          h('p', {}, 'If you are sure which game it is, you can try opening it anyway. If it is the wrong game, the editor may show nonsense, so keep a backup.')),
       h('div', { class: 'game-list' }, candidates.map((g) =>
-        h('button', { onclick: () => void openGame(g, data) }, moduleLabel(g), h('span', { class: 'muted' }, ` ${g.platform}`)))),
-      h('div', { class: 'button-row' }, h('button', { onclick: renderWelcome }, 'Back'))),
+        h('button', { onclick: () => void openGame(g, data) },
+          h('span', {}, ambiguous ? moduleLabel(g) : `Try opening as ${moduleLabel(g)}`), h('span', { class: 'muted' }, g.platform)))),
+      h('div', { class: 'button-row' }, h('button', { onclick: renderWelcome }, 'Back to start'))),
   );
 }
 

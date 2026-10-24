@@ -8,6 +8,8 @@ export default defineGame<Gen1Save>({
   family: 'Pokémon',
   games: GAMES,
   platform: 'Game Boy · English',
+  editable: 'Trainer name, money and badges; bag and PC items; every Pokémon in your party and 12 boxes (stats, moves, swapping and moving); the Pokédex; and game options. Yellow also has Pikachu’s friendship.',
+  fileHint: 'Pokémon Red, Blue and Yellow (English) saves are 32,768 bytes (32 KB).',
   colors: { 'Pokémon Red': '#c0392b', 'Pokémon Blue': '#2d62b8', 'Pokémon Yellow': '#e2b007' },
   // Each box's mascot: Charizard, Blastoise, Pikachu.
   icons: {
@@ -20,7 +22,7 @@ export default defineGame<Gen1Save>({
   // same format and nothing in the file says which cartridge wrote it.
   identify: (data) => (looksLikeYellow(data)
     ? { names: ['Pokémon Yellow'] }
-    : { names: ['Pokémon Red', 'Pokémon Blue'], note: "Red and Blue saves look identical, so the file can't say which one yours is." }),
+    : { names: ['Pokémon Red', 'Pokémon Blue'], note: "Red and Blue saves are identical inside, so the file can't say which one yours is. Your choice only changes the name shown here; the editor works the same either way." }),
   sample: async () => ({ fileName: 'sample.sav', data: (await import('../core/gen1/sample.ts')).buildSampleSave() }),
   load: (data) => new Gen1Save(data),
   loadEditor: async () => (await import('../ui/editors/gen1/index.ts')).mountGen1Editor,

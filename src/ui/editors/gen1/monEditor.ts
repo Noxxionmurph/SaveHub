@@ -129,29 +129,34 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
           mon.exp = expForLevel(growth, v);
           touched();
           refresh();
-        })),
+        }), 'Changing the level also sets experience to match.'),
         field('Growth rate', selectInput(GROWTH_RATES.map((g) => ({ value: g, label: g })), growth, (v) => {
           growth = v as Growth;
-        }), 'Used when level changes'),
-        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; })),
+        }), 'How fast this Pokémon levels up. The save doesn’t store it, so this is a guess. Fix it if it’s wrong: it sets the experience when you change the level.'),
+        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; }), 'Total experience points.'),
         field('Status', selectInput(STATUS_OPTIONS, STATUS_OPTIONS.some((s) => s.value === mon.status) ? mon.status : 0,
           (v) => { mon.status = Number(v); })),
-        field('OT name', textInput(mon.otName, 10, (v) => { mon.otName = v; })),
-        field('OT ID', numberInput(mon.otId, 0, 65535, (v) => { mon.otId = v; })),
+        field('Original trainer', textInput(mon.otName, 10, (v) => { mon.otName = v; }), 'The name of whoever caught it.'),
+        field('Original trainer ID', numberInput(mon.otId, 0, 65535, (v) => { mon.otId = v; }),
+          'If this isn’t your Trainer ID, the game counts this Pokémon as traded.'),
         field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; })),
       ),
 
       h('h3', {}, 'Moves'),
+      h('p', { class: 'muted section-note' }, 'Each PP Up (0 to 3) raises a move’s maximum PP, and its current PP with it. Picking a different move refills its PP.'),
       h('div', { class: 'moves' }, [0, 1, 2, 3].map(moveRow)),
 
-      h('h3', {}, 'DVs'),
+      h('h3', {}, 'DVs (hidden genes)'),
+      h('p', { class: 'muted section-note' }, 'Values from 0 to 15 that help decide the stats. Higher is better. HP’s DV is worked out from the other four.'),
       h('div', { class: 'grid compact' }, dvInputs, h('div', { class: 'readout' }, `HP DV: ${hpDv(mon.dvs)}`)),
       h('h3', {}, 'Stat experience (EVs)'),
+      h('p', { class: 'muted section-note' }, 'Training points, 0 to 65,535 for each stat. More raises the stats, and 65,535 is the most that counts.'),
       h('div', { class: 'grid compact' }, evInputs),
 
       party
         ? h('div', {},
           h('h3', {}, 'Battle stats'),
+          h('p', { class: 'muted section-note' }, 'Party Pokémon keep their battle stats in the save. They update when you change level, DVs or EVs, and you can also type your own.'),
           h('div', { class: 'grid compact' },
             field('Max HP', numberInput(mon.maxHp, 1, 999, (v) => { mon.maxHp = v; })),
             field('Attack', numberInput(mon.atk, 1, 999, (v) => { mon.atk = v; })),
@@ -160,18 +165,23 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
             field('Special', numberInput(mon.spc, 1, 999, (v) => { mon.spc = v; })),
           ),
           calc ? h('p', { class: 'muted' },
-            `Calculated from base stats, DVs and EVs: HP ${calc.hp}, Atk ${calc.atk}, Def ${calc.def}, Spd ${calc.spe}, Spc ${calc.spc}`) : null,
+            `For this level, DVs and EVs the game works out: HP ${calc.hp}, Atk ${calc.atk}, Def ${calc.def}, Spd ${calc.spe}, Spc ${calc.spc}.`) : null,
         )
         : null,
 
+      h('h3', {}, 'Shortcuts'),
       h('div', { class: 'button-row' },
         h('button', { onclick: () => { mon.dvs = { atk: 15, def: 15, spe: 15, spc: 15 }; touched(); refresh(); } }, 'Max DVs'),
         h('button', { onclick: () => { mon.evs = { hp: 65535, atk: 65535, def: 65535, spe: 65535, spc: 65535 }; touched(); refresh(); } }, 'Max EVs'),
-        h('button', { onclick: () => { mon.exp = expForLevel(growth, mon.level); refresh(); } }, 'Reset exp to level'),
+        h('button', { onclick: () => { mon.exp = expForLevel(growth, mon.level); refresh(); } }, 'Match exp to level'),
         h('button', { onclick: () => { mon.pp = mon.moves.map((m, i) => maxPp(m, mon.ppUps[i])) as typeof mon.pp; refresh(); } }, 'Restore PP'),
-        party ? h('button', { onclick: () => { recalcPartyStats(mon, true); refresh(); } }, 'Recalc stats & heal') : null,
+        party ? h('button', { onclick: () => { recalcPartyStats(mon, true); refresh(); } }, 'Heal and recalculate stats') : null,
       ),
-      h('div', { class: 'button-row end' },
+      h('p', { class: 'muted section-note' },
+        party ? 'Match exp to level sets experience to the lowest amount for the current level. Heal and recalculate stats refills HP and rebuilds the battle stats.'
+          : 'Match exp to level sets experience to the lowest amount for the current level.'),
+      h('div', { class: 'dialog-foot' },
+        h('span', { class: 'muted' }, 'Changes apply as you edit. Tap Save on the main page to write the file.'),
         h('button', { class: 'primary', onclick: () => { dialog.close(); } }, 'Done'),
       ),
     ];

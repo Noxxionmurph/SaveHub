@@ -226,7 +226,7 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .tab.active { color: var(--text); border-bottom-color: var(--button); font-weight: 600; }
 
 /* ---- trainer ---- */
-.badge-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 6px; max-width: 420px; }
+.badge-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; max-width: 420px; }
 .badge-btn {
   display: grid; justify-items: center; gap: 6px; padding: 6px 2px; min-height: 0; border: 0; border-radius: 8px;
   background: none; color: var(--muted); font-size: 0.8125rem;
@@ -297,12 +297,15 @@ dialog.confirm-dialog { width: min(360px, 100vw - 32px); padding: 18px 18px 6px;
 .error { border-color: var(--button); }
 .error > strong, .notice-box > strong { display: block; margin-bottom: 4px; }
 .game-list { display: grid; gap: 8px; margin: 14px 0 0; }
-.game-list button { text-align: left; }
+.game-list button { display: grid; gap: 2px; text-align: left; }
+.why { display: grid; gap: 8px; margin-top: 4px; }
+.why ul { margin: 0; padding-left: 1.25em; display: grid; gap: 2px; }
 .toast {
   position: fixed; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
   bottom: max(16px, env(safe-area-inset-bottom, 0px)); margin: 0 auto; max-width: 560px; z-index: 20;
   background: var(--surface-2); color: var(--text); border: 1px solid var(--line-strong); border-radius: 8px;
   padding: 12px 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  pointer-events: none; /* it only informs; it must never cover a drop target or swallow a tap */
 }
 @media (prefers-reduced-motion: no-preference) { .toast { animation: toast-in 0.18s ease-out; } }
 @keyframes toast-in { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -398,7 +401,6 @@ dialog.confirm-dialog { width: min(360px, 100vw - 32px); padding: 18px 18px 6px;
 .box-cell.add, .box-cell.empty { background: transparent; border: 1px dashed var(--line-strong); color: var(--muted); }
 .box-cell.empty { opacity: 0.55; }
 .box-cell .plus { font: 500 1.75rem/1 var(--font-mono); }
-.box-hint { margin-top: 12px; }
 
 /* ---- the party row above the box, and dragging Pokémon between spots ---- */
 .box-party { margin-bottom: 14px; }
@@ -466,3 +468,19 @@ button.danger { color: var(--danger); }
 .starter-status { margin-top: 12px; display: grid; gap: 8px; justify-items: start; }
 .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font: 600 0.75rem var(--font-body); }
 .tag.starter { background: var(--button); color: var(--button-ink); }
+
+/* ---- guidance text: a line at the top of each tab, notes inside cards and sections ---- */
+.tab-intro { margin: 0 0 14px; max-width: 46em; color: var(--muted); font-size: 0.9375rem; }
+.card-note { margin: -4px 0 10px; font-size: 0.8125rem; }
+.section-note { margin: -2px 0 10px; font-size: 0.8125rem; max-width: 46em; }
+.family-edits { max-width: 46em; margin: 2px 0 12px; font-size: 0.875rem; }
+.family-edits strong { color: var(--text); font-weight: 600; }
+.tips { margin-top: 12px; font-size: 0.875rem; color: var(--muted); }
+.tips { margin-bottom: 12px; }
+.tips summary { display: flex; align-items: center; gap: 8px; min-height: 44px; font-weight: 600; color: var(--text); cursor: pointer; list-style: none; }
+.tips summary::-webkit-details-marker { display: none; }
+.tips summary::before { content: '▸'; font-size: 0.875em; color: var(--muted); }
+.tips[open] summary::before { content: '▾'; }
+.tips ul { margin: 0 0 4px; padding-left: 1.25em; display: grid; gap: 6px; }
+.dialog-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 16px; }
+.dialog-foot .muted { flex: 1 1 14em; font-size: 0.8125rem; }

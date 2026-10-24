@@ -14,7 +14,7 @@ function group(title: string, lines: string[], cap = CAP): ChangeGroup | null {
     : { title, lines };
 }
 
-const money = (n: number) => `$${n.toLocaleString('en-US')}`;
+const money = (n: number) => `¥${n.toLocaleString('en-US')}`;
 const clock = (s: Gen1Save) => `${s.playHours}:${String(s.playMinutes).padStart(2, '0')}:${String(s.playSeconds).padStart(2, '0')}`;
 const textSpeedName = (v: number) => TEXT_SPEEDS.find((t) => t.value === v)?.label ?? `Custom (${v})`;
 
@@ -25,6 +25,13 @@ function trainerLines(b: Gen1Save, a: Gen1Save): string[] {
   if (b.trainerName !== a.trainerName) out.push(`Name: ${b.trainerName} → ${a.trainerName}`);
   if (b.rivalName !== a.rivalName) out.push(`Rival: ${b.rivalName} → ${a.rivalName}`);
   if (b.trainerId !== a.trainerId) out.push(`Trainer ID: ${String(b.trainerId).padStart(5, '0')} → ${String(a.trainerId).padStart(5, '0')}`);
+  if (b.trainerId !== a.trainerId) {
+    // The game decides "traded" by comparing a Pokémon's original trainer ID with the player's, nothing else.
+    const orphaned = slots(a).filter((s) => s.mon.otId === b.trainerId).length;
+    if (orphaned) {
+      out.push(`Warning: ${orphaned} ${orphaned === 1 ? 'Pokémon was' : 'Pokémon were'} caught under your old Trainer ID, so the game will now count ${orphaned === 1 ? 'it' : 'them'} as traded. ${orphaned === 1 ? 'It earns' : 'They earn'} extra experience, and may ignore your orders until you have more badges.`);
+    }
+  }
   if (b.money !== a.money) out.push(`Money: ${money(b.money)} → ${money(a.money)}`);
   if (b.coins !== a.coins) out.push(`Coins: ${b.coins.toLocaleString('en-US')} → ${a.coins.toLocaleString('en-US')}`);
   if (clock(b) !== clock(a)) out.push(`Play time: ${clock(b)} → ${clock(a)}`);
@@ -61,7 +68,7 @@ function dexLines(b: Gen1Save, a: Gen1Save): string[] {
   const out: string[] = [];
   const bo = count(b, b.isOwned), ao = count(a, a.isOwned);
   const bs = count(b, b.isSeen), as = count(a, a.isSeen);
-  if (bo !== ao) out.push(`Caught: ${bo} → ${ao}`);
+  if (bo !== ao) out.push(`Owned: ${bo} → ${ao}`);
   if (bs !== as) out.push(`Seen: ${bs} → ${as}`);
   const same = (x: Uint8Array, y: Uint8Array) => x.length === y.length && x.every((v, i) => v === y[i]);
   if (bo === ao && bs === as && (!same(b.dexOwned, a.dexOwned) || !same(b.dexSeen, a.dexSeen))) out.push('Some entries changed');
@@ -195,7 +202,7 @@ function pikachuLines(b: Gen1Save, a: Gen1Save): string[] {
   // The game finds your Pikachu by its original trainer, so editing your name or ID (or moving it out of the
   // party) quietly stops it following you.
   if (b.party.some((m) => b.isStarterPikachu(m)) && !a.party.some((m) => a.isStarterPikachu(m))) {
-    out.push("Your starter Pikachu won't follow you: it's no longer in the party, or its original trainer no longer matches your name and ID");
+    out.push("Warning: your starter Pikachu will stop following you, because it has left your party or its original trainer no longer matches your name and Trainer ID. The Trainer tab has a button to fix this.");
   }
   return out;
 }

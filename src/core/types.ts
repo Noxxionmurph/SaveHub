@@ -60,6 +60,10 @@ export interface GameModule<S extends EditableSave = EditableSave> {
   readonly games: readonly string[];
   /** Short platform/region note, e.g. "Game Boy · English". */
   readonly platform: string;
+  /** One plain sentence on what the editor can change, shown under the family on the landing page. */
+  readonly editable?: string;
+  /** What a valid file looks like (size, extension), shown when a file isn't recognised, e.g. "Saves are 32,768 bytes." */
+  readonly fileHint?: string;
   /** Optional cartridge-label color per game name (any CSS color), shown on the landing page. */
   readonly colors?: Readonly<Record<string, string>>;
   /** Optional small picture per game name (a path relative to the page), shown on the landing page. */

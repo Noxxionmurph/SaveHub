@@ -56,7 +56,7 @@ export function openMonMenu({ save, where, index, onEdit, onChange }: MonMenuOpt
           onclick: () => {
             const r = copyMon(save, where, index);
             if (typeof r === 'string') return refuse(r);
-            finish(r.where === where ? `Copied ${name}.` : `Copied ${name} to ${placeName(r.where)}, since ${placeName(where)} is full.`);
+            finish(r.where === where ? `Duplicated ${name}.` : `Duplicated ${name} into ${placeName(r.where)} because ${placeName(where)} is full.`);
           },
         }, 'Duplicate'),
         // Party members have arrows on the Party tab; boxes don't, so the menu keeps them for boxes.
@@ -86,6 +86,7 @@ export function openMonMenu({ save, where, index, onEdit, onChange }: MonMenuOpt
     put(
       header(),
       h('h3', {}, 'Move to'),
+      h('p', { class: 'muted' }, 'Pick where to send it. The numbers show how many Pokémon are already in each place.'),
       h('div', { class: 'dest-list' }, ALL_PLACES.filter((w) => w !== where).map((w) => {
         const free = spaceAt(save, w);
         const blocked = free <= 0 || (where === PARTY && listAt(save, PARTY).length <= 1);

@@ -47,9 +47,9 @@ test('trainer, items, dex and options changes are described in words', () => {
   f.after.options.battleAnimationsOff = true;
   const out = diff(f);
   assert.deepEqual(out.map((g) => g.title), ['Trainer', 'Bag', 'Pokédex', 'Options']);
-  assert.deepEqual(lines(f, 'Trainer'), ['Name: RED → ASH', 'Money: $0 → $999,999', 'Badges earned: Boulder, Thunder']);
+  assert.deepEqual(lines(f, 'Trainer'), ['Name: RED → ASH', 'Money: ¥0 → ¥999,999', 'Badges earned: Boulder, Thunder']);
   assert.deepEqual(lines(f, 'Bag'), ['Potion: 5 → 12', 'Added Rare Candy ×99']);
-  assert.deepEqual(lines(f, 'Pokédex'), ['Caught: 0 → 1', 'Seen: 0 → 1']);
+  assert.deepEqual(lines(f, 'Pokédex'), ['Owned: 0 → 1', 'Seen: 0 → 1']);
   assert.deepEqual(lines(f, 'Options'), ['Text speed: Custom (0) → Fast', 'Battle animations: On → Off']);
 });
 
@@ -118,7 +118,7 @@ test('Yellow: friendship changes are listed, and losing the starter Pikachu is c
   f.after.trainerId = 54321; // the starter's OT ID no longer matches
   const got = lines(f, 'Pikachu');
   assert.equal(got.length, 2);
-  assert.match(got[1], /starter Pikachu won't follow you/);
+  assert.match(got[1], /starter Pikachu will stop following you/);
 
   f.after.makeStarter(f.after.party[0]); // fixed again
   assert.deepEqual(lines(f, 'Pikachu'), ['Friendship: 160 → 255']);
@@ -128,4 +128,18 @@ test('Red/Blue saves never get a Pikachu section', () => {
   const f = fixture();
   f.after.pikachuFriendship = 7;
   assert.deepEqual(diff(f), []);
+});
+
+test('changing the Trainer ID warns that earlier catches now count as traded', () => {
+  const f = fixture();
+  for (const m of f.before.party) m.otId = 111;
+  for (const m of f.after.party) m.otId = 111;
+  f.before.trainerId = 111; f.after.trainerId = 222;
+  const got = lines(f, 'Trainer');
+  assert.match(got[0], /^Trainer ID: 00111 → 00222$/);
+  assert.match(got[1], /^Warning: 3 Pokémon were caught under your old Trainer ID.*count them as traded/);
+  // nothing to warn about if no Pokémon carries the old ID
+  const g = fixture();
+  g.before.trainerId = 111; g.after.trainerId = 222;
+  assert.equal(lines(g, 'Trainer').length, 1);
 });

@@ -26,6 +26,9 @@ const BADGES = BADGE_NAMES;
 /** One shared array, so the item picker's markup is built once and cloned for every bag row. */
 const ITEM_OPTIONS = ITEM_CHOICES.map((c) => ({ value: c.id, label: c.name }));
 
+/** A short line at the top of a tab that says what it is for. */
+const intro = (...children: (Node | string)[]) => h('p', { class: 'tab-intro' }, ...children);
+
 export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
   let boxView = s.currentBoxIndex;
@@ -122,15 +125,17 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       return btn;
     }));
     return h('div', { class: 'stack' },
+      intro('Your trainer card, money, badges and game settings. Edit any field. Nothing is written to a file until you tap Save.'),
       overview(),
       h('section', { class: 'card' },
         h('h3', {}, 'Trainer'),
         h('div', { class: 'grid' },
-          field('Trainer name', textInput(s.trainerName, 10, (v) => { s.trainerName = v; edited(); }), 'In-game limit is 7 characters'),
-          field('Rival name', textInput(s.rivalName, 10, (v) => { s.rivalName = v; markDirty(); })),
-          field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; edited(); })),
-          field('Money (¥)', numberInput(s.money, 0, 999999, (v) => { s.money = v; edited(); })),
-          field('Game Corner coins', numberInput(s.coins, 0, 9999, (v) => { s.coins = v; edited(); })),
+          field('Trainer name', textInput(s.trainerName, 10, (v) => { s.trainerName = v; edited(); }), 'The game shows up to 7 characters.'),
+          field('Rival name', textInput(s.rivalName, 10, (v) => { s.rivalName = v; markDirty(); }), 'Up to 7 characters.'),
+          field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; edited(); }),
+            'Pokémon you caught remember this number. If you change it, they count as traded: they earn extra experience, but may ignore your orders at higher levels.'),
+          field('Money (¥)', numberInput(s.money, 0, 999999, (v) => { s.money = v; edited(); }), 'Up to ¥999,999.'),
+          field('Game Corner coins', numberInput(s.coins, 0, 9999, (v) => { s.coins = v; edited(); }), 'Up to 9,999.'),
         ),
         h('div', { class: 'button-row' },
           h('button', { onclick: () => { s.money = 999999; s.coins = 9999; markDirty(); render(); } }, 'Max money & coins'),
@@ -138,6 +143,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       pikachuCard(),
       h('section', { class: 'card' },
         h('h3', {}, 'Play time'),
+        h('p', { class: 'muted card-note' }, 'Shown on your trainer card.'),
         h('div', { class: 'grid compact' },
           field('Hours', numberInput(s.playHours, 0, 255, (v) => { s.playHours = v; edited(); })),
           field('Minutes', numberInput(s.playMinutes, 0, 59, (v) => { s.playMinutes = v; edited(); })),
@@ -145,6 +151,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         )),
       h('section', { class: 'card' },
         h('h3', {}, 'Badges'),
+        h('p', { class: 'muted card-note' }, 'Tap a badge to earn it or take it away.'),
         badgeRow,
         h('div', { class: 'button-row' },
           h('button', { onclick: () => { s.badges = 0xff; markDirty(); render(); } }, 'All badges'),
@@ -182,13 +189,13 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       }
       const other = s.party.findIndex((m) => m.species === PIKACHU_INTERNAL);
       if (other < 0) {
-        status.append(h('p', {}, h('strong', {}, 'No starter Pikachu in your party. '),
-          'The game only counts a Pikachu whose original trainer (OT) is your name and Trainer ID. Put one in your party, then use the button here.'));
+        status.append(h('p', {}, h('strong', {}, 'No Pikachu in your party. '),
+          'The game only follows a Pikachu whose original trainer is your name and Trainer ID. Add a Pikachu on the Party tab and a button to make it your starter will appear here.'));
         return;
       }
       status.append(
         h('p', {}, h('strong', {}, 'Not your starter. '),
-          `${monLabel(s.party[other])}'s original trainer doesn't match your name and Trainer ID, so it won't follow you.`),
+          `${monLabel(s.party[other])}'s original trainer doesn't match your name and Trainer ID, so it won't follow you. The button copies your name and ID onto it.`),
         h('button', { onclick: () => { s.makeStarter(s.party[other]); markDirty(); drawStatus(); } }, `Make ${monLabel(s.party[other])} my starter`));
     };
     refreshers.push(drawStatus);
@@ -197,11 +204,12 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
 
     return h('section', { class: 'card pikachu-card' },
       h('div', { class: 'card-title' }, pokemonIcon(25, 'card-icon'), h('h3', {}, 'Pikachu')),
+      h('p', { class: 'muted card-note' }, 'How much your starter Pikachu likes you, from 0 to 255. Some characters react to it.'),
       h('div', { class: 'lcd friend' }, h('span', { class: 'friend-head' }, 'Friendship'), value, label),
       h('div', { class: 'friend-controls' }, slider, number),
       h('div', { class: 'button-row' },
         h('button', { onclick: () => set(255) }, 'Max friendship')),
-      h('p', { class: 'muted' }, 'The Museum of Science hiker wants 101 or more, and Melanie in Cerulean City only gives her Bulbasaur at 147 or more.'),
+      h('p', { class: 'muted' }, 'For example, the hiker at the Museum of Science needs 101 or more, and Melanie in Cerulean City only gives you her Bulbasaur at 147 or more.'),
       status);
   }
 
@@ -212,24 +220,26 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     if (!speeds.some((t) => t.value === s.options.textSpeed)) speeds.push({ value: s.options.textSpeed, label: `Custom (${s.options.textSpeed})` });
     return h('section', { class: 'card' },
       h('h3', {}, 'Game options'),
+      h('p', { class: 'muted card-note' }, 'The same settings as OPTION in the game’s start menu.'),
       h('div', { class: 'grid' },
-        field('Text speed', selectInput(speeds, s.options.textSpeed, (v) => { s.options.textSpeed = Number(v); edited(); })),
+        field('Text speed', selectInput(speeds, s.options.textSpeed, (v) => { s.options.textSpeed = Number(v); edited(); }), 'How fast text appears.'),
         field('Battle animations', selectInput([{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
-          s.options.battleAnimationsOff ? 'off' : 'on', (v) => { s.options.battleAnimationsOff = v === 'off'; edited(); })),
+          s.options.battleAnimationsOff ? 'off' : 'on', (v) => { s.options.battleAnimationsOff = v === 'off'; edited(); }), 'Off skips the move animations in battle.'),
         field('Battle style', selectInput([{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }],
           s.options.battleStyleSet ? 'set' : 'shift', (v) => { s.options.battleStyleSet = v === 'set'; edited(); }),
-        'Shift asks if you want to switch after you knock one out. Set doesn’t.'),
+        'Shift asks if you want to switch Pokémon after you knock one out. Set doesn’t ask.'),
       ));
   }
 
   // ---------- bag ----------
 
-  function itemList(title: string, items: BagItem[], max: number): Node {
+  function itemList(title: string, note: string, items: BagItem[], max: number): Node {
     const wrap = h('section', { class: 'card' });
     const draw = () => {
       clear(wrap);
       wrap.append(
         h('h3', {}, title, h('span', { class: 'muted count' }, `${items.length}/${max}`)),
+        note ? h('p', { class: 'muted card-note' }, note) : null,
         ...items.map((it, i) => {
           const icon = itemIcon(itemSpritePath(it.id));
           return h('div', { class: 'item-row' },
@@ -244,14 +254,18 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         h('button', {
           disabled: items.length >= max,
           onclick: () => { items.push({ id: 0x28, count: 99 }); markDirty(); draw(); },
-        }, '+ Add item'),
+        }, items.length >= max ? `Full (${max} of ${max})` : '+ Add item'),
       );
     };
     draw();
     return wrap;
   }
 
-  const bagTab = () => h('div', { class: 'two-col' }, itemList('Bag', s.bag, 20), itemList('PC item storage', s.pcItems, 50));
+  const bagTab = () => h('div', {},
+    intro('Pick an item, set how many (1 to 99), or tap ✕ to remove it. Only items the game can really hold are listed.'),
+    h('div', { class: 'two-col' },
+      itemList('Bag', 'What you carry. It holds up to 20 different items.', s.bag, 20),
+      itemList('PC item storage', 'Items stored in your PC. It holds up to 50 different items.', s.pcItems, 50)));
 
   // ---------- Pokémon lists ----------
 
@@ -318,7 +332,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         const same = wrap.querySelector<HTMLButtonElement>(`[data-reorder="${focus.index}:${focus.delta}"]:not(:disabled)`);
         (same ?? wrap.querySelector<HTMLButtonElement>(`[data-reorder="${focus.index}:${-focus.delta}"]:not(:disabled)`))?.focus();
       }
-      if (!s.party.length) wrap.append(h('p', { class: 'muted' }, 'No Pokémon here yet.'));
+      if (!s.party.length) wrap.append(h('p', { class: 'muted' }, 'Your party is empty. The game needs at least one Pokémon, so add one.'));
       wrap.append(h('button', {
         disabled: s.party.length >= PARTY_MAX,
         onclick: () => {
@@ -327,16 +341,18 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           editMon(PARTY, s.party.length - 1, draw);
           draw();
         },
-      }, `+ Add Pokémon (${s.party.length}/${PARTY_MAX})`));
+      }, s.party.length >= PARTY_MAX ? `Party full (${PARTY_MAX} of ${PARTY_MAX})` : `+ Add Pokémon (${s.party.length}/${PARTY_MAX})`));
     };
     draw();
     return h('div', {},
-      h('p', { class: 'muted' }, 'Party Pokémon store their battle stats directly; use “Recalc stats & heal” in the editor after changing level, DVs or EVs. Tap ⋯ to move, copy or remove one.'),
+      intro('Up to 6 Pokémon. The first one battles first, so use the arrows to change the order. Tap a Pokémon to edit it, or ⋯ to move, duplicate or remove it.'),
       wrap);
   }
 
   function boxesTab(): Node {
     const holder = h('div', { class: 'boxes' });
+    /** The part that is rebuilt on every change; the intro and tips above it stay put, so an opened tip stays open. */
+    const body = h('div');
     const step = (d: number) => { boxView = (boxView + d + BOX_TOTAL) % BOX_TOTAL; draw(); };
     const slotKey = (where: number, index: number) => `${where}:${index}`;
     const parseKey = (key: string) => { const [where, index] = key.split(':').map(Number); return { where, index }; };
@@ -388,7 +404,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     };
 
     const draw = () => {
-      clear(holder);
+      clear(body);
       const list = listAt(s, boxView);
       const picker = selectInput(
         Array.from({ length: BOX_TOTAL }, (_, i) => ({
@@ -397,7 +413,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         })), boxView, (v) => { boxView = Number(v); draw(); });
       picker.setAttribute('aria-label', 'Choose a box');
 
-      holder.append(
+      body.append(
         h('div', { class: 'box-party', role: 'group', 'aria-label': `Party, ${s.party.length} of ${PARTY_MAX}` },
           h('span', { class: 'box-label' }, `Party ${s.party.length}/${PARTY_MAX}`),
           h('div', { class: 'party-cells' }, Array.from({ length: PARTY_MAX }, (_, i) => cellFor(PARTY, i)))),
@@ -407,11 +423,19 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           h('button', { class: 'icon', 'aria-label': 'Next box', dataset: { nav: '1' }, onclick: () => step(1) }, '›')),
         h('div', { class: 'box-grid', role: 'group', 'aria-label': `Box ${boxView + 1}, ${list.length} of ${BOX_MAX}` },
           Array.from({ length: BOX_MAX }, (_, i) => cellFor(boxView, i))),
-        h('p', { class: 'muted box-hint' },
-          'Tap a Pokémon for its menu. Drag one onto another to swap them, or onto an empty spot to move it to the end of that place. ' +
-          'On a touch screen, press and hold first. Hold a dragged Pokémon over ‹ or › to change box.'),
       );
     };
+    holder.append(
+      intro('Your party and PC boxes. Tap a Pokémon to edit, move, duplicate or remove it, or drag one onto another to swap them.'),
+      h('details', { class: 'tips' },
+        h('summary', {}, 'How dragging works'),
+        h('ul', {},
+          h('li', {}, 'Drop a Pokémon on another one to swap them, in a box or with your party.'),
+          h('li', {}, 'Drop it on an empty spot to move it to the end of that box or your party.'),
+          h('li', {}, 'On a touch screen, press and hold for a moment before dragging. A quick swipe still scrolls the page.'),
+          h('li', {}, 'While dragging, hold over ‹ or › to turn to another box.'),
+          h('li', {}, 'Your party always keeps at least one Pokémon. “(current)” marks the box where new catches go.'))),
+      body);
     draw();
     return holder;
   }
@@ -453,11 +477,12 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     paintSummary();
     return h('div', {},
       summary,
-      h('p', { class: 'muted dex-hint' }, 'Tap a Pokémon to cycle it: unseen, seen, owned.'),
+      intro('Tap a Pokémon to cycle it: not seen, then seen, then owned.'),
+      h('p', { class: 'muted dex-hint' }, 'Dark shape = not seen. Colour = seen. Green with a Poké Ball = owned.'),
       h('div', { class: 'button-row' },
-        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setOwned(i + 1, true)); markDirty(); repaint(); } }, 'Complete Pokédex'),
+        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setOwned(i + 1, true)); markDirty(); repaint(); } }, 'Own all 151'),
         h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, true)); markDirty(); repaint(); } }, 'Mark all seen'),
-        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, false)); markDirty(); repaint(); } }, 'Clear'),
+        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, false)); markDirty(); repaint(); } }, 'Clear all'),
       ),
       h('div', { class: 'dex-grid' }, tiles.map((t) => t.tile)),
     );

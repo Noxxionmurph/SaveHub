@@ -53,7 +53,7 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
 - Party and all 12 boxes. The party has up/down arrows beside each card; boxes are a 4 x 5 grid like the PC, with your
   party in a row above it. **Drag a Pokémon onto another to swap them** (inside a box, between boxes and the party),
   or onto an empty spot to move it to the end; hold a dragged Pokémon over the ‹ › buttons to turn to the next box.
-  Tap one for its menu instead: edit it, move it to the party or any box, copy it or remove it. The last Pokémon in
+  Tap one for its menu instead: edit it, move it to the party or any box, duplicate it or remove it. The last Pokémon in
   the party can't be moved out or removed (a swap is fine, since the count doesn't change).
 - Full Pokémon editor: species, nickname, OT, level, exp + growth curve, status, moves (with type icons), DVs, EVs,
   battle stats. Each move shows its PP (read-only) and a PP Up stepper (0-3); every PP Up raises the maximum and the
@@ -131,6 +131,22 @@ the list when touched (`lazySelect` in `ui/dom.ts`), which took the tab from ~85
 69 icons) and ~130 ms after that, and from ~9,000 elements to ~470. Typing in the Trainer tab no longer recreates the badge and party images on every keystroke.
 The sprites are already tiny (all 151 Pokémon icons are 54 KB together), and opening and closing the dialogs
 leaves no elements or listeners behind.
+
+## Writing the on-screen text
+
+Every screen explains itself in plain words, so keep it that way when you add a feature:
+
+- One name per thing: **Save** (the button and the act), "the file you opened" (the original, which is never changed),
+  "your edited copy", **Party** and **Box 1-12**, **slot** (only for a position inside a box), **Duplicate**, **Swap**,
+  **Move**, **Owned** / **Seen**. Money is shown as ¥ everywhere, including the review list.
+- Each tab opens with one line saying what it is for. Anything that needs more (the Boxes tab's dragging tips) sits in a
+  collapsed "How ... works" section that stays open across redraws.
+- Explain jargon where it appears, in a one-line note under the heading or field (DVs, EVs, original trainer, growth
+  rate), not in a separate manual. Only state game rules you've checked against the disassembly.
+- Say why a control is unavailable ("Party full (6 of 6)", "Full (20 of 20)"), not just grey it out.
+- Errors say what happened and what to do next. Warnings in the review list start with "Warning:" and name the fix.
+- Sentence case, active voice, plain verbs ("Tap", "Pick", "Drop"). A game can describe itself to the shell with
+  `editable` (what the editor can change) and `fileHint` (what a valid file looks like) on its module.
 
 ## Known limitations
 
