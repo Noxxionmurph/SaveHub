@@ -51,6 +51,7 @@ for await (const file of walk(srcDir)) {
 
 await cp(join(root, 'index.html'), join(outDir, 'index.html'));
 await cp(join(root, 'styles.css'), join(outDir, 'styles.css'));
+await cp(join(root, 'fonts'), join(outDir, 'fonts'), { recursive: true });
 if (localArt) await cp(join(root, 'assets'), join(outDir, 'assets'), { recursive: true, filter: (src) => !/[\\/]\.git([\\/]|$)/.test(src) });
 const art = (await readFile(join(outDir, 'ui', 'art.js'), 'utf8')).match(ART_LINE)?.[0].match(/'([^']*)'/)?.[1];
 console.log(`Built ${count} modules into dist/ (artwork: ${art})`);

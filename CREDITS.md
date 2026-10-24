@@ -28,10 +28,19 @@ graphics. `scripts/extract-pikachu.py` redoes the cut. Frames that also exist in
 (https://github.com/pret/pokeyellow, `gfx/pikachu/`) are pixel-identical to it, which is how each row was matched to
 the game's name for it.
 
+## Fonts
+
+The site's three fonts are bundled in `fonts/`, cut down to Latin characters and the weights the site uses
+(`scripts/make-fonts.py`), under the SIL Open Font License 1.1. The licence texts are in `fonts/OFL-*.txt`.
+
+- **Instrument Sans**, © The Instrument Sans Project Authors (https://github.com/Instrument/instrument-sans)
+- **JetBrains Mono**, © The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+- **Pixelify Sans**, © The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans)
+
 ## Game data
 
 Save layouts and tables were worked out with the help of the pret disassemblies
 ([pokered](https://github.com/pret/pokered), [pokeyellow](https://github.com/pret/pokeyellow)) and checked against
 cartridge dumps the author owns (`scripts/verify-against-rom.mjs`; nothing from the ROMs is stored in this repository).
 
-All the artwork is © Nintendo / Creatures Inc. / GAME FREAK Inc.
+All the pictures are © Nintendo / Creatures Inc. / GAME FREAK Inc.

@@ -1,0 +1,15 @@
+/* The site's three fonts, served from here instead of Google Fonts. All three are under the SIL Open Font License
+   (fonts/OFL-*.txt, credits in CREDITS.md). Each file is a Latin-only variable font cut to the weights the site uses;
+   scripts/make-fonts.py makes them. A character a font doesn't have comes from the visitor's own system font. */
+@font-face {
+  font-family: "Instrument Sans"; font-style: normal; font-weight: 400 600; font-display: swap;
+  src: url(instrument-sans.woff) format("woff");
+}
+@font-face {
+  font-family: "JetBrains Mono"; font-style: normal; font-weight: 400 600; font-display: swap;
+  src: url(jetbrains-mono.woff) format("woff");
+}
+@font-face {
+  font-family: "Pixelify Sans"; font-style: normal; font-weight: 500 700; font-display: swap;
+  src: url(pixelify-sans.woff) format("woff");
+}

@@ -9,8 +9,10 @@ lazy-loaded. Currently supported: Pokémon Red / Blue / Yellow (English). Everyt
 
 The page is styled as a handheld: grey plastic shell, olive LCD panels wherever the app shows data (levels, stats,
 Pokédex totals, the example bytes), magenta action buttons. Colours are CSS tokens at the top of `styles.css` with a
-light and a dark set. Fonts (Pixelify Sans, Instrument Sans, JetBrains Mono) load from Google Fonts and fall back to
-system fonts. A game can set `colors` on its module to give each title a cartridge-label colour on the landing page.
+light and a dark set. Fonts (Pixelify Sans, Instrument Sans, JetBrains Mono) are bundled in `fonts/` (SIL Open Font License, Latin only,
+~100 KB together), so the page makes no request to Google or any other font host; a character a font lacks falls back to
+the system font. `scripts/make-fonts.py` remakes the files from the google/fonts repository. (The Claude-hosted copy
+of the page is the one exception: it still links Google Fonts.) A game can set `colors` on its module to give each title a cartridge-label colour on the landing page.
 
 ## Artwork
 

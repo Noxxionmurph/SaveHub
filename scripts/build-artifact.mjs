@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const css = await readFile(join(root, 'styles.css'), 'utf8');
+// The Claude-hosted copy keeps loading its fonts from Google Fonts; the deployed site bundles them (fonts/, see index.html).
 const fonts = 'https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Pixelify+Sans:wght@500;700&display=swap';
 const html = `<title>SaveForge</title>
 <meta name="claude:viewport-fit-sides" content="cover">
