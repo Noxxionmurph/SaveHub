@@ -99,7 +99,7 @@ export function pikachuCard(s: Gen1Save, host: PikachuCardHost): Node {
     friend.lcd, friend.controls,
     h('div', { class: 'button-row' }, h('button', { onclick: () => friend.set(255) }, 'Max friendship')),
     h('p', { class: 'muted' },
-      'The words under the number are what the granny in Celadon Mansion says about it. The hiker at the Museum of Science needs 101 or more, and Melanie in Cerulean City only gives you her Bulbasaur at 147 or more.'),
+      'The words under the number are what the granny in Celadon Mansion says about it. Melanie in Cerulean City only gives you her Bulbasaur if friendship is above 146.'),
     mood.lcd, mood.controls,
     h('div', { class: 'button-row' },
       h('button', { onclick: () => mood.set(0) }, 'Upset'),

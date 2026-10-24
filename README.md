@@ -162,8 +162,9 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   names) were checked against Pokémon Red and Pokémon Yellow ROMs with `scripts/verify-against-rom.mjs`: all match.
   Against Yellow it also checks Pikachu's reaction table (friendship and mood limits, which reactions repeat) and the
   Celadon Mansion granny's six lines against the friendship wording. The ROMs aren't in the repo and the script copies
-  nothing from them. The granny's friendship limits (51, 101, 131, 161, 201) and the Museum and Melanie limits come from
-  the disassembly; they couldn't be located in the ROM's code, so they are the one thing not checked against a ROM.
+  nothing from them. The granny's friendship limits (51, 101, 131, 161, 201) and Melanie's Bulbasaur limit (above 146)
+  come from the disassembly and community notes; they couldn't be located in the ROM's code, so they are the one thing
+  not checked against a ROM.
 - Gen 1: English only (Japanese uses different offsets and text encoding). Event flags and map position are left untouched.
 - The options byte (text speed, battle style, animations) and the max-PP rules come from the pokered disassembly, not
   from a real cartridge; check them against one of your own saves.
