@@ -48,7 +48,7 @@ src/core/types.ts          GameModule / EditableSave contracts (the only thing t
 src/core/registry.ts       GAMES list + detectGames()
 src/games/*.ts             one small descriptor per game: detect, load, lazy editor import
 src/core/<game>/           format code per game: data tables, text encoding, parse/serialize, checksums
-src/ui/main.ts             game-agnostic shell: drop zone, detection, chooser, download
+src/ui/main.ts             game-agnostic shell: drop zone, detection, chooser, save
 src/ui/editors/<game>/     editor UI per game (lazy-loaded)
 scripts/build.mjs          strips types -> dist/ (rewrites .ts imports and import() to .js)
 test/                      node:test suite
@@ -69,7 +69,7 @@ test/                      node:test suite
 4. **Register** it in the `GAMES` array in `src/core/registry.ts`.
 
 The landing page's supported-games list, auto-detection, the manual chooser (used when a file matches zero or
-several games) and the download button all pick the new game up automatically.
+several games) and the Save button all pick the new game up automatically.
 
 Tips: write a round-trip test first (unedited save re-serializes byte-for-byte), and when two games share a
 file size, make each `detect()` verify its own checksum so only one claims the file.

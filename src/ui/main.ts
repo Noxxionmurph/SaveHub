@@ -60,7 +60,7 @@ async function download(save: EditableSave): Promise<void> {
     try {
       await hosted.save({ filename: `${name}.zip`, data: makeZip(name, bytes) });
       dirty = false;
-      toast(`Saved ${name}.zip. Unzip it to get your save file.`);
+      toast(`Saved ${name}.zip. Unzip it to get your edited save. Your original file isn't changed.`);
     } catch (e) {
       const code = (e as { code?: string })?.code;
       if (code !== 'declined') toast(`Couldn't save the file (${code ?? 'unknown error'}).`);
@@ -73,6 +73,7 @@ async function download(save: EditableSave): Promise<void> {
   a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   dirty = false;
+  toast(`Saved ${name}. Your original file isn't changed.`);
 }
 
 function pickFile(): void {
@@ -128,7 +129,7 @@ async function openGame(game: GameModule, data: Uint8Array): Promise<void> {
   drawName();
 
   const dlNote = h('p', { class: 'muted dl-note' });
-  void hostedDownloads.then((d) => { if (d) dlNote.textContent = 'Download gives you a .zip containing your edited save (this host only allows certain file types). Unzip it in your Files app.'; });
+  void hostedDownloads.then((d) => { if (d) dlNote.textContent = 'Saving gives you a .zip that contains your edited file (this host only allows certain file types). Unzip it in your Files app.'; });
 
   clear(root);
   root.append(
@@ -137,7 +138,7 @@ async function openGame(game: GameModule, data: Uint8Array): Promise<void> {
         wordmark(22),
         h('div', { class: 'bar-actions' },
           h('button', { onclick: async () => { if (!dirty || await askConfirm('Discard unsaved changes?', 'Discard')) { dirty = false; setPageTitle(); renderWelcome(); } } }, 'Close'),
-          h('button', { class: 'primary', onclick: () => void download(save) }, 'Download'),
+          h('button', { class: 'primary', 'aria-label': 'Save edited file', onclick: () => void download(save) }, 'Save'),
         )),
       nameEl,
       h('p', { class: 'muted file-line' }, h('span', {}, fileName), h('span', {}, game.platform)),
@@ -207,7 +208,7 @@ function renderWelcome(): void {
         h('ol', { class: 'steps' },
           h('li', {}, h('strong', {}, 'Open your save'), h('span', {}, 'Use the file straight from your cartridge dumper or emulator.')),
           h('li', {}, h('strong', {}, 'Edit what you like'), h('span', {}, 'Pokémon, items, money, badges. Checksums are fixed for you.')),
-          h('li', {}, h('strong', {}, 'Download it again'), h('span', {}, 'Copy the edited file back to your cartridge or emulator.')),
+          h('li', {}, h('strong', {}, 'Save it again'), h('span', {}, 'Copy the edited file back to your cartridge or emulator.')),
         ),
         hex,
       ),

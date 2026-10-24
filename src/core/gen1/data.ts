@@ -292,10 +292,26 @@ export function itemName(id: number): string {
   return `Item 0x${id.toString(16).toUpperCase().padStart(2, '0')}`;
 }
 
+/**
+ * Entries in the game's item table that you can't normally hold in the bag, so the picker doesn't offer them.
+ * (A save that already contains one still shows it; this only limits what can be newly chosen.)
+ */
+const NOT_BAG_ITEMS = new Set<number>([
+  0x07, 0x2c, // "?????" placeholders, never used
+  0x08, // Safari Ball: the Safari Zone keeps its balls in a separate counter
+  0x09, // Pokédex: a story item, not a bag item
+  0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, // the eight gym badges (tracked as flags on the trainer card)
+  0x32, // second "PP Up" entry that the game never hands out (0x4f is the real one)
+  0x3b, // Coin: the game keeps coins in their own counter
+]);
+
+/** True for items that can be put in the bag in a normal playthrough. */
+export const isBagItem = (id: number): boolean => !NOT_BAG_ITEMS.has(id);
+
 /** Items offered in the bag editor's picker (id, name). */
 export const ITEM_CHOICES: { id: number; name: string }[] = (() => {
   const out: { id: number; name: string }[] = [];
-  for (let id = 1; id < ITEM_BASE.length; id++) out.push({ id, name: itemName(id) });
+  for (let id = 1; id < ITEM_BASE.length; id++) if (isBagItem(id)) out.push({ id, name: itemName(id) });
   for (let id = 0xc4; id <= 0xfa; id++) out.push({ id, name: itemName(id) });
   return out;
 })();
