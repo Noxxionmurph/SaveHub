@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { DEX_TO_INTERNAL } from '../src/core/gen1/data.ts';
-import { PARTY, copyMon, listAt, moveMon, removeMon, shiftMon, spaceAt } from '../src/core/gen1/roster.ts';
+import { PARTY, copyMon, dropMon, listAt, moveMon, removeMon, shiftMon, spaceAt } from '../src/core/gen1/roster.ts';
 import { Gen1Save, newMon } from '../src/core/gen1/save.ts';
 import { blankGen1Save } from '../src/core/gen1/sample.ts';
 
@@ -71,6 +71,64 @@ test('shifting swaps neighbours and stops at the ends', () => {
   assert.deepEqual(s.party, [b, a]);
   assert.equal(shiftMon(s, PARTY, 1, 1), false);
   assert.equal(listAt(s, PARTY).length, 2);
+});
+
+test('dropping onto a Pokémon swaps them, in a box or across places', () => {
+  const s = save();
+  s.boxes[0].push(mon(1), mon(4));
+  const [a, b, c, d] = s.boxes[0];
+  assert.deepEqual(dropMon(s, { where: 0, index: 0 }, { where: 0, index: 3 }), { kind: 'swap' });
+  assert.deepEqual(s.boxes[0], [d, b, c, a]);
+
+  // box -> party: each lands in the other's slot, and the one entering the party gets battle stats
+  const [pikachu] = s.party;
+  d.level = 50;
+  assert.deepEqual(dropMon(s, { where: 0, index: 0 }, { where: PARTY, index: 0 }), { kind: 'swap' });
+  assert.equal(s.party[0], d);
+  assert.equal(s.boxes[0][0], pikachu);
+  assert.equal(d.partyLevel, 50);
+  assert.ok(d.maxHp > 50, 'stats recalculated for the new level');
+  assert.equal(s.party.length, 2);
+  assert.equal(s.boxes[0].length, 4);
+});
+
+test('swapping works when both places are full and when the party has one member', () => {
+  const s = save();
+  while (s.party.length < 6) s.party.push(mon(1));
+  s.boxes[1] = Array.from({ length: 20 }, () => mon(2));
+  assert.equal(moveMon(s, 1, 0, PARTY), 'full');
+  assert.deepEqual(dropMon(s, { where: 1, index: 7 }, { where: PARTY, index: 5 }), { kind: 'swap' });
+  assert.equal(s.party.length, 6);
+  assert.equal(s.boxes[1].length, 20);
+
+  s.party = [s.party[0]];
+  assert.deepEqual(dropMon(s, { where: PARTY, index: 0 }, { where: 0, index: 1 }), { kind: 'swap' });
+  assert.equal(s.party.length, 1);
+});
+
+test('dropping onto an empty spot moves to the end of that place', () => {
+  const s = save();
+  const [first, second] = s.boxes[0];
+  // same box: to the end of the list
+  assert.deepEqual(dropMon(s, { where: 0, index: 0 }, { where: 0, index: 9 }), { kind: 'move' });
+  assert.deepEqual(s.boxes[0], [second, first]);
+  assert.equal(dropMon(s, { where: 0, index: 1 }, { where: 0, index: 5 }), 'same', 'already last');
+  // another box
+  assert.deepEqual(dropMon(s, { where: 0, index: 0 }, { where: 3, index: 0 }), { kind: 'move' });
+  assert.deepEqual(s.boxes[3], [second]);
+  assert.equal(s.boxes[0].length, 1);
+});
+
+test('drops that cannot happen say why and change nothing', () => {
+  const s = save();
+  s.boxes[2] = Array.from({ length: 20 }, () => mon(1));
+  s.party = [s.party[0]];
+  const before = JSON.stringify([s.party, s.boxes]);
+  assert.equal(dropMon(s, { where: 0, index: 0 }, { where: 0, index: 0 }), 'same');
+  assert.equal(dropMon(s, { where: 0, index: 7 }, { where: 1, index: 0 }), 'missing');
+  assert.equal(dropMon(s, { where: 0, index: 0 }, { where: 2, index: 20 }), 'full');
+  assert.equal(dropMon(s, { where: PARTY, index: 0 }, { where: 5, index: 0 }), 'last-party');
+  assert.equal(JSON.stringify([s.party, s.boxes]), before);
 });
 
 test('everything survives serialising after a shuffle', () => {

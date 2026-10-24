@@ -3,10 +3,11 @@
 import {
   BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, TEXT_SPEEDS, baseStatsFor, friendshipLabel, itemName, speciesName,
 } from '../../../core/gen1/data.ts';
-import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, listAt, shiftMon } from '../../../core/gen1/roster.ts';
+import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, dropMon, listAt, placeName, shiftMon } from '../../../core/gen1/roster.ts';
 import { PIKACHU_INTERNAL, newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
 import type { EditorHost, MountEditor } from '../../../core/types.ts';
-import { clear, field, h, numberInput, selectInput, textInput } from '../../dom.ts';
+import { clear, field, h, lazySelect, numberInput, selectInput, textInput, toast } from '../../dom.ts';
+import { enableDrag } from '../../drag.ts';
 import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
 import { openMonEditor } from './monEditor.ts';
@@ -22,6 +23,8 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'dex', label: 'Pokédex' },
 ];
 const BADGES = BADGE_NAMES;
+/** One shared array, so the item picker's markup is built once and cloned for every bag row. */
+const ITEM_OPTIONS = ITEM_CHOICES.map((c) => ({ value: c.id, label: c.name }));
 
 export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
@@ -61,38 +64,50 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
 
   /** The in-game trainer card at a glance, plus the party as icons (tap one to edit it). */
   function overview(): HTMLElement {
-    const wrap = h('section', { class: 'card overview' });
-    const stat = (label: string, value: string) => h('div', {}, h('dt', {}, label), h('dd', {}, value));
-    const draw = () => {
-      clear(wrap);
-      wrap.append(
-        h('div', { class: 'lcd tcard' },
-          h('div', { class: 'tcard-top' },
-            h('span', { class: 'tcard-name' }, s.trainerName || '—'),
-            h('span', { class: 'tcard-id' }, `ID ${String(s.trainerId).padStart(5, '0')}`)),
-          h('dl', { class: 'tcard-stats' },
-            stat('Money', `¥${s.money.toLocaleString('en-US')}`),
-            stat('Coins', s.coins.toLocaleString('en-US')),
-            stat('Time', `${s.playHours}:${String(s.playMinutes).padStart(2, '0')}`),
-            stat('Badges', `${popcount(s.badges)}/8`)),
-          h('div', { class: 'tcard-badges', role: 'img', 'aria-label': `${popcount(s.badges)} of 8 badges earned` },
-            BADGES.map((_, i) => badgeIcon(i + 1, (s.badges >> i) & 1 ? 'earned' : ''))),
-        ),
-        h('div', { class: 'party-strip', role: 'group', 'aria-label': 'Party' }, Array.from({ length: 6 }, (_, i) => {
-          const mon = s.party[i];
-          if (!mon) return h('span', { class: 'party-slot empty', 'aria-hidden': 'true' });
-          return h('button', {
-            class: 'party-slot', 'aria-label': `${monLabel(mon)}, level ${mon.level}. Edit`,
-            onclick: () => openMonEditor({ mon, party: true, onDone: () => { markDirty(); draw(); } }),
-          }, pokemonIcon(INTERNAL_TO_DEX[mon.species]),
-          h('span', { class: 'slot-name' }, monLabel(mon)),
-          h('span', { class: 'lv-tag' }, `Lv ${mon.level}`));
-        })),
-      );
+    // Built once. Typing in a field only rewrites these text nodes and badge classes; the party icons are
+    // redrawn only when the party itself changes, so no image is recreated per keystroke.
+    const stat = (label: string) => { const dd = h('dd'); return { node: h('div', {}, h('dt', {}, label), dd), dd }; };
+    const name = h('span', { class: 'tcard-name' });
+    const id = h('span', { class: 'tcard-id' });
+    const money = stat('Money');
+    const coins = stat('Coins');
+    const time = stat('Time');
+    const badges = stat('Badges');
+    const badgeRow = h('div', { class: 'tcard-badges', role: 'img' }, BADGES.map((_, i) => badgeIcon(i + 1)));
+    const strip = h('div', { class: 'party-strip', role: 'group', 'aria-label': 'Party' });
+
+    const paintCard = () => {
+      name.textContent = s.trainerName || '—';
+      id.textContent = `ID ${String(s.trainerId).padStart(5, '0')}`;
+      money.dd.textContent = `¥${s.money.toLocaleString('en-US')}`;
+      coins.dd.textContent = s.coins.toLocaleString('en-US');
+      time.dd.textContent = `${s.playHours}:${String(s.playMinutes).padStart(2, '0')}`;
+      badges.dd.textContent = `${popcount(s.badges)}/8`;
+      badgeRow.setAttribute('aria-label', `${popcount(s.badges)} of 8 badges earned`);
+      Array.from(badgeRow.children).forEach((img, i) => img.classList.toggle('earned', Boolean((s.badges >> i) & 1)));
     };
-    refreshers.push(draw);
-    draw();
-    return wrap;
+    const paintParty = () => {
+      clear(strip);
+      strip.append(...Array.from({ length: 6 }, (_, i) => {
+        const mon = s.party[i];
+        if (!mon) return h('span', { class: 'party-slot empty', 'aria-hidden': 'true' });
+        return h('button', {
+          class: 'party-slot', 'aria-label': `${monLabel(mon)}, level ${mon.level}. Edit`,
+          onclick: () => openMonEditor({ mon, party: true, onDone: () => { edited(); paintParty(); } }),
+        }, pokemonIcon(INTERNAL_TO_DEX[mon.species]),
+        h('span', { class: 'slot-name' }, monLabel(mon)),
+        h('span', { class: 'lv-tag' }, `Lv ${mon.level}`));
+      }));
+    };
+    refreshers.push(paintCard);
+    paintCard();
+    paintParty();
+    return h('section', { class: 'card overview' },
+      h('div', { class: 'lcd tcard' },
+        h('div', { class: 'tcard-top' }, name, id),
+        h('dl', { class: 'tcard-stats' }, money.node, coins.node, time.node, badges.node),
+        badgeRow),
+      strip);
   }
 
   function trainerTab(): Node {
@@ -219,9 +234,8 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           const icon = itemIcon(itemSpritePath(it.id));
           return h('div', { class: 'item-row' },
             icon,
-            selectInput(
-              ITEM_CHOICES.some((c) => c.id === it.id) ? ITEM_CHOICES.map((c) => ({ value: c.id, label: c.name }))
-                : [{ value: it.id, label: itemName(it.id) }, ...ITEM_CHOICES.map((c) => ({ value: c.id, label: c.name }))],
+            lazySelect(
+              ITEM_CHOICES.some((c) => c.id === it.id) ? ITEM_OPTIONS : [{ value: it.id, label: itemName(it.id) }, ...ITEM_OPTIONS],
               it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }),
             numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': 'Quantity' }),
             h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { items.splice(i, 1); markDirty(); draw(); } }, '✕'),
@@ -323,6 +337,56 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
 
   function boxesTab(): Node {
     const holder = h('div', { class: 'boxes' });
+    const step = (d: number) => { boxView = (boxView + d + BOX_TOTAL) % BOX_TOTAL; draw(); };
+    const slotKey = (where: number, index: number) => `${where}:${index}`;
+    const parseKey = (key: string) => { const [where, index] = key.split(':').map(Number); return { where, index }; };
+
+    // Drag one Pokémon onto another to swap them, or onto an empty spot to move it to the end. The listeners sit
+    // on `holder`, which survives redraws, so the grid can be rebuilt while a drag is in progress.
+    const drag = enableDrag({
+      root: holder,
+      pick: '[data-pick]',
+      drop: '[data-slot], [data-nav]',
+      onNav: step,
+      onDrop: (fromKey, toKey) => {
+        const from = parseKey(fromKey);
+        const to = parseKey(toKey);
+        const a = listAt(s, from.where)[from.index];
+        const b = listAt(s, to.where)[to.index];
+        const r = dropMon(s, from, to);
+        if (typeof r === 'string') { toast(REFUSAL_TEXT[r]); return; }
+        markDirty();
+        draw();
+        const A = a ? monLabel(a) : 'Pokémon';
+        toast(r.kind === 'swap' && b ? `Swapped ${A} and ${monLabel(b)}.` : `Moved ${A} to ${placeName(to.where)}.`);
+      },
+    });
+
+    /** One spot in the party row or the box grid. */
+    const cellFor = (where: number, i: number): HTMLElement => {
+      const list = listAt(s, where);
+      const mon = list[i];
+      const key = slotKey(where, i);
+      if (mon) {
+        return h('button', {
+          class: drag.lifted() === key ? 'box-cell lifted' : 'box-cell',
+          'aria-label': `${monLabel(mon)}, level ${mon.level}, ${placeName(where)}${where === PARTY ? ' ' : ', slot '}${i + 1}. Actions`,
+          dataset: { slot: key, pick: '' },
+          onclick: () => menuFor(where, i, draw),
+        }, pokemonIcon(INTERNAL_TO_DEX[mon.species]),
+        h('span', { class: 'lv-tag' }, `Lv ${mon.level}`));
+      }
+      // Only the first empty slot of a box gets a + button: boxes are packed, the game has no gaps. The other
+      // empty spots still accept a drop, which puts the Pokémon at the end.
+      if (where !== PARTY && i === list.length) {
+        return h('button', {
+          class: 'box-cell add', 'aria-label': `Add a Pokémon to Box ${where + 1}`, dataset: { slot: key },
+          onclick: () => { list.push(freshMon(false)); markDirty(); editMon(where, list.length - 1, draw); draw(); },
+        }, h('span', { class: 'plus', 'aria-hidden': 'true' }, '+'));
+      }
+      return h('span', { class: 'box-cell empty', 'aria-hidden': 'true', dataset: { slot: key } });
+    };
+
     const draw = () => {
       clear(holder);
       const list = listAt(s, boxView);
@@ -332,35 +396,20 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           label: `Box ${i + 1}${i === s.currentBoxIndex ? ' (current)' : ''} · ${listAt(s, i).length}/${BOX_MAX}`,
         })), boxView, (v) => { boxView = Number(v); draw(); });
       picker.setAttribute('aria-label', 'Choose a box');
-      const step = (d: number) => { boxView = (boxView + d + BOX_TOTAL) % BOX_TOTAL; draw(); };
-
-      const cells = Array.from({ length: BOX_MAX }, (_, i) => {
-        const mon = list[i];
-        if (mon) {
-          const label = monLabel(mon);
-          return h('button', {
-            class: 'box-cell', 'aria-label': `${label}, level ${mon.level}, slot ${i + 1}. Actions`,
-            onclick: () => menuFor(boxView, i, draw),
-          }, pokemonIcon(INTERNAL_TO_DEX[mon.species]),
-          h('span', { class: 'lv-tag' }, `Lv ${mon.level}`));
-        }
-        // Only the first empty slot can take a new Pokémon: boxes are packed, the game has no gaps.
-        if (i === list.length) {
-          return h('button', {
-            class: 'box-cell add', 'aria-label': `Add a Pokémon to Box ${boxView + 1}`,
-            onclick: () => { list.push(freshMon(false)); markDirty(); editMon(boxView, list.length - 1, draw); draw(); },
-          }, h('span', { class: 'plus', 'aria-hidden': 'true' }, '+'));
-        }
-        return h('span', { class: 'box-cell empty', 'aria-hidden': 'true' });
-      });
 
       holder.append(
+        h('div', { class: 'box-party', role: 'group', 'aria-label': `Party, ${s.party.length} of ${PARTY_MAX}` },
+          h('span', { class: 'box-label' }, `Party ${s.party.length}/${PARTY_MAX}`),
+          h('div', { class: 'party-cells' }, Array.from({ length: PARTY_MAX }, (_, i) => cellFor(PARTY, i)))),
         h('div', { class: 'box-nav' },
-          h('button', { class: 'icon', 'aria-label': 'Previous box', onclick: () => step(-1) }, '‹'),
+          h('button', { class: 'icon', 'aria-label': 'Previous box', dataset: { nav: '-1' }, onclick: () => step(-1) }, '‹'),
           picker,
-          h('button', { class: 'icon', 'aria-label': 'Next box', onclick: () => step(1) }, '›')),
-        h('div', { class: 'box-grid', role: 'group', 'aria-label': `Box ${boxView + 1}, ${list.length} of ${BOX_MAX}` }, cells),
-        h('p', { class: 'muted box-hint' }, 'Tap a Pokémon to edit it, move it to the party or another box, or copy it.'),
+          h('button', { class: 'icon', 'aria-label': 'Next box', dataset: { nav: '1' }, onclick: () => step(1) }, '›')),
+        h('div', { class: 'box-grid', role: 'group', 'aria-label': `Box ${boxView + 1}, ${list.length} of ${BOX_MAX}` },
+          Array.from({ length: BOX_MAX }, (_, i) => cellFor(boxView, i))),
+        h('p', { class: 'muted box-hint' },
+          'Tap a Pokémon for its menu. Drag one onto another to swap them, or onto an empty spot to move it to the end of that place. ' +
+          'On a touch screen, press and hold first. Hold a dragged Pokémon over ‹ or › to change box.'),
       );
     };
     draw();

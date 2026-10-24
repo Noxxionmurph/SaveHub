@@ -3,7 +3,7 @@
 
 import { INTERNAL_TO_DEX, baseStatsFor, speciesName } from '../../../core/gen1/data.ts';
 import {
-  ALL_PLACES, PARTY, capacityOf, copyMon, listAt, moveMon, placeName, removeMon, shiftMon, spaceAt, type Refusal,
+  ALL_PLACES, PARTY, REFUSAL_TEXT, capacityOf, copyMon, listAt, moveMon, placeName, removeMon, shiftMon, spaceAt, type Refusal,
 } from '../../../core/gen1/roster.ts';
 import type { Gen1Save } from '../../../core/gen1/save.ts';
 import { askConfirm, clear, h, toast } from '../../dom.ts';
@@ -21,13 +21,6 @@ export interface MonMenuOptions {
   onChange: () => void;
 }
 
-const WHY: Record<Refusal, string> = {
-  full: 'That place is full.',
-  'last-party': 'Your party needs at least one Pokémon, so this one stays.',
-  same: "It's already there.",
-  missing: "That Pokémon isn't there any more.",
-};
-
 export function openMonMenu({ save, where, index, onEdit, onChange }: MonMenuOptions): void {
   const mon = listAt(save, where)[index];
   if (!mon) return;
@@ -40,7 +33,7 @@ export function openMonMenu({ save, where, index, onEdit, onChange }: MonMenuOpt
   // Messages about a refused change go inside the sheet: a toast would sit behind the open dialog.
   const note = h('p', { class: 'sheet-note', role: 'alert' });
   const finish = (message: string) => { dlg.close(); toast(message); onChange(); };
-  const refuse = (r: Refusal) => { note.textContent = WHY[r]; };
+  const refuse = (r: Refusal) => { note.textContent = REFUSAL_TEXT[r]; };
   /** append() would print "null" for an absent node, so filter first. */
   const put = (...nodes: (Node | null)[]) => { clear(body); body.append(...nodes.filter((n): n is Node => n !== null)); };
 

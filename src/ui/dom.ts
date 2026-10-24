@@ -72,6 +72,37 @@ export function selectInput(
   return sel;
 }
 
+type Choice = { value: number | string; label: string };
+const optionTemplates = new WeakMap<Choice[], DocumentFragment>();
+const FILL_EVENTS = ['pointerdown', 'touchstart', 'mousedown', 'focus', 'keydown'] as const;
+
+/**
+ * A <select> for a long list that is repeated down a page (an item picker on every bag row). It starts with just
+ * the one option that is selected and fills in the rest the moment someone touches it (pointer, focus or key), so
+ * 70 rows cost 70 options instead of ~8,700. Pass the same `options` array each time so its markup is built once
+ * and cloned.
+ */
+export function lazySelect(options: Choice[], value: number | string, onChange: (v: string) => void): HTMLSelectElement {
+  const current = options.find((o) => String(o.value) === String(value));
+  const sel = h('select', {}, h('option', { value: String(value) }, current?.label ?? String(value)));
+  sel.value = String(value);
+  const fill = () => {
+    for (const ev of FILL_EVENTS) sel.removeEventListener(ev, fill);
+    let tpl = optionTemplates.get(options);
+    if (!tpl) {
+      tpl = document.createDocumentFragment();
+      tpl.append(...options.map((o) => h('option', { value: String(o.value) }, o.label)));
+      optionTemplates.set(options, tpl);
+    }
+    const keep = sel.value;
+    sel.replaceChildren(tpl.cloneNode(true));
+    sel.value = keep;
+  };
+  for (const ev of FILL_EVENTS) sel.addEventListener(ev, fill);
+  sel.addEventListener('change', () => onChange(sel.value));
+  return sel;
+}
+
 export function field(label: string, control: Node, hint?: string): HTMLLabelElement {
   return h('label', { class: 'field' }, h('span', { class: 'field-label' }, label), control,
     hint ? h('span', { class: 'field-hint' }, hint) : null);

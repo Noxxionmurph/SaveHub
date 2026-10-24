@@ -400,6 +400,22 @@ dialog.confirm-dialog { width: min(360px, 100vw - 32px); padding: 18px 18px 6px;
 .box-cell .plus { font: 500 1.75rem/1 var(--font-mono); }
 .box-hint { margin-top: 12px; }
 
+/* ---- the party row above the box, and dragging Pokémon between spots ---- */
+.box-party { margin-bottom: 14px; }
+.box-label { display: block; margin-bottom: 6px; font-size: 0.8125rem; font-weight: 600; color: var(--muted); }
+.party-cells { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.party-cells .box-cell { min-height: 68px; padding-inline: 1px; }
+.box-cell[data-slot] { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; touch-action: manipulation; }
+.box-cell[data-pick] { cursor: grab; }
+.box-cell.lifted { opacity: 0.35; outline: 2px dashed var(--lcd-dim); outline-offset: -4px; }
+.box-cell.drop-over { box-shadow: 0 0 0 3px var(--focus); opacity: 1; }
+.drag-ghost {
+  position: fixed; left: 0; top: 0; z-index: 1000; pointer-events: none; will-change: transform;
+  filter: drop-shadow(0 6px 5px rgb(0 0 0 / 0.35));
+}
+.drag-ghost img { display: block; width: 100%; height: auto; }
+body.dragging, body.dragging * { cursor: grabbing !important; }
+
 /* ---- the action sheet for one Pokémon ---- */
 dialog.sheet-dialog { width: min(400px, 100vw - 24px); background: var(--surface); margin-block-end: 12px; }
 .sheet-head { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; min-width: 0; }

@@ -50,9 +50,11 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
   if an edit would orphan it, and has a "Make Pikachu my starter" button. Red and Blue can't be told apart, so
   those saves ask which one yours is.
 - Bag and PC item storage (only items the game can actually put there)
-- Party and all 12 boxes. The party has up/down arrows beside each card; boxes are a 4 x 5 grid like the PC. Tap ⋯
-  (party) or a Pokémon (box) to edit it, move it between the party and any box, copy it or remove it. The last
-  Pokémon in the party can't be moved out or removed.
+- Party and all 12 boxes. The party has up/down arrows beside each card; boxes are a 4 x 5 grid like the PC, with your
+  party in a row above it. **Drag a Pokémon onto another to swap them** (inside a box, between boxes and the party),
+  or onto an empty spot to move it to the end; hold a dragged Pokémon over the ‹ › buttons to turn to the next box.
+  Tap one for its menu instead: edit it, move it to the party or any box, copy it or remove it. The last Pokémon in
+  the party can't be moved out or removed (a swap is fine, since the count doesn't change).
 - Full Pokémon editor: species, nickname, OT, level, exp + growth curve, status, moves (with type icons), DVs, EVs,
   battle stats. Each move shows its PP (read-only) and a PP Up stepper (0-3); every PP Up raises the maximum and the
   current PP with it, like the game, and "Max PP" is shown under both. Restore PP refills all four.
@@ -70,6 +72,7 @@ src/games/*.ts             one small descriptor per game: detect, load, lazy edi
 src/core/<game>/           format code per game: data tables, text encoding, parse/serialize, checksums,
                            plus what the shell can ask for: describeChanges (review list) and a sample save
 src/ui/main.ts             game-agnostic shell: drop zone, detection, chooser, review dialog, save
+src/ui/drag.ts             pointer-event drag and drop (mouse, touch, pen); knows nothing about any game
 src/ui/editors/<game>/     editor UI per game (lazy-loaded)
 scripts/build.mjs          strips types -> dist/ (rewrites .ts imports and import() to .js)
 test/                      node:test suite
@@ -120,6 +123,15 @@ Hosted pages can't start downloads or show `confirm()`, so the app uses the `dow
 is wrapped in a `.zip`, since `.sav` isn't an allowed type) and in-page dialogs. On a normal website a plain
 `.sav` download is used instead.
 
+## Performance notes
+
+Measured with Chromium's CPU throttled to 4x (roughly a mid-range phone). The Bag tab used to build about 9,000
+elements because every item row carried the full 124-item list; rows now hold only their own item and fill in
+the list when touched (`lazySelect` in `ui/dom.ts`), which took the tab from ~850 ms to ~390 ms on the first visit (most of what's left is loading its
+69 icons) and ~130 ms after that, and from ~9,000 elements to ~470. Typing in the Trainer tab no longer recreates the badge and party images on every keystroke.
+The sprites are already tiny (all 151 Pokémon icons are 54 KB together), and opening and closing the dialogs
+leaves no elements or listeners behind.
+
 ## Known limitations
 
 - Tested against synthetic saves built from documented offsets, not yet against real cartridge saves; try copies of your own and report mismatches.
@@ -131,4 +143,6 @@ is wrapped in a `.zip`, since `.sav` isn't an allowed type) and in-page dialogs.
 - Red and Blue saves are byte-identical in structure, so the site asks which version yours is.
 - Names that use the game's "PK" / "MN" symbols show a "?" in the editor but are written back exactly as they were
   unless you change that name.
+- Dragging is for mouse, touch and pen; on a touch screen you press and hold for a moment first, so swiping still scrolls.
+  There is no keyboard drag, but the Pokémon menu does everything it does.
 - Growth rate isn't stored in the save, so the editor infers it from level/exp and lets you override it.

@@ -13,7 +13,10 @@ export const badgeIconUrl = (n: number) => `${BASE}/badges/${n}.png`;
 export const typeIconUrl = (type: string) => `${BASE}/types/${type.toLowerCase()}.png`;
 
 function icon(src: string, w: number, h_: number, cls: string): HTMLImageElement {
-  const img = h('img', { class: `sprite ${cls}`, src, alt: '', width: w, height: h_, loading: 'lazy', decoding: 'async', draggable: false });
+  const img = h('img', { class: `sprite ${cls}`, src, alt: '', width: w, height: h_, loading: 'lazy', decoding: 'async' });
+  // h() skips `false`, so this can't go in the props. Without it the browser starts its own image drag, which
+  // cancels the pointer and would break dragging Pokémon around.
+  img.draggable = false;
   img.addEventListener('error', () => { img.hidden = true; });
   return img;
 }
