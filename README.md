@@ -39,6 +39,10 @@ the editor carries on without pictures (a picture that can't load hides itself, 
   git-ignored), then `npm run dev`. `npm run build:local` does the same build without serving. A plain `npm run build`
   makes the site as it is deployed: no pictures inside it, loaded from the artwork site. Without the checkout the
   tests that read the picture files skip themselves.
+- **Updates reach phones straight away**: the deployed build puts a version (a hash of everything that ships) on the
+  address of every script and stylesheet (`styles.css?v=...`), so a browser that kept an older copy for GitHub Pages' 10
+  minutes can't run it next to newer files; only the page itself can be up to 10 minutes old. `scripts/build.mjs` does it;
+  `--local-art` builds don't carry a version.
 - **Changing the artwork**: edit it in the `assets` checkout and push that repository; the editor picks it up with no
   rebuild. To refresh from a PokéSprite checkout: `node scripts/import-sprites.mjs <path>`.
 - **If the artwork has to come down**: delete the files (or the repository) in SaveHub-assets. The editor keeps working.

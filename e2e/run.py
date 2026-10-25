@@ -26,7 +26,7 @@ OUT = HERE / 'out'
 # Checks that use the build that carries the artwork inside dist/ (./assets/) ...
 LOCAL = ['redblue_flow', 'sample_flow', 'yellow', 'blue_footer', 'pikachu', 'mood', 'drag', 'bag', 'names', 'hosted_download', 'console_theme', 'dialog_close', 'flair', 'crisp']
 # ... and checks that need the build as it is deployed (pictures and fonts loaded by address).
-HOSTED = ['art', 'fonts']
+HOSTED = ['art', 'fonts', 'versioned']
 
 
 class Quiet(http.server.SimpleHTTPRequestHandler):
