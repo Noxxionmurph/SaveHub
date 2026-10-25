@@ -557,15 +557,29 @@ html[data-art='off'] .pika-screen { display: none; }
 .tile-icon { width: 84px; height: auto; }
 
 .badge-icon { image-rendering: pixelated; }
-.tcard-badges { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; margin-top: 10px; }
-.tcard-badges .badge-icon { width: 100%; max-width: 32px; height: auto; margin-inline: auto; filter: brightness(0); opacity: 0.18; }
+.tcard-badges { display: grid; grid-template-columns: repeat(8, minmax(0, 48px)); justify-content: start; gap: 3px; margin-top: 10px; }
+@media (min-width: 560px) { .tcard-badges { gap: 6px; } }
+/* One boxed slot per badge, like the card in the game: a dashed empty box until the badge is earned, then a solid frame
+   and a lighter inside. The frame is a shadow, so it takes no room; the 2px padding keeps the art off it. */
+.badge-slot {
+  display: grid; place-items: center; box-sizing: border-box; aspect-ratio: 1; width: 100%; max-width: 48px; margin-inline: auto; padding: 2px;
+  border-radius: 3px; background: color-mix(in srgb, var(--lcd-edge) 10%, transparent);
+  outline: 2px dashed color-mix(in srgb, var(--lcd-edge) 55%, transparent); outline-offset: -2px;
+}
+.badge-slot.earned {
+  background: color-mix(in srgb, var(--lcd) 55%, #fff); outline: 2px solid var(--lcd-edge);
+  /* lit means lighter on the light windows and darker (so the colours stand out) on the dark ones; older browsers keep the first */
+  background: light-dark(color-mix(in srgb, var(--lcd) 55%, #fff), rgb(0 0 0 / 0.32));
+  outline-color: light-dark(var(--lcd-edge), color-mix(in srgb, var(--lcd-dim) 75%, var(--lcd)));
+}
+.tcard-badges .badge-icon { width: 100%; height: auto; max-width: 32px; filter: brightness(0); opacity: 0.18; }
 @supports (width: round(down, 10px, 3px)) {
-  /* as large as fits the cell (up to 40px), cut down to a whole multiple of the 16px art, and never below 1x */
+  /* as large as the slot allows (up to 40px), cut down to a whole multiple of the 16px art, and never below 1x */
   .tcard-badges .badge-icon {
     width: max(calc(16 * var(--dpx)), round(down, min(100%, 40px), calc(16 * var(--dpx)))); max-width: none;
   }
 }
-.tcard-badges .badge-icon.earned { filter: none; opacity: 1; }
+.badge-slot.earned .badge-icon { filter: none; opacity: 1; }
 
 .party-slot.empty { min-height: 56px; }
 

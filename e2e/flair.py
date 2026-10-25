@@ -37,6 +37,35 @@ with sync_playwright() as p:
     assert page.locator('.tcard.boot').count() == 1
     assert page.eval_on_selector('.tcard-name', 'e => getComputedStyle(e).animationName') == 'type-in'
     assert page.inner_text('.tcard-name') == 'ASH' and page.inner_text('.tcard-stats') != ''
+
+    # the trainer card shows each badge in its own slot: a dashed empty box until it is earned, then a solid frame
+    slots = page.locator('.tcard-badges .badge-slot')
+    assert slots.count() == 8 and page.locator('.tcard-badges .badge-slot .badge-icon').count() == 8
+    def earned_slots():
+        return [slots.nth(i).evaluate("e => e.classList.contains('earned')") for i in range(8)]
+    def outline(i):
+        return slots.nth(i).evaluate("e => getComputedStyle(e).outlineStyle")
+    def check_slots(expected_count):
+        got = earned_slots()
+        assert sum(got) == expected_count, (got, expected_count)
+        assert f'{expected_count} of 8 badges earned' == page.get_attribute('.tcard-badges', 'aria-label')
+        for i, on in enumerate(got):
+            assert outline(i) == ('solid' if on else 'dashed'), (i, on, outline(i))
+    original = earned_slots()
+    check_slots(sum(original))
+    # the art keeps clear of the frame, and a slot is never bigger than 48px
+    box = page.evaluate("""() => [...document.querySelectorAll('.badge-slot')].every((s) => { const a = s.getBoundingClientRect(), i = s.querySelector('img').getBoundingClientRect();
+      return a.width <= 48.5 && Math.abs(a.width - a.height) < 1 && i.left >= a.left + 2 && i.right <= a.right - 2 && i.top >= a.top + 2 && i.bottom <= a.bottom - 2; })""")
+    assert box, 'a badge touches its slot frame, or a slot is the wrong shape'
+    # tapping badges on the Trainer tab to earn none, then all, then eight again repaints the slots
+    page.click('button.tab:has-text("Trainer")')
+    page.click('button:has-text("Clear badges")'); check_slots(0)
+    page.click('button:has-text("All badges")'); check_slots(8)
+    page.click('.badge-btn >> nth=2'); check_slots(7)
+    assert earned_slots()[2] is False
+    for i, on in enumerate(original):          # put the badges back the way the save had them, for the checks below
+        if earned_slots()[i] != on: page.click(f'.badge-btn >> nth={i}')
+    assert earned_slots() == original
     # the open tab has the menu cursor, which is there for the open tab only and takes no room
     def cursor(tab):
         return page.evaluate("""t => { const el = [...document.querySelectorAll('.tab')].find((e) => e.textContent.trim() === t);

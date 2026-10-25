@@ -82,7 +82,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     const coins = stat('Coins');
     const time = stat('Time');
     const badges = stat('Badges');
-    const badgeRow = h('div', { class: 'tcard-badges', role: 'img' }, BADGES.map((_, i) => badgeIcon(i + 1)));
+    const badgeRow = h('div', { class: 'tcard-badges', role: 'img' }, BADGES.map((_, i) => h('span', { class: 'badge-slot' }, badgeIcon(i + 1))));
     const strip = h('div', { class: 'party-strip', role: 'group', 'aria-label': 'Party' });
 
     const paintCard = () => {
@@ -93,7 +93,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       time.dd.textContent = `${s.playHours}:${String(s.playMinutes).padStart(2, '0')}`;
       badges.dd.textContent = `${popcount(s.badges)}/8`;
       badgeRow.setAttribute('aria-label', `${popcount(s.badges)} of 8 badges earned`);
-      Array.from(badgeRow.children).forEach((img, i) => img.classList.toggle('earned', Boolean((s.badges >> i) & 1)));
+      Array.from(badgeRow.children).forEach((slot, i) => slot.classList.toggle('earned', Boolean((s.badges >> i) & 1)));
     };
     const paintParty = () => {
       clear(strip);

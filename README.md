@@ -18,7 +18,7 @@ Touches borrowed from the games themselves: HP bars use the game's own length an
 the disassembly in pret/pokered), the review dialog opens with the PLAYER / BADGES / POKÉDEX / TIME window the game shows when you
 save, the open tab has the menu cursor, the big readouts have a two-line frame like the in-game text boxes, the Options card is
 drawn like the game's OPTION screen (every choice shown, the chosen one marked with the cursor; real radio buttons underneath),
-the Pokédex totals are the game's SEEN / OWN window, and the trainer card types itself in once when a file opens (not for
+the Pokédex totals are the game's SEEN / OWN window, the trainer card keeps each badge in its own boxed slot (dashed until earned), and the trainer card types itself in once when a file opens (not for
 people who ask for less motion). Fonts (Pixelify Sans, Instrument Sans, JetBrains Mono) are bundled in `fonts/` (SIL Open Font License, Latin only,
 ~100 KB together), so the page makes no request to Google or any other font host; a character a font lacks falls back to
 the system font. `scripts/make-fonts.py` remakes the files from the google/fonts repository. (The Claude-hosted copy
