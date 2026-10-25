@@ -123,12 +123,22 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   }
 
   function trainerTab(): Node {
+    // On a phone the eight badges share one row and their names are not drawn (there is no room), so this line
+    // names the ones you have, and the name stays on each button for screen readers and as a tooltip.
+    const caption = h('p', { class: 'muted badge-caption', 'aria-live': 'polite' });
+    const paintCaption = () => {
+      const earned = BADGES.filter((_, i) => (s.badges >> i) & 1);
+      caption.textContent = earned.length === 0 ? 'No badges earned yet.'
+        : earned.length === BADGES.length ? 'All eight badges earned.' : `Earned: ${earned.join(', ')}.`;
+    };
+    paintCaption();
     const badgeRow = h('div', { class: 'badge-grid' }, BADGES.map((name, i) => {
-      const btn = h('button', { class: 'badge-btn', 'aria-pressed': String(Boolean((s.badges >> i) & 1)) },
-        h('span', { class: 'gem', 'aria-hidden': 'true' }, badgeIcon(i + 1)), name);
+      const btn = h('button', { class: 'badge-btn', title: name, 'aria-pressed': String(Boolean((s.badges >> i) & 1)) },
+        h('span', { class: 'gem', 'aria-hidden': 'true' }, badgeIcon(i + 1)), h('span', { class: 'badge-name' }, name));
       btn.addEventListener('click', () => {
         s.badges ^= 1 << i;
         btn.setAttribute('aria-pressed', String(Boolean((s.badges >> i) & 1)));
+        paintCaption();
         edited();
       });
       return btn;
@@ -166,6 +176,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         h('h3', {}, 'Badges'),
         h('p', { class: 'muted card-note' }, 'Tap a badge to earn it or take it away.'),
         badgeRow,
+        caption,
         h('div', { class: 'button-row' },
           h('button', { onclick: () => { s.badges = 0xff; markDirty(); render(); } }, 'All badges'),
           h('button', { onclick: () => { s.badges = 0; markDirty(); render(); } }, 'Clear badges'),

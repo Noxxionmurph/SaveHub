@@ -48,8 +48,14 @@ def run(p, size, ratio):
     for w, hgt in out['tab']:
         assert whole(w) and whole(hgt), (tag, 'trainer tab badge is not a whole multiple', w, hgt)
         css = w * 16 / ratio
-        lo, hi = (30, 44.5) if size['width'] <= 600 else (40, 52.5)      # a phone gets the smaller picker
+        lo, hi = (15.5, 32.5) if size['width'] <= 600 else (40, 52.5)    # on a phone all eight share one row, so the art is smaller
         assert lo <= css <= hi, (tag, 'trainer tab badge is the wrong size', css)
+    # all eight are on one row, inside the card, and each one is a tappable size
+    row = page.evaluate("""() => { const card = document.querySelector('.badge-grid').parentElement.getBoundingClientRect();
+      return [...document.querySelectorAll('.badge-btn')].map((b) => { const r = b.getBoundingClientRect(); return { top: r.top, left: r.left, right: r.right, width: r.width }; }).map((r) => ({ ...r, card: [card.left, card.right] })); }""")
+    assert len(row) == 8 and max(r['top'] for r in row) - min(r['top'] for r in row) < 1, (tag, 'the badge picker is not on one row', [r['top'] for r in row])
+    assert all(r['left'] >= r['card'][0] - 0.5 and r['right'] <= r['card'][1] + 0.5 for r in row), (tag, 'a picker badge sticks out of its card')
+    assert min(r['width'] for r in row) >= 30, (tag, 'a picker badge is too narrow to tap', min(r['width'] for r in row))
     inside = page.evaluate("""() => [...document.querySelectorAll('.badge-btn')].every((b) => { const g = b.querySelector('.gem').getBoundingClientRect(), i = b.querySelector('.badge-icon').getBoundingClientRect(); return i.left >= g.left + 2 && i.right <= g.right - 2 && i.top >= g.top + 2 && i.bottom <= g.bottom - 2; })""")
     assert inside, (tag, 'a badge touches the ring')
     page.locator('.badge-grid').screenshot(path=f"{SP}/crisp-{size['width']}-{ratio}-tab.png")

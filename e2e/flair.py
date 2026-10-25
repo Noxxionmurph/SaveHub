@@ -53,16 +53,30 @@ with sync_playwright() as p:
             assert outline(i) == ('solid' if on else 'dashed'), (i, on, outline(i))
     original = earned_slots()
     check_slots(sum(original))
-    # the art keeps clear of the frame, and a slot is never bigger than 48px
+    # the art keeps clear of the frame, and a slot is never bigger than 56px
     box = page.evaluate("""() => [...document.querySelectorAll('.badge-slot')].every((s) => { const a = s.getBoundingClientRect(), i = s.querySelector('img').getBoundingClientRect();
-      return a.width <= 48.5 && Math.abs(a.width - a.height) < 1 && i.left >= a.left + 2 && i.right <= a.right - 2 && i.top >= a.top + 2 && i.bottom <= a.bottom - 2; })""")
+      return a.width <= 56.5 && Math.abs(a.width - a.height) < 1 && i.left >= a.left + 2 && i.right <= a.right - 2 && i.top >= a.top + 2 && i.bottom <= a.bottom - 2; })""")
     assert box, 'a badge touches its slot frame, or a slot is the wrong shape'
     # tapping badges on the Trainer tab to earn none, then all, then eight again repaints the slots
     page.click('button.tab:has-text("Trainer")')
+    # on a phone the picker is one row with no room for names: a line names the earned badges, and each button keeps its name
+    caption = page.locator('.badge-caption')
+    assert caption.is_visible() and caption.get_attribute('aria-live') == 'polite'
+    names = ['Boulder', 'Cascade', 'Thunder', 'Rainbow', 'Soul', 'Marsh', 'Volcano', 'Earth']
+    btns = page.locator('.badge-btn')
+    assert btns.count() == 8
+    for i, n in enumerate(names):
+        assert btns.nth(i).get_attribute('title') == n and btns.nth(i).evaluate('e => e.textContent.trim()') == n
+        assert btns.nth(i).locator('.badge-name').evaluate('e => e.getBoundingClientRect().width') <= 1.5, 'the name is drawn on a phone'
+    assert caption.inner_text() == 'Earned: ' + ', '.join(n for n, on in zip(names, original) if on) + '.' if any(original) else caption.inner_text() == 'No badges earned yet.'
     page.click('button:has-text("Clear badges")'); check_slots(0)
+    assert caption.inner_text() == 'No badges earned yet.'
+    page.click('.badge-btn >> nth=3'); assert caption.inner_text() == 'Earned: Rainbow.'
+    page.click('.badge-btn >> nth=0'); assert caption.inner_text() == 'Earned: Boulder, Rainbow.'
     page.click('button:has-text("All badges")'); check_slots(8)
+    assert caption.inner_text() == 'All eight badges earned.'
     page.click('.badge-btn >> nth=2'); check_slots(7)
-    assert earned_slots()[2] is False
+    assert earned_slots()[2] is False and caption.inner_text() == 'Earned: ' + ', '.join(n for i, n in enumerate(names) if i != 2) + '.'
     for i, on in enumerate(original):          # put the badges back the way the save had them, for the checks below
         if earned_slots()[i] != on: page.click(f'.badge-btn >> nth={i}')
     assert earned_slots() == original
@@ -216,6 +230,22 @@ with sync_playwright() as p:
     page.goto(f'{BASE}?console=gba'); page.click('.sample-row button'); page.wait_for_selector('.tabs')
     assert page.evaluate("getComputedStyle(document.querySelector('.lcd.tcard')).boxShadow").count('inset') == 2
     assert 'repeating-linear-gradient' in page.evaluate("getComputedStyle(document.querySelector('.lcd.tcard')).backgroundImage")
+    ctx.close()
+
+    # ---------------------------------------------------------------- on a wide screen the picker keeps its names and has no caption line
+    ctx = b.new_context(viewport={'width': 1100, 'height': 800})
+    page = ctx.new_page()
+    page.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
+    page.goto(BASE); page.click('.sample-row button'); page.wait_for_selector('.tabs')
+    assert not page.locator('.badge-caption').is_visible()
+    for i, n in enumerate(['Boulder', 'Cascade', 'Thunder', 'Rainbow', 'Soul', 'Marsh', 'Volcano', 'Earth']):
+        name = page.locator('.badge-btn').nth(i).locator('.badge-name')
+        assert name.inner_text() == n and name.evaluate('e => e.getBoundingClientRect().width') > 20, ('the name should be drawn', n)
+    # the card strip runs from the card's left text edge to its right text edge
+    strip = page.evaluate("""() => { const row = document.querySelector('.tcard-badges').getBoundingClientRect(), slots = [...document.querySelectorAll('.badge-slot')].map((s) => s.getBoundingClientRect()), id = document.querySelector('.tcard-id').getBoundingClientRect(), name = document.querySelector('.tcard-name').getBoundingClientRect();
+      return { first: slots[0].left, last: slots[7].right, idRight: id.right, nameLeft: name.left, width: slots[0].width }; }""")
+    assert abs(strip['first'] - strip['nameLeft']) < 3 and abs(strip['last'] - strip['idRight']) < 3, strip
+    assert strip['width'] <= 56.5, strip
     ctx.close()
     b.close()
 print('ERRORS:', errors or 'none')

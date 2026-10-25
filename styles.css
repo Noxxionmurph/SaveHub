@@ -368,9 +368,9 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 }
 
 /* ---- trainer ---- */
-.badge-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 6px; max-width: 420px; }
+.badge-grid { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 4px; max-width: 800px; }
 .badge-btn {
-  display: grid; justify-items: center; gap: 6px; padding: 6px 2px; min-height: 0; border: 0; border-radius: 8px;
+  display: grid; justify-items: center; align-content: start; gap: 6px; padding: 6px 2px; min-height: 0; border: 0; border-radius: 8px;
   background: none; color: var(--muted); font-size: 0.8125rem;
 }
 .badge-btn .gem {
@@ -385,12 +385,19 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
     width: var(--size); height: var(--size);
   }
 }
-/* On a phone the picker is smaller: a 56px ring with a badge of up to 44px (40px, 2.5x, where whole multiples aren't supported) */
+.badge-caption { display: none; margin: 8px 0 0; font-size: 0.8125rem; }
+/* On a phone all eight fit on one row: each ring is as wide as its column (up to 44px) and the art in it is the largest
+   whole multiple of 16px that leaves 3px clear all round (up to 32px). There is no room for the names, so they are hidden (not removed: the
+   button keeps its name for screen readers and as a tooltip) and a line under the row names the badges you have. */
 @media (max-width: 600px) {
-  .badge-btn .gem { width: 56px; height: 56px; }
-  .badge-btn .badge-icon { width: 40px; height: 40px; }
+  .badge-grid { gap: 2px; }
+  .badge-btn { position: relative; padding: 2px 0; }
+  .badge-btn .gem { width: 100%; max-width: 44px; height: auto; aspect-ratio: 1; }
+  .badge-btn .badge-icon { width: 100%; max-width: 32px; height: auto; }
+  .badge-btn .badge-name { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .badge-caption { display: block; }
   @supports (width: round(down, 10px, 3px)) {
-    .badge-btn .badge-icon { --size: max(calc(16 * var(--dpx)), round(down, 44px, calc(16 * var(--dpx)))); width: var(--size); height: var(--size); }
+    .badge-btn .badge-icon { width: max(calc(16 * var(--dpx)), round(down, min(calc(100% - 6px), 32px), calc(16 * var(--dpx)))); max-width: none; height: auto; }
   }
 }
 .badge-btn[aria-pressed="true"] { color: var(--text); font-weight: 600; }
@@ -565,8 +572,7 @@ html[data-art='off'] .pika-screen { display: none; }
 .tile-icon { width: 84px; height: auto; }
 
 .badge-icon { image-rendering: pixelated; }
-.tcard-badges { display: grid; grid-template-columns: repeat(8, minmax(0, 48px)); justify-content: start; gap: 3px; margin-top: 10px; }
-@media (min-width: 560px) { .tcard-badges { gap: 6px; } }
+.tcard-badges { display: grid; grid-template-columns: repeat(8, minmax(0, 48px)); justify-content: space-between; gap: 3px; margin-top: 10px; }
 /* One boxed slot per badge, like the card in the game: a dashed empty box until the badge is earned, then a solid frame
    and a lighter inside. The frame is a shadow, so it takes no room; the 2px padding keeps the art off it. */
 .badge-slot {
@@ -588,6 +594,14 @@ html[data-art='off'] .pika-screen { display: none; }
   }
 }
 .badge-slot.earned .badge-icon { filter: none; opacity: 1; }
+/* On a wide card the row runs from edge to edge, in line with the name and the ID, with slots big enough to match the picker below */
+@media (min-width: 560px) {
+  .tcard-badges { grid-template-columns: repeat(8, minmax(0, 56px)); gap: 6px; }
+  .badge-slot { max-width: 56px; }
+  @supports (width: round(down, 10px, 3px)) {
+    .tcard-badges .badge-icon { width: max(calc(16 * var(--dpx)), round(down, min(100%, 48px), calc(16 * var(--dpx)))); }
+  }
+}
 
 .party-slot.empty { min-height: 56px; }
 
