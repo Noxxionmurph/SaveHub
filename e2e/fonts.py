@@ -29,18 +29,40 @@ with sync_playwright() as p:
     print('font requests:', fonts)
     print('hosts contacted:', sorted(hosts))
     fam = set(page.evaluate("[...document.fonts].filter(f => f.status === 'loaded').map(f => f.family)"))
-    assert fam == {'Instrument Sans', 'JetBrains Mono', 'Pixelify Sans'}, fam
+    assert fam == {'Instrument Sans', 'Pixelify Sans'}, fam    # the landing page needs no monospace (it is loaded when a number field appears)
     assert hosts <= {urlparse(BASE).netloc, 'noxxionmurph.github.io'}, hosts
-    assert all(s == 200 for _, s in fonts) and len(fonts) >= 4, fonts   # fonts.css + 3 files (preloads reuse them)
+    assert all(s == 200 for _, s in fonts) and len(fonts) >= 3, fonts   # fonts.css + 2 files (preloads reuse them)
     # the three roles really use the three families
     used = page.evaluate("""() => ({
       body: getComputedStyle(document.body).fontFamily,
       h1: getComputedStyle(document.querySelector('.wordmark-text')).fontFamily,
       hex: getComputedStyle(document.querySelector('.hex td')).fontFamily })""")
     print(used)
-    assert used['body'].startswith('"Instrument Sans"') and used['h1'].startswith('"Pixelify Sans"') and used['hex'].startswith('"JetBrains Mono"')
+    assert used['body'].startswith('"Instrument Sans"') and used['h1'].startswith('"Pixelify Sans"') and used['hex'].startswith('"Pixelify Sans"')   # the retro windows are all pixel text
+    # the pixel face as shipped: its 5 is not its S (it used to be the same shape, so "500" read "S00"), and its fi / fl
+    # ligatures, which were drawn as an "A", are gone (so "file" is f + i)
+    glyphs = page.evaluate("""async () => {
+      await document.fonts.load('500 40px "Pixelify Sans"'); await document.fonts.load('700 40px "Pixelify Sans"');
+      const out = {};
+      for (const weight of [500, 700]) {
+        const draw = (t) => { const c = document.createElement('canvas'); c.width = 70; c.height = 70; const x = c.getContext('2d'); x.font = `${weight} 40px "Pixelify Sans"`; x.fillStyle = '#000'; x.fillText(t, 8, 48); return x.getImageData(0, 0, 70, 70).data; };
+        const a = draw('5'), b = draw('S'); let diff = 0, ink = 0;
+        for (let i = 3; i < a.length; i += 4) { if (a[i] > 127 || b[i] > 127) ink++; if ((a[i] > 127) !== (b[i] > 127)) diff++; }
+        const ctx = document.createElement('canvas').getContext('2d'); ctx.font = `${weight} 40px "Pixelify Sans"`; ctx.fontKerning = 'none';
+        const w = (t) => ctx.measureText(t).width;
+        out[weight] = { differ: diff / ink, ligatures: ['fi', 'fl', 'ff', 'ffi'].map((t) => Math.abs(w(t) - [...t].reduce((n, ch) => n + w(ch), 0))) };
+      }
+      return out; }""")
+    print('5 vs S:', glyphs)
+    for weight, g in glyphs.items():
+        assert g['differ'] > 0.12, (weight, 'the 5 and the S look alike again', g)
+        assert max(g['ligatures']) < 0.5, (weight, 'a ligature is back', g)
     page.screenshot(path=f'{SP}/fonts-landing.png', full_page=False)
     page.click('.sample-row button'); page.wait_for_selector('.tabs')
+    # the monospace face is for typing into: number fields
+    assert page.evaluate("getComputedStyle(document.querySelector('input[type=number]')).fontFamily").startswith('"JetBrains Mono"')
+    page.wait_for_timeout(500)
+    assert 'JetBrains Mono' in page.evaluate("[...document.fonts].filter(f => f.status === 'loaded').map(f => f.family)"), 'the monospace should load once number fields are on screen'
     page.click('button.tab:text-is("Party")'); page.wait_for_selector('.pikachu-card')
     page.wait_for_timeout(500)
     page.screenshot(path=f'{SP}/fonts-party.png')

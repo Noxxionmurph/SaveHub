@@ -113,7 +113,7 @@ with sync_playwright() as p:
     # --- review the changes, then save and check the bytes
     page.click('.save-btn')
     page.wait_for_selector('dialog.review-dialog[open]')
-    text = page.inner_text('dialog.review-dialog')
+    text = page.text_content('dialog.review-dialog')     # the words as written; the list's headings are drawn in capitals
     for want in ['Review your changes', 'Options', 'Text speed: Medium → Fast', 'Battle animations: On → Off',
                  'Magikarp: Party 6 → Box 3, slot 1', 'Pokémon', 'Added Magikarp', 'PP changed']:
         assert want in text, (want, text)

@@ -21,7 +21,11 @@ drawn like the game's OPTION screen (every choice shown, the chosen one marked w
 the Pokédex totals are the game's SEEN / OWN window, the trainer card keeps each badge in its own boxed slot (dashed until earned) and the badge picker is one row of eight (on a phone without the names, with a line under it naming the badges you have), and the trainer card types itself in once when a file opens (not for
 people who ask for less motion). Fonts (Pixelify Sans, Instrument Sans, JetBrains Mono) are bundled in `fonts/` (SIL Open Font License, Latin only,
 ~100 KB together), so the page makes no request to Google or any other font host; a character a font lacks falls back to
-the system font. `scripts/make-fonts.py` remakes the files from the google/fonts repository. (The Claude-hosted copy
+the system font. `scripts/make-fonts.py` remakes the files from the google/fonts repository.
+Every retro window (the trainer card, Options, stats, save and review windows, the Pokédex totals, Pikachu's windows) is set in
+Pixelify Sans, uppercase for its small labels; the sans is for reading and the monospace only for typing into number fields.
+So that ordinary text and numbers can be set in the pixel font, the shipped copy has two small changes (see the header of
+`make-fonts.py`): its 5, which was the same shape as its S, is redrawn with a flat top, and its fi / fl ligatures, which were drawn as an "A", are left out. (The Claude-hosted copy
 of the page is the one exception: it still links Google Fonts.) A game can set `colors` on its module to give each title a cartridge-label colour on the landing page.
 
 ## Artwork

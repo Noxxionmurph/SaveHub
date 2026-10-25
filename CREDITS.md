@@ -35,7 +35,7 @@ The site's three fonts are bundled in `fonts/`, cut down to Latin characters and
 
 - **Instrument Sans**, © The Instrument Sans Project Authors (https://github.com/Instrument/instrument-sans)
 - **JetBrains Mono**, © The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
-- **Pixelify Sans**, © The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans)
+- **Pixelify Sans**, © The Pixelify Sans Project Authors (https://github.com/eifetx/Pixelify-Sans). The copy in `fonts/` is a modified version: its digit 5 is redrawn (it was the same shape as its S) and its ligatures are removed (see `scripts/make-fonts.py`).
 
 ## Game data
 
