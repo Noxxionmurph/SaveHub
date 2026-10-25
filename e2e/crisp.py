@@ -48,7 +48,8 @@ def run(p, size, ratio):
     for w, hgt in out['tab']:
         assert whole(w) and whole(hgt), (tag, 'trainer tab badge is not a whole multiple', w, hgt)
         css = w * 16 / ratio
-        assert 40 <= css <= 52.5, (tag, 'trainer tab badge is the wrong size', css)
+        lo, hi = (30, 44.5) if size['width'] <= 600 else (40, 52.5)      # a phone gets the smaller picker
+        assert lo <= css <= hi, (tag, 'trainer tab badge is the wrong size', css)
     inside = page.evaluate("""() => [...document.querySelectorAll('.badge-btn')].every((b) => { const g = b.querySelector('.gem').getBoundingClientRect(), i = b.querySelector('.badge-icon').getBoundingClientRect(); return i.left >= g.left + 2 && i.right <= g.right - 2 && i.top >= g.top + 2 && i.bottom <= g.bottom - 2; })""")
     assert inside, (tag, 'a badge touches the ring')
     page.locator('.badge-grid').screenshot(path=f"{SP}/crisp-{size['width']}-{ratio}-tab.png")

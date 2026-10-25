@@ -385,6 +385,14 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
     width: var(--size); height: var(--size);
   }
 }
+/* On a phone the picker is smaller: a 56px ring with a badge of up to 44px (40px, 2.5x, where whole multiples aren't supported) */
+@media (max-width: 600px) {
+  .badge-btn .gem { width: 56px; height: 56px; }
+  .badge-btn .badge-icon { width: 40px; height: 40px; }
+  @supports (width: round(down, 10px, 3px)) {
+    .badge-btn .badge-icon { --size: max(calc(16 * var(--dpx)), round(down, 44px, calc(16 * var(--dpx)))); width: var(--size); height: var(--size); }
+  }
+}
 .badge-btn[aria-pressed="true"] { color: var(--text); font-weight: 600; }
 .badge-btn[aria-pressed="true"] .gem { border: 2px solid var(--lcd-edge); background: var(--lcd); }
 .badge-btn[aria-pressed="true"] .badge-icon { filter: none; opacity: 1; }
