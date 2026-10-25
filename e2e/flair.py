@@ -159,6 +159,17 @@ with sync_playwright() as p:
     page.click('button.tab:has-text("Trainer")')
     rows = page.locator('.options-window .opt-row')
     assert rows.count() == 3 and page.locator('.options-window.lcd').count() == 1
+    # every row's choices stay on one line at any width (Text speed has three), and where the label has no room beside
+    # them it sits above them. 494px is the width of a wide phone, which used to wrap Text speed onto two lines.
+    full = page.viewport_size
+    for width in (320, 360, 390, 494, 560, 561, 700, 1100):
+        page.set_viewport_size({'width': width, 'height': full['height']}); page.wait_for_timeout(80)
+        got = page.evaluate("""() => [...document.querySelectorAll('.opt-row')].map((r) => { const ch = r.querySelector('.opt-choices'), lab = r.querySelector('.opt-label').getBoundingClientRect();
+          return { label: r.querySelector('.opt-label').textContent, tops: new Set([...ch.children].map((c) => Math.round(c.getBoundingClientRect().top))).size, above: lab.bottom <= ch.getBoundingClientRect().top + 1, clipped: ch.scrollWidth > ch.clientWidth + 1 }; })""")
+        for row in got:
+            assert row['tops'] == 1 and not row['clipped'], (width, 'the choices wrap or spill', row)
+            assert row['above'] == (width <= 560), (width, 'label should be above the choices only on narrow screens', row)
+    page.set_viewport_size(full); page.wait_for_timeout(80)
     assert rows.locator('.opt-label').all_inner_texts() == ['TEXT SPEED', 'BATTLE ANIMATIONS', 'BATTLE STYLE'], rows.locator('.opt-label').all_inner_texts()
     assert [r.get_attribute('role') for r in rows.all()] == ['radiogroup'] * 3
     def checked(group):

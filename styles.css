@@ -233,7 +233,18 @@ a { color: inherit; text-underline-offset: 3px; }
 .opt-choice input:checked + span { background: var(--lcd-ink); color: var(--lcd); border-color: var(--lcd-ink); }
 .opt-choice input:checked + span::before { visibility: visible; }
 .opt-choice input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
-@media (max-width: 480px) { .opt-row { grid-template-columns: 1fr; } }
+/* Where the label and the choices no longer fit side by side (Text speed needs 276px for its three choices), the label sits
+   above them, and the choices get a little tighter so all three still share one line on the smallest phones. */
+@media (max-width: 560px) {
+  .opt-row { grid-template-columns: 1fr; }
+  .opt-choices { gap: 4px; }
+  .opt-choice span { padding: 0 8px 0 18px; }
+}
+@media (max-width: 360px) {
+  .options-window { padding-inline: 10px; }
+  .opt-choice span { padding: 0 6px 0 16px; font-size: 1rem; }
+  .opt-choice span::before { left: 6px; }
+}
 
 /* The trainer card types itself in once, the first time it is drawn after a file opens (not on each return to the tab). */
 @keyframes type-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
