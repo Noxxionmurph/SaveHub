@@ -3,8 +3,8 @@
 
 import type { ChangeGroup } from '../types.ts';
 import {
-  DEX_COUNT, JOHTO_BADGES, KANTO_BADGES, MOVE_NAMES, PRINT_SHADES, TEXT_SPEEDS, TMHM_LABELS, TMHM_MOVES, genderOf, isShiny, itemName,
-  speciesName, UNOWN, unownLetter,
+  DEX_COUNT, JOHTO_BADGES, KANTO_BADGES, MOVE_NAMES, PRINT_SHADES, TEXT_SPEEDS, TMHM_LABELS, TMHM_MOVES, genderOf, isShiny, itemName as nameOf,
+  speciesName, UNOWN, unownLetter, type ItemSet,
 } from './data.ts';
 import type { BagItem, Gen2Mon, Gen2Save } from './save.ts';
 
@@ -34,6 +34,7 @@ function badgeLines(names: readonly string[], b: number, a: number): string[] {
 function trainerLines(b: Gen2Save, a: Gen2Save): string[] {
   const out: string[] = [];
   if (b.trainerName !== a.trainerName) out.push(`Name: ${b.trainerName} → ${a.trainerName}`);
+  if (b.playerGender !== a.playerGender) out.push(`Plays as: ${b.playerGender === 'girl' ? 'girl' : 'boy'} → ${a.playerGender === 'girl' ? 'girl' : 'boy'}`);
   if (b.rivalName !== a.rivalName) out.push(`Rival: ${b.rivalName} → ${a.rivalName}`);
   if (b.momName !== a.momName) out.push(`Mom: ${b.momName} → ${a.momName}`);
   if (b.trainerId !== a.trainerId) {
@@ -54,7 +55,8 @@ function trainerLines(b: Gen2Save, a: Gen2Save): string[] {
 
 // ---------- items ----------
 
-function itemLines(before: BagItem[], after: BagItem[]): string[] {
+function itemLines(before: BagItem[], after: BagItem[], set: ItemSet): string[] {
+  const itemName = (id: number) => nameOf(id, set);
   const total = (list: BagItem[]) => {
     const m = new Map<number, number>();
     for (const it of list) m.set(it.id, (m.get(it.id) ?? 0) + it.count);
@@ -179,7 +181,8 @@ const moveList = (m: Gen2Mon) => m.moves.filter(Boolean).map((id) => MOVE_NAMES[
 const same4 = (x: readonly number[], y: readonly number[]) => x.every((v, i) => v === y[i]);
 const sameDvs = (x: Gen2Mon['dvs'], y: Gen2Mon['dvs']) => x.atk === y.atk && x.def === y.def && x.spe === y.spe && x.spc === y.spc;
 
-function monChanges(b: Gen2Mon, a: Gen2Mon): string[] {
+function monChanges(b: Gen2Mon, a: Gen2Mon, set: ItemSet): string[] {
+  const itemName = (id: number) => nameOf(id, set);
   const out: string[] = [];
   if (b.isEgg !== a.isEgg) out.push(a.isEgg ? 'made an egg' : 'hatched');
   if (b.species !== a.species) out.push(`species ${speciesName(b.species)} → ${speciesName(a.species)}`);
@@ -204,6 +207,7 @@ function monChanges(b: Gen2Mon, a: Gen2Mon): string[] {
   if (b.pokerus !== a.pokerus) out.push(a.pokerus ? 'Pokérus changed' : 'Pokérus removed');
   if (b.otName !== a.otName) out.push(`OT ${b.otName || '(none)'} → ${a.otName || '(none)'}`);
   if (b.otId !== a.otId) out.push('OT ID changed');
+  if (b.caught[0] !== a.caught[0] || b.caught[1] !== a.caught[1]) out.push('where it was caught changed');
   return out;
 }
 
@@ -214,7 +218,7 @@ function pokemonLines(b: Gen2Save, a: Gen2Save): string[] {
   for (const { b: sb, a: sa } of [...pairs].sort((p, q) => order(p.a, q.a))) {
     const crossed = sb.box !== sa.box;
     // Moving between the party and a box heals the Pokémon or refills its PP, as the game does; that isn't an edit.
-    const edits = monChanges(sb.mon, sa.mon).filter((e) => !crossed || !/^(HP |status |PP changed)/.test(e));
+    const edits = monChanges(sb.mon, sa.mon, a.game).filter((e) => !crossed || !/^(HP |status |PP changed)/.test(e));
     if (!crossed && !edits.length) continue;
     lines.push(crossed
       ? `${label(sa.mon)}: ${[`${place(sb)} → ${place(sa)}`, ...edits].join(', ')}`
@@ -233,11 +237,11 @@ function pokemonLines(b: Gen2Save, a: Gen2Save): string[] {
 export function describeGen2Changes(before: Gen2Save, after: Gen2Save): ChangeGroup[] {
   return [
     group('Trainer', trainerLines(before, after)),
-    group('Items pocket', itemLines(before.items, after.items)),
-    group('Balls pocket', itemLines(before.balls, after.balls)),
-    group('Key items', itemLines(asItems(before.keyItems), asItems(after.keyItems))),
+    group('Items pocket', itemLines(before.items, after.items, after.game)),
+    group('Balls pocket', itemLines(before.balls, after.balls, after.game)),
+    group('Key items', itemLines(asItems(before.keyItems), asItems(after.keyItems), after.game)),
     group('TMs and HMs', tmLines(before.tmhm, after.tmhm)),
-    group('PC items', itemLines(before.pcItems, after.pcItems)),
+    group('PC items', itemLines(before.pcItems, after.pcItems, after.game)),
     group('Pokémon', pokemonLines(before, after), 14),
     group('Box names', boxNameLines(before, after)),
     group('Pokédex', dexLines(before, after)),

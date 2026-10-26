@@ -1,11 +1,13 @@
 // Registry of supported games. To add one: write its module under src/games/ and list it here.
 import pokemonGen1 from '../games/pokemon-gen1.ts';
+import pokemonCrystal from '../games/pokemon-crystal.ts';
 import pokemonGen2 from '../games/pokemon-gen2.ts';
 import type { Detection, EditableSave, GameModule } from './types.ts';
 
 export const GAMES: GameModule[] = [
   pokemonGen1,
   pokemonGen2,
+  pokemonCrystal,
   // pokemonGen3, finalFantasy..., megaManBattleNetwork... go here.
 ];
 

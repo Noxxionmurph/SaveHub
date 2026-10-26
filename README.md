@@ -2,7 +2,7 @@
 
 One site, many games. Drop a save on the landing page, the game is detected from the file's structure
 (size, checksums, layout; never a hash, since saves change on every write), and that game's editor is
-lazy-loaded. Currently supported: Pokémon Red / Blue / Yellow and Gold / Silver (English). Everything is a
+lazy-loaded. Currently supported: Pokémon Red / Blue / Yellow, Gold / Silver and Crystal (English). Everything is a
 self-contained "game module", so adding Pokémon Gen 3–5, Final Fantasy, Mega Man Battle Network, etc. never touches the shell.
 
 ## Look and feel
@@ -78,12 +78,13 @@ Requires Node 22.18+ (uses Node's built-in TypeScript stripping — **no npm dep
 npm run dev          # builds to dist/ (artwork from ./assets/, see Artwork) and serves http://localhost:5173
 npm test             # unit tests (data tables, round-trips, checksums)
 python3 e2e/run.py    # browser checks in a real Chromium (see e2e/README.md; needs Playwright and the artwork checkout)
-node scripts/make-sample.ts sample.sav   # the same made-up save the "Try a sample save" button opens
+node scripts/make-sample.ts sample.sav   # the same made-up Yellow save the "Try a Yellow sample" button opens
 node scripts/gen-moves.mjs <pokered checkout>   # regenerates src/core/gen1/moves.ts (type, power, accuracy, PP)
 node scripts/verify-against-rom.mjs rom.gb      # checks the Gen 1 tables below against a Red/Blue ROM you own (copies nothing)
 node scripts/measure-icons.mjs                  # regenerates src/ui/spriteOffsets.ts after changing the Pokémon icons
 node scripts/gen-gen2-data.mjs <pokegold checkout>   # regenerates src/core/gen2/tables.ts (species, base stats, moves, items)
-python3 scripts/boot-gen2-save.py gold.gbc edited.sav out.png   # opens a save in the real game (PyBoy, your own ROM) and takes pictures
+node scripts/gen-crystal-data.mjs <pokecrystal checkout>   # regenerates src/core/gen2/crystalTables.ts (Crystal's items and place names)
+python3 scripts/boot-gen2-save.py gold.gbc edited.sav out.png   # opens a Gold, Silver or Crystal save in the real game (PyBoy, your own ROM) and takes pictures
 ```
 
 Everything runs client-side; saves never leave the browser. **Back up your real .sav before editing.**
@@ -110,7 +111,7 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
   current PP with it, like the game, and "Max PP" is shown under both. Restore PP refills all four.
 - Pokédex seen / owned
 - **Save** first shows a plain-language list of everything that changed (and "No changes yet" if nothing did)
-- "Try a sample save" on the landing page opens a made-up save, so nothing needs to be uploaded to look around
+- "Try a Yellow sample" and "Try a Crystal sample" on the landing page open made-up saves, so nothing needs to be uploaded to look around
 - All checksums recalculated on export (main + box banks); an unedited save round-trips byte-for-byte
 
 ## Gen 2 features (Gold / Silver)
@@ -130,6 +131,16 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
 - Pokédex: all 251 seen / owned.
 - Both copies of the save are written (Gold and Silver keep a backup), with both checksums; an unedited save
   round-trips byte for byte.
+
+## Crystal
+
+Crystal opens in the same editor, with its own save layout (most addresses moved a few bytes, and the backup copy is
+one block in bank 0; see `GEN2_LAYOUTS` in `src/core/gen2/save.ts`). It also has:
+
+- Whether you play as the boy or the girl (kept outside the checksummed data, at 0x3E3D, and read back on Continue).
+- Its four new key items: Clear Bell, GS Ball, Blue Card and Egg Ticket.
+- Where each Pokémon was caught: the place, the level, the time of day and whether its trainer was a boy or a girl
+  (two bytes Gold and Silver leave empty; `src/core/gen2/caught.ts`).
 
 ## Layout
 
@@ -232,7 +243,11 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   repeat), the Celadon Mansion granny's table (the friendship limit and wording of each of her six lines) and Melanie's
   Bulbasaur limit. The ROMs aren't in the repo and the script copies nothing from them.
 - Gen 1: English only (Japanese uses different offsets and text encoding). Event flags and map position are left untouched.
-- Gold / Silver: English only, and Crystal isn't supported yet (its layout differs). Tested against one real Gold save:
+- Crystal: English only (1.0 and 1.1 save the same way). Tested against one real Crystal 1.1 save: it loads and saves
+  back byte for byte, and an edited copy (playing as the girl, money, a held item, a nickname, the GS Ball) loads and
+  plays in the real game, as does the Crystal sample. Offsets come from the pokecrystal disassembly's symbol file. The
+  Battle Tower, Mobile Adapter data and Mystery Gift are left untouched, as are the things listed for Gold and Silver below.
+- Gold / Silver: English only. Tested against one real Gold save:
   it loads and saves back byte for byte, and an edited copy (badges, money, a shiny Pokémon holding an item, a renamed
   box, a Pokémon moved out of a box) loads and plays in the real game (checked in an emulator with
   `scripts/boot-gen2-save.py`), as does the sample. Offsets come from the pokegold disassembly's symbol file. Event

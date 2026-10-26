@@ -99,7 +99,7 @@ test('text: names round-trip, and unknown characters are reported', () => {
 // ---------- the save ----------
 
 test('a blank save passes both checksums and round-trips', () => {
-  const raw = blankGen2Save('GOLD', 'SILVER');
+  const raw = blankGen2Save('gs', 'GOLD', 'SILVER');
   assert.equal(raw.length, SAVE_SIZE);
   assert.ok(Gen2Save.mainValid(raw));
   assert.equal(mainSum(raw), sum16(raw, 0x2009, 0x2d69));
@@ -111,9 +111,9 @@ test('a blank save passes both checksums and round-trips', () => {
   assert.deepEqual(s.serialize(), raw);
 });
 
-test('the sample opens as Gold / Silver and survives a round trip', () => {
-  const raw = buildSampleSave();
-  assert.deepEqual(buildSampleSave(), raw, 'building twice gives the same bytes');
+test('the Gold sample opens as Gold / Silver and survives a round trip', () => {
+  const raw = buildSampleSave('gs');
+  assert.deepEqual(buildSampleSave('gs'), raw, 'building twice gives the same bytes');
   const found = openSave(raw);
   assert.equal(found?.module.id, 'pokemon-gen2');
   assert.deepEqual(found!.save.serialize(), raw);
@@ -127,14 +127,14 @@ test('the sample opens as Gold / Silver and survives a round trip', () => {
 
 test('Gen 1 and Gen 2 saves are told apart', () => {
   assert.equal(openSave(buildGen1Sample())?.module.id, 'pokemon-gen1');
-  assert.equal(openSave(buildSampleSave())?.module.id, 'pokemon-gen2');
-  const broken = buildSampleSave();
+  assert.equal(openSave(buildSampleSave('gs'))?.module.id, 'pokemon-gen2');
+  const broken = buildSampleSave('gs');
   broken[0x2100] ^= 0xff; // the checksum no longer matches
   assert.ok(!Gen2Save.mainValid(broken));
 });
 
 test('an edit rewrites the checksum and refreshes the backup copy', () => {
-  const raw = buildSampleSave();
+  const raw = buildSampleSave('gs');
   const s = new Gen2Save(raw);
   s.money = 123456;
   s.trainerName = 'KRIS';
@@ -152,7 +152,7 @@ test('an edit rewrites the checksum and refreshes the backup copy', () => {
 });
 
 test('the open box lives in its own slot; its copy in the box bank is left as the game left it', () => {
-  const raw = buildSampleSave();
+  const raw = buildSampleSave('gs');
   const s = new Gen2Save(raw);
   const bank = Gen2Save.boxOffset(s.currentBoxIndex);
   s.boxes[s.currentBoxIndex].push(newMon(152, 5));
@@ -165,7 +165,7 @@ test('the open box lives in its own slot; its copy in the box bank is left as th
 });
 
 test('eggs keep the EGG marker in the species list and their egg cycles', () => {
-  const s = new Gen2Save(buildSampleSave());
+  const s = new Gen2Save(buildSampleSave('gs'));
   const egg = s.party[5];
   assert.equal(egg.species, 175);
   assert.equal(egg.nickname, 'EGG');
@@ -177,7 +177,7 @@ test('eggs keep the EGG marker in the species list and their egg cycles', () => 
 // ---------- moving Pokémon ----------
 
 test('a Pokémon put in a box gets its PP back; one taken out is healed', () => {
-  const s = new Gen2Save(buildSampleSave());
+  const s = new Gen2Save(buildSampleSave('gs'));
   const quilava = s.party[0];
   quilava.pp = [0, 0, 0, 0];
   assert.equal(moveMon(s, PARTY, 0, 2), null);
@@ -189,7 +189,7 @@ test('a Pokémon put in a box gets its PP back; one taken out is healed', () => 
 });
 
 test('a Pokémon holding Mail stays out of the boxes', () => {
-  const s = new Gen2Save(buildSampleSave());
+  const s = new Gen2Save(buildSampleSave('gs'));
   s.party[0].item = 0xb5; // Flower Mail
   assert.equal(moveMon(s, PARTY, 0, 0), 'mail');
   assert.equal(dropMon(s, { where: PARTY, index: 0 }, { where: 0, index: 0 }), 'mail');
@@ -197,7 +197,7 @@ test('a Pokémon holding Mail stays out of the boxes', () => {
 });
 
 test('the party keeps a Pokémon that can battle: an egg alone is not enough', () => {
-  const s = new Gen2Save(buildSampleSave());
+  const s = new Gen2Save(buildSampleSave('gs'));
   // Leave just Quilava and the egg.
   for (let i = 0; i < 4; i++) assert.equal(moveMon(s, PARTY, 1, 3), null);
   assert.equal(s.party.length, 2);
@@ -210,13 +210,13 @@ test('the party keeps a Pokémon that can battle: an egg alone is not enough', (
 });
 
 test('a fainted party is refused too', () => {
-  const s = new Gen2Save(buildSampleSave());
+  const s = new Gen2Save(buildSampleSave('gs'));
   for (const m of s.party.slice(1)) m.hp = 0;
   assert.equal(moveMon(s, PARTY, 0, 3), 'last-healthy');
 });
 
 test('duplicating into a full box spills over to the next one', () => {
-  const s = new Gen2Save(buildSampleSave());
+  const s = new Gen2Save(buildSampleSave('gs'));
   while (s.boxes[0].length < 20) s.boxes[0].push(newMon(152, 5));
   const r = copyMon(s, 0, 0);
   assert.ok(typeof r === 'object' && r.where === 1);
@@ -225,8 +225,8 @@ test('duplicating into a full box spills over to the next one', () => {
 // ---------- the list of changes ----------
 
 test('the review lists Gen 2 changes in words', () => {
-  const before = new Gen2Save(buildSampleSave());
-  const after = new Gen2Save(buildSampleSave());
+  const before = new Gen2Save(buildSampleSave('gs'));
+  const after = new Gen2Save(buildSampleSave('gs'));
   after.kantoBadges = 1;
   after.party[3].dvs = shinyDvs(after.party[3].dvs);
   after.party[3].item = 0x92;
@@ -234,7 +234,7 @@ test('the review lists Gen 2 changes in words', () => {
   after.momsMoney = 0;
   const text = after.describeChanges(before).flatMap((g) => [g.title, ...g.lines]).join('\n');
   for (const want of ['Badges earned: Boulder', 'holds Leftovers', 'now shiny', 'TEAM', 'Mom']) assert.ok(text.includes(want), `${want}\n${text}`);
-  assert.deepEqual(new Gen2Save(buildSampleSave()).describeChanges(before), []);
+  assert.deepEqual(new Gen2Save(buildSampleSave('gs')).describeChanges(before), []);
 });
 
 // ---------- a real save, if you have one ----------

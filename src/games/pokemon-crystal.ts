@@ -1,0 +1,22 @@
+import { Gen2Save } from '../core/gen2/save.ts';
+import { defineGame } from '../core/types.ts';
+
+const GAMES = ['Pokémon Crystal'] as const;
+
+// Crystal uses the Gold / Silver editor, with its own save layout (see GEN2_LAYOUTS in save.ts).
+export default defineGame<Gen2Save>({
+  id: 'pokemon-crystal',
+  family: 'Pokémon',
+  games: GAMES,
+  platform: 'Game Boy Color · English',
+  editable: 'Everything the Gold and Silver editor can change, plus whether you play as the boy or the girl, Crystal’s new key items, and where each Pokémon was caught.',
+  fileHint: 'Pokémon Crystal (English) saves are 32,768 bytes (32 KB).',
+  colors: { 'Pokémon Crystal': '#5fb4d9' },
+  // The box's mascot: Suicune.
+  icons: { 'Pokémon Crystal': 'sprites/pokemon/245.png' },
+  theme: 'gbc',
+  detect: (data) => (Gen2Save.detectGame(data) === 'crystal' ? { confidence: 'certain' } : null),
+  sample: async () => ({ fileName: 'sample-crystal.sav', data: (await import('../core/gen2/sample.ts')).buildSampleSave('crystal') }),
+  load: (data) => new Gen2Save(data, 'crystal'),
+  loadEditor: async () => (await import('../ui/editors/gen2/index.ts')).mountGen2Editor,
+});

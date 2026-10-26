@@ -1,10 +1,11 @@
-// Gen 2 (Gold / Silver) editor UI. Loaded lazily by the shell via the game module. Laid out like the Gen 1 editor, with
-// what Gold and Silver added: sixteen badges, Mom's savings, the four bag pockets, held items, eggs, shininess and
-// gender, fourteen named boxes and the 251-Pokémon Pokédex.
+// Gen 2 (Gold / Silver / Crystal) editor UI. Loaded lazily by the shell via the game modules. Laid out like the Gen 1
+// editor, with what Gold and Silver added: sixteen badges, Mom's savings, the four bag pockets, held items, eggs,
+// shininess and gender, fourteen named boxes and the 251-Pokémon Pokédex. Crystal adds the player's gender, its four
+// new key items and a record of where each Pokémon was caught.
 
 import {
   DEX_COUNT, DEX_NAMES, HM_COUNT, JOHTO_BADGES, KANTO_BADGES, PRINT_SHADES, TEXT_SPEEDS, TMHM_LABELS, TMHM_MOVES, TM_COUNT,
-  baseStatsFor, genderOf, itemChoices, itemName, moveInfo, speciesName, type Pocket,
+  baseStatsFor, genderOf, itemChoices, itemName, moveInfo, speciesName, type ItemSet, type Pocket,
 } from '../../../core/gen2/data.ts';
 import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, dropMon, listAt, placeName, shiftMon } from '../../../core/gen2/roster.ts';
 import {
@@ -32,13 +33,19 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'dex', label: 'Pokédex' },
 ];
 
+type Options = { value: number; label: string }[];
 /** One shared options array per picker, so each picker's markup is built once and cloned for every row. */
-const pickerOptions = (...pockets: Pocket[]) => itemChoices(...pockets).map((c) => ({ value: c.id, label: c.name }));
-const ITEM_OPTIONS = pickerOptions('item');
-const BALL_OPTIONS = pickerOptions('ball');
-const KEY_OPTIONS = pickerOptions('key');
-// The PC takes anything except TMs and HMs (pokegold: the PC's deposit screen offers only the other three pockets).
-const PC_OPTIONS = pickerOptions('item', 'ball', 'key');
+const pickerCache = new Map<ItemSet, { item: Options; ball: Options; key: Options; pc: Options }>();
+function pickers(set: ItemSet) {
+  let p = pickerCache.get(set);
+  if (!p) {
+    const of = (...pockets: Pocket[]) => itemChoices(pockets, set).map((c) => ({ value: c.id, label: c.name }));
+    // The PC takes anything except TMs and HMs (pokegold: the PC's deposit screen offers only the other three pockets).
+    p = { item: of('item'), ball: of('ball'), key: of('key'), pc: of('item', 'ball', 'key') };
+    pickerCache.set(set, p);
+  }
+  return p;
+}
 
 const RARE_CANDY = 0x20;
 const ULTRA_BALL = 0x02;
@@ -50,6 +57,8 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
   let boxView = s.currentBoxIndex;
   let cardIntroPlayed = false;
+  const { item: ITEM_OPTIONS, ball: BALL_OPTIONS, key: KEY_OPTIONS, pc: PC_OPTIONS } = pickers(s.game);
+  const nameOf = (id: number) => itemName(id, s.game);
   const markDirty = () => host.markDirty();
   let refreshers: (() => void)[] = [];
   const edited = () => { markDirty(); refreshers.forEach((f) => f()); };
@@ -116,7 +125,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
         if (!mon) return h('span', { class: 'party-slot empty', 'aria-hidden': 'true' });
         return h('button', {
           class: 'party-slot', 'aria-label': `${monLabel(mon)}${mon.isEgg ? '' : `, level ${mon.level}`}. Edit`,
-          onclick: () => openMonEditor({ mon, party: true, onDone: (changed) => { if (changed) edited(); paintParty(); } }),
+          onclick: () => openMonEditor({ mon, party: true, game: s.game, onDone: (changed) => { if (changed) edited(); paintParty(); } }),
         }, monIcon(mon),
         h('span', { class: 'slot-name' }, monLabel(mon)),
         h('span', { class: 'lv-tag' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`),
@@ -182,6 +191,11 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
           nameField('Trainer name', s.trainerName, (v) => { s.trainerName = v; edited(); }, undefined, PLAYER_NAME_MAX),
           nameField('Rival name', s.rivalName, (v) => { s.rivalName = v; markDirty(); }, undefined, PLAYER_NAME_MAX),
         ),
+        s.playerGender ? h('div', { class: 'lcd options-window player-gender' },
+          choiceRow('Player', [{ value: 'boy', label: 'Boy' }, { value: 'girl', label: 'Girl' }], s.playerGender,
+            (v) => { s.playerGender = v === 'girl' ? 'girl' : 'boy'; markDirty(); })) : null,
+        s.playerGender ? h('p', { class: 'muted section-note' },
+          'Crystal asks “Are you a boy? Or are you a girl?” at the start. It changes how you look in the game, and Pokémon you catch from now on remember it.') : null,
         h('div', { class: 'grid one' },
           field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; edited(); }),
             'Pokémon you caught remember this number. If you change it, they count as traded: they earn extra experience, but may ignore your orders without enough badges.'),
@@ -241,7 +255,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
 
   // ---------- bag ----------
 
-  function itemList(title: string, note: string, items: BagItem[], max: number, options: { value: number; label: string }[], fresh: () => number): Node {
+  function itemList(title: string, note: string, items: BagItem[], max: number, options: Options, fresh: () => number): Node {
     const wrap = h('section', { class: 'card' });
     const draw = () => {
       clear(wrap);
@@ -252,7 +266,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
           const icon = itemIcon(itemSpritePath(it.id));
           return h('div', { class: 'item-row' },
             icon,
-            lazySelect(options.some((c) => c.value === it.id) ? options : [{ value: it.id, label: itemName(it.id) }, ...options],
+            lazySelect(options.some((c) => c.value === it.id) ? options : [{ value: it.id, label: nameOf(it.id) }, ...options],
               it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }),
             numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': 'Quantity' }),
             h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { items.splice(i, 1); markDirty(); draw(); } }, '✕'),
@@ -282,7 +296,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
           const icon = itemIcon(itemSpritePath(id));
           return h('div', { class: 'item-row no-count' },
             icon,
-            lazySelect(KEY_OPTIONS.some((c) => c.value === id) ? KEY_OPTIONS : [{ value: id, label: itemName(id) }, ...KEY_OPTIONS],
+            lazySelect(KEY_OPTIONS.some((c) => c.value === id) ? KEY_OPTIONS : [{ value: id, label: nameOf(id) }, ...KEY_OPTIONS],
               id, (v) => { list[i] = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(list[i]))); markDirty(); }),
             h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { list.splice(i, 1); markDirty(); draw(); } }, '✕'),
           );
@@ -360,7 +374,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
         h('span', { class: 'mon-meta' },
           h('span', { class: 'lcd lv' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`),
           mon.isEgg ? null : typeChips(baseStatsFor(mon.species), false),
-          mon.item ? h('span', { class: 'held', title: `Holding ${itemName(mon.item)}` }, itemIcon(itemSpritePath(mon.item)), h('span', { class: 'sr-only' }, `Holding ${itemName(mon.item)}`)) : null),
+          mon.item ? h('span', { class: 'held', title: `Holding ${nameOf(mon.item)}` }, itemIcon(itemSpritePath(mon.item)), h('span', { class: 'sr-only' }, `Holding ${nameOf(mon.item)}`)) : null),
         monHpBar(mon, true, 'in-card'),
       ),
       ...extra,
@@ -369,7 +383,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
 
   function editMon(where: number, index: number, redraw: () => void): void {
     const mon = listAt(s, where)[index];
-    if (mon) openMonEditor({ mon, party: where === PARTY, onDone: (changed) => { if (changed) markDirty(); redraw(); } });
+    if (mon) openMonEditor({ mon, party: where === PARTY, game: s.game, onDone: (changed) => { if (changed) markDirty(); redraw(); } });
   }
 
   function menuFor(where: number, index: number, redraw: () => void): void {

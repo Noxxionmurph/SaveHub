@@ -1,12 +1,14 @@
-// Pokémon editor dialog for Gold and Silver: Gen 1's, plus what Gen 2 added (held item, friendship, Pokérus, gender,
-// shininess, Unown's letter, eggs) and the split of Special into Special Attack and Special Defense.
+// Pokémon editor dialog for Gold, Silver and Crystal: Gen 1's, plus what Gen 2 added (held item, friendship, Pokérus, gender,
+// shininess, Unown's letter, eggs) and the split of Special into Special Attack and Special Defense. For Crystal it also
+// edits the record of where the Pokémon was caught.
 
 import {
   DEX_NAMES, MOVE_NAMES, UNOWN, UNOWN_LETTERS, attackDvForGender, baseStatsFor, dvsForUnownLetter, expForLevel,
   genderOf, growthOf, guessGrowth, hasTwoGenders, hpDv, isMail, isShiny, itemChoices, itemName, maxPp, moveInfo,
   pokerusState, shinyDvs, speciesName, unownLetter,
 } from '../../../core/gen2/data.ts';
-import { calcStats, defaultNickname, recalcPartyStats, type Gen2Mon } from '../../../core/gen2/save.ts';
+import { CAUGHT_LEVEL_MAX, LOCATION_CHOICES, decodeCaught, encodeCaught, locationName, type CaughtData } from '../../../core/gen2/caught.ts';
+import { calcStats, defaultNickname, recalcPartyStats, type Gen2Game, type Gen2Mon } from '../../../core/gen2/save.ts';
 import { askConfirm, clear, field, h, lazySelect, numberInput, selectInput } from '../../dom.ts';
 import { itemIcon, itemIconUrl, setIconSrc, typeIcon } from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
@@ -18,7 +20,7 @@ import { nameField } from './nameField.ts';
 const SPECIES_OPTIONS = DEX_NAMES.map((name, i) => ({ value: i + 1, label: `#${String(i + 1).padStart(3, '0')} ${name}` }));
 const MOVE_OPTIONS = MOVE_NAMES.map((name, i) => ({ value: i, label: i === 0 ? '— (none)' : name }));
 /** What a Pokémon can be given to hold: the Items and Balls pockets. Mail is left out (see heldOptions). */
-const HOLD_CHOICES = itemChoices('item', 'ball').filter((c) => !isMail(c.id));
+const HOLD_CHOICES = itemChoices(['item', 'ball']).filter((c) => !isMail(c.id));
 const HOLD_OPTIONS = [{ value: 0, label: '— (nothing)' }, ...HOLD_CHOICES.map((c) => ({ value: c.id, label: c.name }))];
 const STAT_LABELS = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' } as const;
 const DV_LABELS = { atk: 'Atk', def: 'Def', spe: 'Spe', spc: 'Spc' } as const;
@@ -31,6 +33,10 @@ const STATUS_OPTIONS = [
 /** The status choices, plus the Pokémon's own value if it isn't one of them (asleep for 1 or 2 turns, say), so it isn't changed by opening the window. */
 const statusOptions = (current: number) => (STATUS_OPTIONS.some((o) => o.value === current) ? STATUS_OPTIONS
   : [...STATUS_OPTIONS, { value: current, label: current & 7 ? `Asleep (${current & 7} turns)` : `Other (${current})` }]);
+const LOCATION_OPTIONS = LOCATION_CHOICES.map((c) => ({ value: c.id, label: c.name }));
+const TIME_OPTIONS = [
+  { value: '', label: 'Not recorded' }, { value: 'morning', label: 'Morning' }, { value: 'day', label: 'Day' }, { value: 'night', label: 'Night' },
+];
 const POKERUS_OPTIONS = [
   { value: 'none', label: 'Never had it' },
   { value: 'infected', label: 'Infected (spreads, doubles stat experience)' },
@@ -49,6 +55,8 @@ function heldOptions(current: number): { value: number; label: string }[] {
 export interface MonEditorOptions {
   mon: Gen2Mon;
   party: boolean;
+  /** Which game the save is from. Crystal's Pokémon carry a record of where they were caught. */
+  game?: Gen2Game;
   /** Called once the window has closed. `changed` is whether the Pokémon now differs from how it was when the window opened. */
   onDone: (changed: boolean) => void;
 }
@@ -56,7 +64,7 @@ export interface MonEditorOptions {
 /** A comparable picture of a Pokémon (raw name and mail bytes included), to tell whether anything was edited. */
 const fingerprint = (mon: Gen2Mon): string => JSON.stringify(mon, (_key, v) => (v instanceof Uint8Array ? Array.from(v) : v));
 
-export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
+export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOptions): void {
   const guessed = guessGrowth(mon.level, mon.exp);
   const expAt = (level: number) => expForLevel(growthOf(mon.species, guessed), level);
   const dialog = h('dialog', { class: 'mon-dialog' });
@@ -182,6 +190,10 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
       : 'Anything from the Items or Balls pocket. Mail can only be given in the game, where you write the letter.';
 
     const rus = pokerusState(mon.pokerus);
+    const caught = decodeCaught(mon.caught);
+    const setCaught = (change: Partial<CaughtData>) => { mon.caught = encodeCaught({ ...decodeCaught(mon.caught), ...change }); };
+    const locations = LOCATION_OPTIONS.some((o) => o.value === caught.location) ? LOCATION_OPTIONS
+      : [...LOCATION_OPTIONS, { value: caught.location, label: locationName(caught.location) }];
     const title = mon.isEgg ? 'Egg' : mon.nickname || speciesName(mon.species);
 
     return [
@@ -240,7 +252,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
       ),
 
       mon.isEgg ? null : h('h3', {}, 'Looks'),
-      mon.isEgg ? null : h('p', { class: 'muted section-note' }, 'In Gold and Silver, gender, shininess and Unown’s letter all come from the DVs, so these change the DVs below.'),
+      mon.isEgg ? null : h('p', { class: 'muted section-note' }, 'In Gen 2, gender, shininess and Unown’s letter all come from the DVs, so these change the DVs below.'),
       mon.isEgg ? null : h('div', { class: 'grid' },
         hasTwoGenders(mon.species)
           ? field('Gender', selectInput([{ value: 'male', label: '♂ Male' }, { value: 'female', label: '♀ Female' }], gender, (v) => {
@@ -259,6 +271,16 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
             (v) => setDvs(dvsForUnownLetter(mon.dvs, v))), 'A shiny Unown can only be I or V.')
           : null,
       ),
+
+      game === 'crystal' ? h('h3', {}, 'Where it was caught') : null,
+      game === 'crystal' ? h('p', { class: 'muted section-note' }, 'Crystal writes this down when a Pokémon is caught, hatched or given to you. One traded over from Gold or Silver has nothing recorded.') : null,
+      game === 'crystal' ? h('div', { class: 'grid' },
+        field('Place', selectInput(locations, caught.location, (v) => setCaught({ location: Number(v) })), 'Gift and Event are what the game records for Pokémon it gives you.'),
+        field('Level when caught', numberInput(caught.level, 0, CAUGHT_LEVEL_MAX, (v) => setCaught({ level: v })), `0 to ${CAUGHT_LEVEL_MAX}. Eggs record level 1.`),
+        field('Time of day', selectInput(TIME_OPTIONS, caught.time ?? '', (v) => setCaught({ time: (v || null) as CaughtData['time'] }))),
+        field('Caught by', selectInput([{ value: 'boy', label: 'A boy' }, { value: 'girl', label: 'A girl' }], caught.otGender,
+          (v) => setCaught({ otGender: v === 'girl' ? 'girl' : 'boy' })), 'Whether the original trainer played as the boy or the girl.'),
+      ) : null,
 
       h('h3', {}, mon.isEgg ? 'Moves it hatches with' : 'Moves'),
       h('p', { class: 'muted section-note' }, 'Each PP Up (0 to 3) raises a move’s max PP and its current PP. A newly picked move starts with full PP.'),

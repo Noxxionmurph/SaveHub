@@ -23,7 +23,8 @@ export default defineGame<Gen1Save>({
   identify: (data) => (looksLikeYellow(data)
     ? { names: ['Pokémon Yellow'] }
     : { names: ['Pokémon Red', 'Pokémon Blue'], note: "Red and Blue saves are identical inside, so the file can't say which one yours is. Your choice only changes the name shown here; the editor works the same either way." }),
-  sample: async () => ({ fileName: 'sample.sav', data: (await import('../core/gen1/sample.ts')).buildSampleSave() }),
+  sample: async () => ({ fileName: 'sample-yellow.sav', data: (await import('../core/gen1/sample.ts')).buildSampleSave() }),
+  sampleGame: 'Pokémon Yellow',
   load: (data) => new Gen1Save(data),
   loadEditor: async () => (await import('../ui/editors/gen1/index.ts')).mountGen1Editor,
 });
