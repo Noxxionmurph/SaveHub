@@ -870,3 +870,5 @@ button.danger { color: var(--danger); }
 .dex-tile .dex-name { letter-spacing: -0.05em; }
 /* Bag rows on a phone: the count only ever needs two digits, so the item name gets the room (MooMoo Milk, TM24 Thunderbolt) */
 @media (max-width: 480px) { .item-row { grid-template-columns: 32px 1fr 52px auto; gap: 6px; } }
+/* Party strip names on the smallest phones: a ten-letter name (Charmeleon) fits a third of a 320px screen */
+@media (max-width: 360px) { .slot-name { font-size: 0.75rem; letter-spacing: -0.03em; } }
