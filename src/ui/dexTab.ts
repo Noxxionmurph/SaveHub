@@ -80,11 +80,13 @@ export function dexTab(s: DexSave, names: readonly string[], markDirty: () => vo
     markDirty(); tiles.forEach((t) => t.paint()); paintSummary(); applyFilter();
   };
 
+  // The filter is a joined segmented control and the bulk changes are ordinary buttons under their own label, so
+  // "show me" and "change everything" don't look alike.
   const chips = FILTERS.map((f) => h('button', {
-    class: f.id === filter ? 'chip-btn on' : 'chip-btn', 'aria-pressed': String(f.id === filter),
+    'aria-pressed': String(f.id === filter),
     onclick: () => {
       filter = f.id;
-      chips.forEach((c, i) => { c.classList.toggle('on', FILTERS[i].id === filter); c.setAttribute('aria-pressed', String(FILTERS[i].id === filter)); });
+      chips.forEach((c, i) => c.setAttribute('aria-pressed', String(FILTERS[i].id === filter)));
       applyFilter();
     },
   }, f.label));
@@ -99,14 +101,16 @@ export function dexTab(s: DexSave, names: readonly string[], markDirty: () => vo
     h('p', { class: 'tab-intro' },
       'Tap a Pokémon to cycle it: not seen, then seen, then caught. A dark shape is not seen, colour is seen, and a tile '
       + 'with a Poké Ball is caught. Caught only fills in the Pokédex; it doesn\'t give you the Pokémon.'),
-    h('div', { class: 'dex-head' },
-      summary,
-      h('div', { class: 'button-row tight' },
-        h('button', { onclick: () => each((n) => s.setOwned(n, true)) }, 'All caught'),
-        h('button', { onclick: () => each((n) => s.setSeen(n, true)) }, 'All seen'),
-        h('button', { onclick: () => each((n) => s.setSeen(n, false)) }, 'Clear all'))),
-    h('div', { class: 'dex-tools' },
-      h('div', { class: 'dex-filter', role: 'group', 'aria-label': 'Show' }, chips),
+    summary,
+    h('div', { class: 'dex-bar' },
+      h('span', { class: 'dex-bar-label', id: 'dex-set-label' }, `Set all ${total} to`),
+      h('div', { class: 'button-row tight dex-set', role: 'group', 'aria-labelledby': 'dex-set-label' },
+        h('button', { onclick: () => each((n) => s.setOwned(n, true)) }, 'Caught'),
+        h('button', { onclick: () => each((n) => { s.setSeen(n, true); s.setOwned(n, false); }) }, 'Seen'),
+        h('button', { onclick: () => each((n) => s.setSeen(n, false)) }, 'Not seen'))),
+    h('div', { class: 'dex-bar' },
+      h('span', { class: 'dex-bar-label', id: 'dex-show-label' }, 'Show'),
+      h('div', { class: 'seg', role: 'group', 'aria-labelledby': 'dex-show-label' }, chips),
       search),
     h('div', { class: 'dex-grid' }, tiles.map((t) => t.tile)),
     empty,

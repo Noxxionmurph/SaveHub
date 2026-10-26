@@ -120,7 +120,7 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
 - Trainer: name, rival, ID, money, Mom's savings, coins, play time (to 999 hours), all 16 badges (Johto and Kanto, shown
   on the trainer card in the game's own badge art), and every OPTION setting: text speed, battle scene, battle style,
   sound, Game Boy Printer shade, menu account and text box frame.
-- All four bag pockets (Items, Balls, Key Items, TM/HM with a count for each of the 57, and a switch to show only the ones you have) and PC item storage. Each picker
+- All four bag pockets (Items, Balls, Key Items, TM/HM with a count for each of the 57, and a switch to hide the ones you already have) and PC item storage. Each picker
   only offers what the game files in that pocket.
 - Party and all 14 boxes, with box names. Moving works as in Gen 1 (arrows, drag and drop, the action menu) and follows
   the game's PC rules: a Pokémon holding Mail can't go in a box, the party always keeps one Pokémon that can battle (an

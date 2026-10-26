@@ -208,9 +208,9 @@ with sync_playwright() as p:
 
     # the filter and search narrow the grid, and come back as they were after switching tabs
     visible = page.locator('.dex-tile:visible')
-    page.click('.dex-filter button:text-is("Caught")')
+    page.click('.seg button:text-is("Caught")')
     assert visible.count() == own0 and page.locator('.dex-tile.caught:visible').count() == own0
-    page.click('.dex-filter button:text-is("All")')
+    page.click('.seg button:text-is("All")')
     page.fill('.dex-search', 'pika')
     assert visible.count() == 1 and 'Pikachu' in visible.first.inner_text()
     page.fill('.dex-search', '#15')
@@ -237,7 +237,10 @@ with sync_playwright() as p:
     page.click('dialog.review-dialog button:has-text("Keep editing")'); page.wait_for_selector('dialog.review-dialog', state='detached')
     field(page, 'Trainer name').fill('RED'); field(page, 'Hours').fill('20'); field(page, 'Hours').dispatch_event('change')
     page.click('button:has-text("All badges")')
-    page.click('button.tab:has-text("Pokédex")'); page.click('button:has-text("All caught")')
+    page.click('button.tab:has-text("Pokédex")')
+    page.click('.dex-set button:text-is("Seen")')                       # "Set all to Seen" uncatches as well
+    assert [x.split('/')[0] for x in totals.locator('dd').all_inner_texts()] == ['151', '0']
+    page.click('.dex-set button:text-is("Caught")')
     page.click('.save-btn'); page.wait_for_selector('dialog.review-dialog[open]')
     assert page.locator('dialog.review-dialog dl.save-window dd').all_inner_texts() == ['RED', '8', '151', '20:34'], \
         page.locator('dialog.review-dialog dl.save-window dd').all_inner_texts()
@@ -283,7 +286,7 @@ with sync_playwright() as p:
     page.click('dialog.mon-dialog button.primary'); page.wait_for_selector('dialog.mon-dialog', state='detached')
     page.click('button.tab:has-text("Pokédex")'); page.wait_for_selector('.dex-summary')
     pixel_only(page, '.lcd.dex-summary', 'dex summary')
-    page.click('button:has-text("All caught")')
+    page.click('.dex-set button:text-is("Caught")')
     page.click('.save-btn'); page.wait_for_selector('dialog.review-dialog[open]')
     pixel_only(page, 'dialog.review-dialog .lcd.save-window', 'save window'); pixel_only(page, 'dialog.review-dialog .lcd.review-list', 'review list')
     ctx.close()
