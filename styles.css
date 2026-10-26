@@ -463,13 +463,6 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .lv { align-self: start; padding: 1px 8px; border-radius: 4px; font: 600 1rem var(--font-display); }
 .mon-types { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; min-height: 0; }
 .mon-types:empty { display: none; }
-.type-chip {
-  display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px 2px 3px; border-radius: 999px;
-  background: var(--surface-2); border: 1px solid var(--line); font-size: 0.75rem; font-weight: 600; line-height: 1.4;
-}
-.type-chip .type-icon { width: 18px; height: 18px; }
-.type-chip.bare { padding: 0; border: 0; background: none; }
-.type-chip.bare .type-icon { width: 26px; height: 26px; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .mon > .icon { align-self: center; }
 
@@ -704,8 +697,8 @@ button.danger { color: var(--danger); }
 /* ---- a move's type icon next to its name ---- */
 .move-pick { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .move-pick select { flex: 1; min-width: 0; }
-.move-type { width: 30px; height: 30px; flex: none; }
-.move-type.blank { display: inline-block; }
+.move-type { flex: none; }
+.move-type.blank { display: inline-block; width: 46px; }
 .sheet-note { margin-top: 10px; min-height: 0; color: var(--danger); font-weight: 600; font-size: 0.875rem; }
 .sheet-note:empty { display: none; }
 /* Money is the widest figure on the trainer card; give it more room so it never runs into Coins. */
@@ -872,3 +865,29 @@ button.danger { color: var(--danger); }
 @media (max-width: 480px) { .item-row { grid-template-columns: 32px 1fr 52px auto; gap: 6px; } }
 /* Party strip names on the smallest phones: a ten-letter name (Charmeleon) fits a third of a 320px screen */
 @media (max-width: 360px) { .slot-name { font-size: 0.75rem; letter-spacing: -0.03em; } }
+
+/* ---- in-game type labels (32x16): drawn at a whole number of screen pixels per source pixel (at least two),
+   about 46px wide ---- */
+.type-label {
+  width: max(calc(64 * var(--dpx)), round(nearest, 46px, calc(32 * var(--dpx)))); height: auto; flex: none;
+  image-rendering: pixelated;
+}
+.mon-types { gap: 4px; align-items: center; }
+.type-text { font: 600 0.75rem var(--font-display); text-transform: uppercase; }
+.move-type.type-label, .move-type.type-text { width: max(calc(64 * var(--dpx)), round(nearest, 46px, calc(32 * var(--dpx)))); height: auto; }
+/* a held item sits on the bottom corner of the Pokémon's picture */
+.mon-main > .mon-pic { grid-row: 1 / span 3; margin-left: -4px; position: relative; display: block; }
+.mon-pic > .mon-icon { display: block; }
+.mon-pic > .held { position: absolute; right: 8px; bottom: -2px; }
+/* room for Lv and two type labels on one line on a phone: the picture's transparent sides may overlap the gap */
+.mon-main > .mon-pic, .mon-main > .mon-icon { margin-right: -8px; }
+.mon-meta { gap: 4px; }
+.mon-meta .lv { padding-inline: 6px; font-size: 0.875rem; }
+/* hovering a held item names it in a small bubble above the picture */
+.mon-pic > .held::after {
+  content: attr(data-name); position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%);
+  padding: 2px 8px; border-radius: 4px; background: var(--text, #0f2427); color: var(--bg, #fff);
+  font-size: 0.75rem; font-weight: 600; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.1s;
+  z-index: 2;
+}
+@media (hover: hover) { .mon-pic > .held:hover::after { opacity: 1; } }

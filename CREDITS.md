@@ -13,6 +13,14 @@ From **PokéSprite** by msikma (https://github.com/msikma/pokesprite), copied un
 Pokémon files to their National Dex number (and Unown's other letters to `201-<letter>.png`). PokéSprite's own code is MIT licensed; the artwork is not covered by that
 licence.
 
+## Type labels
+
+`sprites/type-labels/<type>.png` (each type's name in its coloured box, 32x16) are Pokémon Emerald's own summary screen
+labels, from the pret/pokeemerald disassembly (https://github.com/pret/pokeemerald, `graphics/types/`), in the colours
+the game gives them, with the background made transparent and renamed to the editor's type names (`fight` to `fighting`,
+`mystery` to `unknown`). Gen 1 and Gen 2 have no coloured type labels of their own. `scripts/extract-type-labels.py`
+redoes them.
+
 ## Gym badges
 
 The eight Kanto badges are cut from the Red/Blue "Trainer Card" sheet on The Spriters Resource

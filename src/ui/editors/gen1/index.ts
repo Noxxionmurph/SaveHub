@@ -216,7 +216,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       clear(wrap);
       wrap.append(
         h('h3', {}, title, h('span', { class: 'muted count' }, `${items.length}/${max}`)),
-        note ? h('p', { class: 'muted card-note' }, note) : null,
+        ...(note ? [h('p', { class: 'muted card-note' }, note)] : []),
         ...items.map((it, i) => {
           const icon = itemIcon(itemSpritePath(it.id));
           return h('div', { class: 'item-row' },
@@ -259,7 +259,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           showNick ? h('span', { class: 'muted' }, `(${name})`) : null),
         h('span', { class: 'mon-meta' },
           h('span', { class: 'lcd lv' }, `Lv ${mon.level}`),
-          typeChips(baseStatsFor(mon.species), false),
+          typeChips(baseStatsFor(mon.species)),
           s.isYellow && s.isStarterPikachu(mon) ? h('span', { class: 'tag starter', title: 'Your starter Pikachu' }, 'Starter') : null),
         monHpBar(mon, true, 'in-card'),
       ),

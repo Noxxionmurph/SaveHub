@@ -1,6 +1,7 @@
 """A layout sweep over every page: Red/Blue, Yellow, Gold and Crystal, each tab and the Pokémon window, at 320, 375 and
 1280px. On each it fails if the page scrolls sideways, two cards sit closer than 8px (one touching another, as the TM/HM
-card once did), a label, button, tab or name is cut off or spills out of its box, or a picture fails to load. It checks
+card once did), a label, button, tab or name is cut off or spills out of its box, a picture fails to load, or stray text such as
+"null" shows. It checks
 how things sit, not what they say, so a new game's pages are covered by adding it to GAMES."""
 import sys
 from playwright.sync_api import sync_playwright
@@ -36,6 +37,11 @@ SCAN = """async () => {
     if (e.closest('.sr-only') || e.clientWidth === 0) return;
     if (e.scrollWidth > e.clientWidth + 1) bad.push(`cut off: ${e.tagName.toLowerCase()}.${e.className} "${e.textContent.trim().slice(0, 30)}"`);
   });
+  // a value that never got filled in: Element.append() writes null as the text "null"
+  const walker = document.createTreeWalker(scope === document ? document.body : scope, NodeFilter.SHOW_TEXT);
+  for (let t = walker.nextNode(); t; t = walker.nextNode()) {
+    if (/\\b(null|undefined|NaN)\\b|\\[object Object\\]/.test(t.nodeValue) && t.parentElement && shown(t.parentElement)) bad.push(`stray text: "${t.nodeValue.trim().slice(0, 30)}" in ${t.parentElement.tagName.toLowerCase()}.${t.parentElement.className}`);
+  }
   return [...new Set(bad)];
 }"""
 

@@ -259,7 +259,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       clear(wrap);
       wrap.append(
         h('h3', {}, title, h('span', { class: 'muted count' }, `${items.length}/${max}`)),
-        note ? h('p', { class: 'muted card-note' }, note) : null,
+        ...(note ? [h('p', { class: 'muted card-note' }, note)] : []),
         ...items.map((it, i) => {
           const icon = itemIcon(itemSpritePath(it.id));
           return h('div', { class: 'item-row' },
@@ -366,7 +366,10 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
     return h('div', { class: 'mon' },
       ...before,
       h('button', { class: 'mon-main', onclick: onOpen },
-        monIcon(mon),
+        // A held item sits on the corner of the Pokémon's picture, as on the games' party screens, away from the types
+        h('span', { class: 'mon-pic' }, monIcon(mon),
+          // hovering shows the item's name in a bubble (styles.css); screen readers get the same words
+          mon.item ? h('span', { class: 'held', dataset: { name: nameOf(mon.item) } }, itemIcon(itemSpritePath(mon.item)), h('span', { class: 'sr-only' }, `Holding ${nameOf(mon.item)}`)) : null),
         h('span', { class: 'mon-title' },
           mon.isEgg ? null : h('span', { class: 'mon-dex' }, `#${String(mon.species).padStart(3, '0')}`),
           h('span', { class: 'mon-name' }, label, ' '),
@@ -375,8 +378,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
           shinyMark(mon)),
         h('span', { class: 'mon-meta' },
           h('span', { class: 'lcd lv' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`),
-          mon.isEgg ? null : typeChips(baseStatsFor(mon.species), false),
-          mon.item ? h('span', { class: 'held', title: `Holding ${nameOf(mon.item)}` }, itemIcon(itemSpritePath(mon.item)), h('span', { class: 'sr-only' }, `Holding ${nameOf(mon.item)}`)) : null),
+          mon.isEgg ? null : typeChips(baseStatsFor(mon.species))),
         monHpBar(mon, true, 'in-card'),
       ),
       ...extra,

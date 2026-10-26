@@ -40,6 +40,16 @@ with sync_playwright() as p:
     tops = page.evaluate("() => [...document.querySelectorAll('.party-slot')].map(s => Math.round(s.querySelector('.slot-name').getBoundingClientRect().top - s.getBoundingClientRect().top))")
     assert max(tops) - min(tops) <= 5, f'party pictures out of line: {tops}'   # names (right under the pictures) sit at one height
 
+    # --- party cards: types are the in-game labels, and a held item sits on the picture, named when hovered
+    page.click('button.tab:has-text("Party")')
+    first = page.locator('.mon').nth(0)
+    assert first.locator('.mon-types img.type-label').evaluate_all('es => es.map(e => e.alt)') == ['Fire']
+    assert first.locator('.mon-meta .held').count() == 0 and first.locator('.mon-pic .held').get_attribute('data-name') == 'Charcoal'
+    first.locator('.mon-pic .held').hover()
+    page.wait_for_timeout(200)
+    assert page.evaluate("() => getComputedStyle(document.querySelector('.mon-pic .held'), '::after').opacity") == '1'
+    page.click('button.tab:has-text("Trainer")')
+
     # --- trainer: play as the boy instead
     row = page.locator('.player-gender .opt-row')
     assert row.locator('input[value="girl"]').is_checked()

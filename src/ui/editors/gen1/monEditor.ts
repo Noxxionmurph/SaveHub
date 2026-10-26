@@ -9,7 +9,7 @@ import {
 } from '../../../core/gen1/save.ts';
 import { askConfirm, clear, field, h, numberInput, selectInput } from '../../dom.ts';
 import { maxPp, moveInfo } from '../../../core/gen1/moves.ts';
-import { pokemonIcon, typeIcon } from '../../sprites.ts';
+import { pokemonIcon, typeLabel } from '../../sprites.ts';
 import { monHpBar } from './hpBar.ts';
 import { nameField } from './nameField.ts';
 import { typeChips } from '../../typeChip.ts';
@@ -98,7 +98,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
         const ups = mon.ppUps[i];
         return h('div', { class: 'move-row' },
           h('div', { class: 'move-pick' },
-            info ? typeIcon(info.type, 'move-type') : h('span', { class: 'move-type blank', 'aria-hidden': 'true' }),
+            info ? typeLabel(info.type, 'move-type') : h('span', { class: 'move-type blank', 'aria-hidden': 'true' }),
             selectInput(MOVE_OPTIONS, id, (v) => {
               mon.moves[i] = Number(v);
               mon.pp[i] = maxPp(mon.moves[i], mon.ppUps[i]); // a newly picked move starts with full PP
