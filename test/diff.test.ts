@@ -49,7 +49,7 @@ test('trainer, items, dex and options changes are described in words', () => {
   assert.deepEqual(out.map((g) => g.title), ['Trainer', 'Bag', 'Pokédex', 'Options']);
   assert.deepEqual(lines(f, 'Trainer'), ['Name: RED → ASH', 'Money: ¥0 → ¥999,999', 'Badges earned: Boulder, Thunder']);
   assert.deepEqual(lines(f, 'Bag'), ['Potion: 5 → 12', 'Added Rare Candy ×99']);
-  assert.deepEqual(lines(f, 'Pokédex'), ['Owned: 0 → 1', 'Seen: 0 → 1']);
+  assert.deepEqual(lines(f, 'Pokédex'), ['Caught: 0 → 1', 'Seen: 0 → 1']);
   assert.deepEqual(lines(f, 'Options'), ['Text speed: Custom (0) → Fast', 'Battle animations: On → Off']);
 });
 

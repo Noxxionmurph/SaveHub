@@ -93,7 +93,7 @@ function dexLines(b: Gen2Save, a: Gen2Save): string[] {
   const count = (f: (dex: number) => number) => { let n = 0; for (let d = 1; d <= DEX_COUNT; d++) n += f(d); return n; };
   const out: string[] = [];
   const bo = count(b.isOwned), ao = count(a.isOwned), bs = count(b.isSeen), as = count(a.isSeen);
-  if (bo !== ao) out.push(`Owned: ${bo} → ${ao}`);
+  if (bo !== ao) out.push(`Caught: ${bo} → ${ao}`);
   if (bs !== as) out.push(`Seen: ${bs} → ${as}`);
   const same = (x: Uint8Array, y: Uint8Array) => x.every((v, i) => v === y[i]);
   if (bo === ao && bs === as && (!same(b.dexCaught, a.dexCaught) || !same(b.dexSeen, a.dexSeen))) out.push('Some entries changed');

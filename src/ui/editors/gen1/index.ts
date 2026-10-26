@@ -430,18 +430,19 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   // ---------- Pokédex ----------
 
   function dexTab(): Node {
-    type DexState = 'unseen' | 'seen' | 'owned';
-    const stateOf = (n: number): DexState => (s.isOwned(n) ? 'owned' : s.isSeen(n) ? 'seen' : 'unseen');
-    // The game's own SEEN / OWN window.
+    type DexState = 'unseen' | 'seen' | 'caught';
+    const DEX_LABEL: Record<DexState, string> = { unseen: 'not seen', seen: 'seen', caught: 'caught' };
+    const stateOf = (n: number): DexState => (s.isOwned(n) ? 'caught' : s.isSeen(n) ? 'seen' : 'unseen');
+    // The game's own SEEN / OWN window (called Caught here, which says what it is).
     const seenEl = h('dd'), ownEl = h('dd');
     const summary = h('div', { class: 'lcd dex-summary', role: 'group' },
-      h('dl', {}, h('div', {}, h('dt', {}, 'Seen'), seenEl), h('div', {}, h('dt', {}, 'Own'), ownEl)));
+      h('dl', {}, h('div', {}, h('dt', {}, 'Seen'), seenEl), h('div', {}, h('dt', {}, 'Caught'), ownEl)));
     const paintSummary = () => {
-      const owned = DEX_NAMES.filter((_, i) => s.isOwned(i + 1)).length;
+      const caught = DEX_NAMES.filter((_, i) => s.isOwned(i + 1)).length;
       const seen = DEX_NAMES.filter((_, i) => s.isSeen(i + 1)).length;
       seenEl.textContent = `${seen}/151`;
-      ownEl.textContent = `${owned}/151`;
-      summary.setAttribute('aria-label', `Seen ${seen} of 151, owned ${owned} of 151`);
+      ownEl.textContent = `${caught}/151`;
+      summary.setAttribute('aria-label', `Seen ${seen} of 151, caught ${caught} of 151`);
     };
     const tiles = DEX_NAMES.map((name, i) => {
       const n = i + 1;
@@ -453,7 +454,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       const paint = () => {
         const st = stateOf(n);
         tile.className = `dex-tile ${st}`;
-        tile.setAttribute('aria-label', `#${n} ${name}: ${st}. Tap to change.`);
+        tile.setAttribute('aria-label', `#${n} ${name}: ${DEX_LABEL[st]}. Tap to change.`);
       };
       tile.addEventListener('click', () => {
         const st = stateOf(n);
@@ -468,10 +469,10 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     const repaint = () => { tiles.forEach((t) => t.paint()); paintSummary(); };
     paintSummary();
     return h('div', {},
-      intro('Tap a Pokémon to cycle it: not seen, then seen, then owned. A dark shape is not seen, colour is seen, and a highlighted tile with a Poké Ball is owned.'),
+      intro('Tap a Pokémon to cycle it: not seen, then seen, then caught. A dark shape is not seen, colour is seen, and a highlighted tile with a Poké Ball is caught. Caught only fills in the Pokédex; it doesn\'t give you the Pokémon.'),
       summary,
       h('div', { class: 'button-row' },
-        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setOwned(i + 1, true)); markDirty(); repaint(); } }, 'Own all 151'),
+        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setOwned(i + 1, true)); markDirty(); repaint(); } }, 'Mark all caught'),
         h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, true)); markDirty(); repaint(); } }, 'Mark all seen'),
         h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, false)); markDirty(); repaint(); } }, 'Clear all'),
       ),
