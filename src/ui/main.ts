@@ -42,6 +42,12 @@ function moduleLabel(g: GameModule): string {
 }
 
 /** The module's game names without the series name: "Red", "Blue", "Yellow". */
+/** A family's modules in landing-page rows: modules sharing a `shelf` go on one row, in the order they're listed. */
+function shelves(games: GameModule[]): GameModule[][] {
+  const rows = new Map<string, GameModule[]>();
+  for (const g of games) rows.set(g.shelf ?? g.id, [...(rows.get(g.shelf ?? g.id) ?? []), g]);
+  return [...rows.values()];
+}
 const shortNames = (g: GameModule): string[] => g.games.map((n) => (n.startsWith(`${g.family} `) ? n.slice(g.family.length + 1) : n));
 
 /** The game a module's sample save is from, without the series name ("Yellow"), or all of its games. */
@@ -287,10 +293,11 @@ function renderWelcome(): void {
       ...[...gamesByFamily()].map(([family, games]) =>
         h('div', { class: 'family' },
           h('h3', {}, family),
-          // Each module's "You can edit" line sits right above its own games, so it's clear which games it means.
-          ...games.flatMap((g) => [
-            g.editable ? h('p', { class: 'muted family-edits' }, h('strong', {}, `In ${shortNames(g).join(', ').replace(/, ([^,]*)$/, ' and $1')} you can edit: `), g.editable) : null,
-            h('ul', { class: 'tiles' }, g.games.map((name) => {
+          // Each shelf's "You can edit" line sits right above its own games, so it's clear which games it means.
+          ...shelves(games).flatMap((shelf) => [
+            shelf[0].editable ? h('p', { class: 'muted family-edits' },
+              h('strong', {}, `In ${shelf.flatMap(shortNames).join(', ').replace(/, ([^,]*)$/, ' and $1')} you can edit: `), shelf[0].editable) : null,
+            h('ul', { class: 'tiles' }, shelf.flatMap((g) => g.games.map((name) => {
               const picture = g.icons?.[name];
               const tile = h('li', { class: 'tile' },
                 h('span', { class: 'tile-label', 'aria-hidden': 'true' }),
@@ -300,7 +307,7 @@ function renderWelcome(): void {
               const color = g.colors?.[name];
               if (color) tile.style.setProperty('--label', color);
               return tile;
-            })),
+            }))),
           ]))),
       h('p', { class: 'request' }, 'Want another game? ', externalLink(`${REPO}/issues/new`, 'Request it on GitHub'), '.'),
     ),

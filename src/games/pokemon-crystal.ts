@@ -9,7 +9,8 @@ export default defineGame<Gen2Save>({
   family: 'Pokémon',
   games: GAMES,
   platform: 'Game Boy Color · English',
-  editable: 'Everything the Gold and Silver editor can change, plus whether you play as the boy or the girl, Crystal’s new key items, and where each Pokémon was caught.',
+  // Shown on Gold and Silver's shelf, under their "you can edit" line (which covers Crystal's extras).
+  shelf: 'pokemon-gen2',
   fileHint: 'Pokémon Crystal (English) saves are 32,768 bytes (32 KB).',
   colors: { 'Pokémon Crystal': '#5fb4d9' },
   // The box's mascot: Suicune.

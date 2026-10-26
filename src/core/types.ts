@@ -73,6 +73,11 @@ export interface GameModule<S extends EditableSave = EditableSave> {
   readonly platform: string;
   /** One plain sentence on what the editor can change, shown under the family on the landing page. */
   readonly editable?: string;
+  /**
+   * Modules with the same shelf share one row of game tiles on the landing page, under the first one's `editable`
+   * line (Gold / Silver and Crystal are two modules but one generation). Leave it out for a row of its own.
+   */
+  readonly shelf?: string;
   /** What a valid file looks like (size, extension), shown when a file isn't recognised, e.g. "Saves are 32,768 bytes." */
   readonly fileHint?: string;
   /** Optional cartridge-label color per game name (any CSS color), shown on the landing page. */

@@ -473,7 +473,7 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .mon > .icon { align-self: center; }
 
-.dex-summary { display: inline-block; padding: 6px 16px; }
+.dex-summary { display: inline-block; padding: 6px 16px; margin-bottom: 2px; }
 .dex-summary dl { display: flex; flex-wrap: wrap; gap: 2px 28px; font: 500 1rem/1.5 var(--font-display); text-transform: uppercase; }
 .dex-summary dl > div { display: flex; gap: 10px; }
 .dex-summary dt { color: var(--lcd-dim); }
@@ -585,10 +585,15 @@ img[hidden] { display: none !important; }
 .dex-tile.caught { background: var(--caught); color: var(--caught-ink); border-color: var(--caught-edge); }
 .dex-tile.caught .dex-no { color: var(--caught-dim); }
 .dex-tile[hidden] { display: none; }
-.dex-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
-.dex-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; }
-.dex-filter { display: flex; flex-wrap: wrap; gap: 6px; }
-.dex-filter .chip-btn { min-height: 34px; padding: 2px 14px; }
+/* Two labelled bars under the totals: "Set all to" (ordinary buttons) and "Show" (a joined segmented control + search). */
+.dex-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 12px; }
+.dex-bar-label { min-width: 7.5em; font-size: 0.875rem; font-weight: 600; color: var(--muted); }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+.seg button { min-height: 36px; padding: 2px 12px; border: 0; border-radius: 0; background: var(--surface); }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button:active:not(:disabled) { transform: none; }
+.seg button[aria-pressed="true"] { background: var(--text); color: var(--bg); font-weight: 600; }
+@media (max-width: 560px) { .dex-bar-label { flex-basis: 100%; } .seg { flex: 1 1 auto; } .seg button { flex: 1 1 auto; padding-inline: 6px; } }
 .dex-search { flex: 1 1 160px; max-width: 260px; }
 @media (max-width: 560px) { .dex-search { max-width: none; } }
 .dex-empty { margin-top: 12px; }
@@ -842,3 +847,4 @@ button.danger { color: var(--danger); }
 .box-name { margin-top: 12px; max-width: 22em; }
 .tm-only { margin: 14px 0 0; font-weight: 500; }
 .tm-row[hidden] { display: none; }
+.shiny-toggle { margin: 0; min-height: 36px; }

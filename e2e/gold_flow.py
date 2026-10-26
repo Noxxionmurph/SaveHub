@@ -55,7 +55,7 @@ with sync_playwright() as p:
     page.fill('input[aria-label="TM01 count"]', '5'); page.press('input[aria-label="TM01 count"]', 'Tab')
     held_tms = sum(1 for v in page.locator('.tm-row input').evaluate_all('els => els.map(e => e.value)') if v != '0')
     page.check('.tm-only input')
-    assert page.locator('.tm-row:visible').count() == held_tms and page.locator('input[aria-label="TM01 count"]').is_visible()
+    assert page.locator('.tm-row:visible').count() == 57 - held_tms and not page.locator('input[aria-label="TM01 count"]').is_visible()
     page.uncheck('.tm-only input')
     assert page.locator('.tm-row:visible').count() == 57
     page.screenshot(path=f'{SP}/g2-bag.png', full_page=True)
@@ -69,7 +69,7 @@ with sync_playwright() as p:
     page.locator('.mon-main').nth(3).click()                                          # Gligar
     page.wait_for_selector('dialog.mon-dialog[open]')
     assert page.locator('dialog .stats.six dt').count() == 6
-    page.click('dialog button:has-text("Make shiny")')
+    page.click('dialog .shiny-toggle input')
     assert page.locator('dialog h2 .shiny-star').count() == 1
     page.select_option('dialog label.field:has-text("Gender") select', 'female')
     assert page.locator('dialog h2 .gender.female').count() == 1

@@ -58,7 +58,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
   let boxView = s.currentBoxIndex;
   let cardIntroPlayed = false;
-  let tmOnlyHeld = false;
+  let tmHideHeld = false;
   const { item: ITEM_OPTIONS, ball: BALL_OPTIONS, key: KEY_OPTIONS, pc: PC_OPTIONS } = pickers(s.game);
   const nameOf = (id: number) => itemName(id, s.game);
   const markDirty = () => host.markDirty();
@@ -323,7 +323,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       const info = moveInfo(move);
       const hm = i >= TM_COUNT;
       const input = numberInput(s.tmhm[i], 0, hm ? 1 : 99, (v) => { s.tmhm[i] = v; markDirty(); paint(); }, { 'aria-label': `${TMHM_LABELS[i]} count` });
-      return h('div', { class: 'tm-row', hidden: tmOnlyHeld && s.tmhm[i] === 0 },
+      return h('div', { class: 'tm-row', hidden: tmHideHeld && s.tmhm[i] > 0 },
         itemIcon(discPath(i)),
         h('span', { class: 'tm-label' }, h('span', { class: 'tm-no' }, TMHM_LABELS[i]), ' ', info?.name ?? `Move ${move}`),
         input);
@@ -334,10 +334,11 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       markDirty();
       render(); // rebuilt rather than patched, so each field's own idea of its value stays right
     };
-    // Hides the ones you have none of; a count you set to 0 stays on screen until you switch this off and on again.
-    const onlyHeld = h('input', {
-      type: 'checkbox', checked: tmOnlyHeld,
-      onchange: () => { tmOnlyHeld = onlyHeld.checked; rows.forEach((r, i) => { r.hidden = tmOnlyHeld && s.tmhm[i] === 0; }); },
+    // Hides the ones you already have, leaving what's left to get; a count you type stays on screen until you switch
+    // this off and on again, so the field doesn't vanish under your finger.
+    const hideHeld = h('input', {
+      type: 'checkbox', checked: tmHideHeld,
+      onchange: () => { tmHideHeld = hideHeld.checked; rows.forEach((r, i) => { r.hidden = tmHideHeld && s.tmhm[i] > 0; }); },
     });
     paint();
     wrap.append(
@@ -347,7 +348,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
         h('button', { onclick: () => fill(99, 1) }, 'All TMs ×99 and HMs'),
         h('button', { onclick: () => fill(null, 1) }, 'All HMs'),
         h('button', { onclick: () => fill(0, 0) }, 'Clear')),
-      h('label', { class: 'check-row tm-only' }, onlyHeld, 'Only show the ones I have'),
+      h('label', { class: 'check-row tm-only' }, hideHeld, 'Hide the ones I already have'),
       h('div', { class: 'tm-grid' }, rows));
     return wrap;
   }

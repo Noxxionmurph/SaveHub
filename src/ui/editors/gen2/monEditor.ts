@@ -187,7 +187,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
     });
     const heldNote = isMail(mon.item)
       ? 'It holds Mail with a letter written in the game. Pick another item to throw the letter away.'
-      : 'Anything from the Items or Balls pocket. Mail can only be given in the game, where you write the letter.';
+      : 'From the Items or Balls pocket. Mail can only be given in the game.';
 
     const rus = pokerusState(mon.pokerus);
     const caught = decodeCaught(mon.caught);
@@ -195,6 +195,11 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
     const locations = LOCATION_OPTIONS.some((o) => o.value === caught.location) ? LOCATION_OPTIONS
       : [...LOCATION_OPTIONS, { value: caught.location, label: locationName(caught.location) }];
     const title = mon.isEgg ? 'Egg' : mon.nickname || speciesName(mon.species);
+    // Turning a Pokémon into an egg is rare, so it sits at the bottom; on an egg it's the first thing, to hatch it.
+    const eggRow = h('label', { class: 'check-row' },
+      h('input', { type: 'checkbox', checked: mon.isEgg, onchange: (e: Event) => setEgg((e.target as HTMLInputElement).checked) }),
+      h('span', {}, 'It’s an egg'),
+      h('span', { class: 'muted' }, mon.isEgg ? ' Untick to hatch it now.' : ' The species is what will hatch.'));
 
     return [
       h('div', { class: 'mon-head' },
@@ -210,10 +215,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
         keys.map((k) => h('div', {}, h('dt', {}, STAT_LABELS[k]), h('dd', {}, String(shown[k]))))),
       party || mon.isEgg ? null : h('p', { class: 'muted stats-note' }, 'Box Pokémon don’t store stats, so these are calculated from level, DVs and stat experience.'),
 
-      h('label', { class: 'check-row' },
-        h('input', { type: 'checkbox', checked: mon.isEgg, onchange: (e: Event) => setEgg((e.target as HTMLInputElement).checked) }),
-        h('span', {}, 'It’s an egg'),
-        h('span', { class: 'muted' }, mon.isEgg ? ' Untick to hatch it now.' : ' The species is what will hatch.')),
+      mon.isEgg ? eggRow : null,
 
       h('div', { class: 'grid' },
         field(mon.isEgg ? 'Hatches into' : 'Species', selectInput(SPECIES_OPTIONS, mon.species, (v) => {
@@ -230,26 +232,27 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
           touched();
           refresh();
         }), mon.isEgg ? 'Eggs hatch at level 5.' : 'Changing the level also sets experience to match.'),
-        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; }), 'Total experience points.'),
+        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; })),
+        party && !mon.isEgg ? field('Status', selectInput(statusOptions(mon.status), mon.status, (v) => { mon.status = Number(v); })) : null,
+        party && !mon.isEgg ? field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; refresh(); })) : null,
         mon.isEgg
           ? field('Egg cycles left', numberInput(mon.friendship, 0, 255, (v) => { mon.friendship = v; }),
-            'Each cycle is 256 steps. At 0 it hatches on your next step. (Stored where friendship goes.)')
+            'Each cycle is 256 steps. At 0 it hatches on your next step.')
           : field('Friendship', numberInput(mon.friendship, 0, 255, (v) => { mon.friendship = v; }),
-            '0 to 255. Some Pokémon evolve at 220 or more, and Return is strongest at 255.'),
+            '0 to 255. Some evolve at 220 or more; Return is strongest at 255.'),
         h('div', { class: 'field' },
           h('span', { class: 'field-label' }, 'Held item'),
           h('div', { class: 'item-row bare' }, heldIcon, heldPicker),
           h('span', { class: 'field-hint' }, heldNote)),
-        party && !mon.isEgg ? field('Status', selectInput(statusOptions(mon.status), mon.status, (v) => { mon.status = Number(v); })) : null,
-        party && !mon.isEgg ? field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; refresh(); })) : null,
-        nameField('Original trainer', mon.otName, (v) => { mon.otName = v; }, 'The name of whoever caught it.', 7),
-        field('Original trainer ID', numberInput(mon.otId, 0, 65535, (v) => { mon.otId = v; }),
-          'If this isn’t your Trainer ID, the game counts this Pokémon as traded.'),
         field('Pokérus', selectInput(POKERUS_OPTIONS, rus, (v) => {
           // Strain 1, which lasts 2 days; cured keeps the strain with no days left.
           mon.pokerus = v === 'none' ? 0 : v === 'cured' ? (mon.pokerus & 0xf0 || 0x10) : (mon.pokerus & 0x0f ? mon.pokerus : 0x12);
-        }), 'A rare virus that helps: it doubles the stat experience a Pokémon earns.'),
+        }), 'A rare, helpful virus: it doubles the stat experience earned.'),
       ),
+
+      h('h3', {}, mon.isEgg ? 'Moves it hatches with' : 'Moves'),
+      h('p', { class: 'muted section-note' }, 'Each PP Up (0 to 3) raises a move’s max PP and its current PP. A newly picked move starts with full PP.'),
+      h('div', { class: 'moves' }, [0, 1, 2, 3].map(moveRow)),
 
       mon.isEgg ? null : h('h3', {}, 'Looks'),
       mon.isEgg ? null : h('p', { class: 'muted section-note' }, 'In Gen 2, gender, shininess and Unown’s letter all come from the DVs, so these change the DVs below.'),
@@ -262,29 +265,15 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
             h('output', { class: 'derived' }, gender === 'male' ? '♂ Always male' : gender === 'female' ? '♀ Always female' : 'None'), h('span', { class: 'field-hint' }, 'Fixed for this species.')),
         h('div', { class: 'field' },
           h('span', { class: 'field-label' }, 'Shiny'),
-          h('div', { class: 'button-row tight' },
-            h('button', { 'aria-pressed': String(shiny), disabled: shiny, onclick: () => setDvs(shinyDvs(mon.dvs)) }, '★ Make shiny'),
-            h('button', { disabled: !shiny, onclick: () => setDvs({ ...mon.dvs, spc: 11 }) }, 'Not shiny')),
-          h('span', { class: 'field-hint' }, 'Shiny means Defense, Speed and Special DVs of 10 and a matching Attack DV, so a shiny Pokémon can’t have top DVs.')),
+          h('label', { class: 'check-row shiny-toggle' },
+            h('input', { type: 'checkbox', checked: shiny, onchange: () => setDvs(shiny ? { ...mon.dvs, spc: 11 } : shinyDvs(mon.dvs)) }),
+            h('span', {}, '★ Shiny')),
+          h('span', { class: 'field-hint' }, 'Needs Defense, Speed and Special DVs of 10, so a shiny Pokémon can’t have top DVs.')),
         mon.species === UNOWN
           ? field('Unown letter', selectInput([...UNOWN_LETTERS].map((l) => ({ value: l, label: l })), unownLetter(mon.dvs),
             (v) => setDvs(dvsForUnownLetter(mon.dvs, v))), 'A shiny Unown can only be I or V.')
           : null,
       ),
-
-      game === 'crystal' ? h('h3', {}, 'Where it was caught') : null,
-      game === 'crystal' ? h('p', { class: 'muted section-note' }, 'Crystal writes this down when a Pokémon is caught, hatched or given to you. One traded over from Gold or Silver has nothing recorded.') : null,
-      game === 'crystal' ? h('div', { class: 'grid' },
-        field('Place', selectInput(locations, caught.location, (v) => setCaught({ location: Number(v) })), 'Gift and Event are what the game records for Pokémon it gives you.'),
-        field('Level when caught', numberInput(caught.level, 0, CAUGHT_LEVEL_MAX, (v) => setCaught({ level: v })), `0 to ${CAUGHT_LEVEL_MAX}. Eggs record level 1.`),
-        field('Time of day', selectInput(TIME_OPTIONS, caught.time ?? '', (v) => setCaught({ time: (v || null) as CaughtData['time'] }))),
-        field('Caught by', selectInput([{ value: 'boy', label: 'A boy' }, { value: 'girl', label: 'A girl' }], caught.otGender,
-          (v) => setCaught({ otGender: v === 'girl' ? 'girl' : 'boy' })), 'Whether the original trainer played as the boy or the girl.'),
-      ) : null,
-
-      h('h3', {}, mon.isEgg ? 'Moves it hatches with' : 'Moves'),
-      h('p', { class: 'muted section-note' }, 'Each PP Up (0 to 3) raises a move’s max PP and its current PP. A newly picked move starts with full PP.'),
-      h('div', { class: 'moves' }, [0, 1, 2, 3].map(moveRow)),
 
       h('h3', {}, 'DVs (hidden genes)'),
       h('p', { class: 'muted section-note' }, '0 to 15, higher is better. HP’s DV is worked out from the other four, and Special covers Special Attack and Special Defense.'),
@@ -309,6 +298,23 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
             `For this level, DVs and stat experience the game works out: HP ${calc.hp}, Atk ${calc.atk}, Def ${calc.def}, SpA ${calc.spa}, SpD ${calc.spd}, Spe ${calc.spe}.`) : null,
         )
         : null,
+
+      h('h3', {}, game === 'crystal' ? 'Original trainer and where it was caught' : 'Original trainer'),
+      game === 'crystal' ? h('p', { class: 'muted section-note' }, 'Crystal writes the place, level and time down when a Pokémon is caught, hatched or given to you. One traded over from Gold or Silver has nothing recorded.') : null,
+      h('div', { class: 'grid' },
+        nameField('Original trainer', mon.otName, (v) => { mon.otName = v; }, undefined, 7),
+        field('Original trainer ID', numberInput(mon.otId, 0, 65535, (v) => { mon.otId = v; }),
+          'If this isn’t your Trainer ID, the game counts this Pokémon as traded.'),
+        game === 'crystal' ? [
+          field('Place', selectInput(locations, caught.location, (v) => setCaught({ location: Number(v) })), 'Gift and Event are what the game records for Pokémon it gives you.'),
+          field('Level when caught', numberInput(caught.level, 0, CAUGHT_LEVEL_MAX, (v) => setCaught({ level: v })), `0 to ${CAUGHT_LEVEL_MAX}. Eggs record level 1.`),
+          field('Time of day', selectInput(TIME_OPTIONS, caught.time ?? '', (v) => setCaught({ time: (v || null) as CaughtData['time'] }))),
+          field('Caught by', selectInput([{ value: 'boy', label: 'A boy' }, { value: 'girl', label: 'A girl' }], caught.otGender,
+            (v) => setCaught({ otGender: v === 'girl' ? 'girl' : 'boy' })), 'Whether the original trainer played as the boy or the girl.'),
+        ] : null,
+      ),
+
+      mon.isEgg ? null : eggRow,
 
       h('h3', {}, 'Shortcuts'),
       h('div', { class: 'button-row' },

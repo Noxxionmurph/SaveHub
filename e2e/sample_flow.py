@@ -19,6 +19,12 @@ with sync_playwright() as p:
     buttons = page.locator('.sample-row button')
     assert [buttons.nth(i).inner_text() for i in range(buttons.count())] == ['Try a Yellow sample', 'Try a Crystal sample']
     page.screenshot(path=f'{SP}/c1-welcome.png')
+    # one row per generation: Gold, Silver and Crystal share a row and one "you can edit" line
+    rows = page.locator('section.supported ul.tiles')
+    assert [rows.nth(i).locator('.tile-name').all_inner_texts() for i in range(rows.count())] == [
+        ['Pokémon Red', 'Pokémon Blue', 'Pokémon Yellow'], ['Pokémon Gold', 'Pokémon Silver', 'Pokémon Crystal']]
+    edits = page.locator('.family-edits').all_inner_texts()
+    assert len(edits) == 2 and edits[1].startswith('In Gold, Silver and Crystal you can edit: Everything from Red, Blue and Yellow'), edits
     page.click('.sample-row button >> nth=0')
     page.wait_for_selector('.tabs')
     assert 'made-up sample' in page.inner_text('.sample-note')
