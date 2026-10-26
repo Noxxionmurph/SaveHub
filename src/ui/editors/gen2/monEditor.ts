@@ -10,7 +10,7 @@ import {
 import { CAUGHT_LEVEL_MAX, LOCATION_CHOICES, decodeCaught, encodeCaught, locationName, type CaughtData } from '../../../core/gen2/caught.ts';
 import { calcStats, defaultNickname, recalcPartyStats, type Gen2Game, type Gen2Mon } from '../../../core/gen2/save.ts';
 import { askConfirm, clear, field, h, lazySelect, numberInput, selectInput } from '../../dom.ts';
-import { itemIcon, itemIconUrl, setIconSrc, typeIcon } from '../../sprites.ts';
+import { itemIcon, itemIconUrl, setIconSrc, typeLabel } from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
 import { itemSpritePath } from './itemSprites.ts';
@@ -136,11 +136,10 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
         const id = mon.moves[i];
         const info = moveInfo(id);
         const ups = mon.ppUps[i];
-        // Curse's type is "???" in Gen 2 and has no icon; it shows the Ghost icon it got later.
-        const iconType = info?.type === '???' ? 'Ghost' : info?.type;
+        const iconType = info?.type;   // Curse's is "???", which has its own label
         return h('div', { class: 'move-row' },
           h('div', { class: 'move-pick' },
-            iconType ? typeIcon(iconType, 'move-type') : h('span', { class: 'move-type blank', 'aria-hidden': 'true' }),
+            iconType ? typeLabel(iconType, 'move-type') : h('span', { class: 'move-type blank', 'aria-hidden': 'true' }),
             selectInput(MOVE_OPTIONS, id, (v) => {
               mon.moves[i] = Number(v);
               mon.pp[i] = maxPp(mon.moves[i], mon.ppUps[i]);
