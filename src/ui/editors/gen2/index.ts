@@ -1,0 +1,579 @@
+// Gen 2 (Gold / Silver) editor UI. Loaded lazily by the shell via the game module. Laid out like the Gen 1 editor, with
+// what Gold and Silver added: sixteen badges, Mom's savings, the four bag pockets, held items, eggs, shininess and
+// gender, fourteen named boxes and the 251-Pokémon Pokédex.
+
+import {
+  DEX_COUNT, DEX_NAMES, HM_COUNT, JOHTO_BADGES, KANTO_BADGES, PRINT_SHADES, TEXT_SPEEDS, TMHM_LABELS, TMHM_MOVES, TM_COUNT,
+  baseStatsFor, genderOf, itemChoices, itemName, moveInfo, speciesName, type Pocket,
+} from '../../../core/gen2/data.ts';
+import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, dropMon, listAt, placeName, shiftMon } from '../../../core/gen2/roster.ts';
+import {
+  BAG_MAX, BOX_NAME_LEN, COINS_MAX, MONEY_MAX, PLAYER_NAME_MAX, depositInBox, newMon, type BagItem, type Gen2Mon, type Gen2Save,
+} from '../../../core/gen2/save.ts';
+import type { MountEditor } from '../../../core/types.ts';
+import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '../../dom.ts';
+import { enableDrag } from '../../drag.ts';
+import { choiceRow } from '../../gameChoice.ts';
+import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
+import { typeChips } from '../../typeChip.ts';
+import { monHpBar } from './hpBar.ts';
+import { discPath, itemSpritePath } from './itemSprites.ts';
+import { genderMark, monIcon, monLabel, shinyMark } from './monBits.ts';
+import { openMonEditor } from './monEditor.ts';
+import { openMonMenu } from './monMenu.ts';
+import { nameField } from './nameField.ts';
+
+type Tab = 'trainer' | 'bag' | 'party' | 'boxes' | 'dex';
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'trainer', label: 'Trainer' },
+  { id: 'bag', label: 'Bag' },
+  { id: 'party', label: 'Party' },
+  { id: 'boxes', label: 'Boxes' },
+  { id: 'dex', label: 'Pokédex' },
+];
+
+/** One shared options array per picker, so each picker's markup is built once and cloned for every row. */
+const pickerOptions = (...pockets: Pocket[]) => itemChoices(...pockets).map((c) => ({ value: c.id, label: c.name }));
+const ITEM_OPTIONS = pickerOptions('item');
+const BALL_OPTIONS = pickerOptions('ball');
+const KEY_OPTIONS = pickerOptions('key');
+// The PC takes anything except TMs and HMs (pokegold: the PC's deposit screen offers only the other three pockets).
+const PC_OPTIONS = pickerOptions('item', 'ball', 'key');
+
+const RARE_CANDY = 0x20;
+const ULTRA_BALL = 0x02;
+
+const intro = (...children: (Node | string)[]) => h('p', { class: 'tab-intro' }, ...children);
+const popcount = (n: number) => { let c = 0; for (let v = n & 0xff; v; v &= v - 1) c++; return c; };
+
+export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
+  let tab: Tab = 'trainer';
+  let boxView = s.currentBoxIndex;
+  let cardIntroPlayed = false;
+  const markDirty = () => host.markDirty();
+  let refreshers: (() => void)[] = [];
+  const edited = () => { markDirty(); refreshers.forEach((f) => f()); };
+
+  const render = () => {
+    refreshers = [];
+    clear(container);
+    container.append(
+      h('nav', { class: 'tabs', role: 'tablist' }, TABS.map((t) =>
+        h('button', {
+          role: 'tab', class: t.id === tab ? 'tab active' : 'tab', 'aria-selected': String(t.id === tab),
+          onclick: () => { tab = t.id; render(); },
+        }, t.label))),
+      h('main', { class: 'panel' }, renderTab()),
+    );
+  };
+
+  function renderTab(): Node {
+    switch (tab) {
+      case 'trainer': return trainerTab();
+      case 'bag': return bagTab();
+      case 'party': return partyTab();
+      case 'boxes': return boxesTab();
+      case 'dex': return dexTab();
+    }
+  }
+
+  // ---------- trainer ----------
+
+  const badgeTotal = () => popcount(s.johtoBadges) + popcount(s.kantoBadges);
+
+  function overview(): HTMLElement {
+    const stat = (label: string) => { const dd = h('dd'); return { node: h('div', {}, h('dt', {}, label), dd), dd }; };
+    const name = h('span', { class: 'tcard-name' });
+    const id = h('span', { class: 'tcard-id' });
+    const money = stat('Money');
+    const dex = stat('Pokédex');
+    const time = stat('Time');
+    const badges = stat('Badges');
+    const row = (region: 'johto' | 'kanto') =>
+      h('div', { class: 'tcard-badges', role: 'img' }, Array.from({ length: 8 }, (_, i) => h('span', { class: 'badge-slot' }, badgeIcon(i + 1, '', region))));
+    const johto = row('johto');
+    const kanto = row('kanto');
+    const strip = h('div', { class: 'party-strip', role: 'group', 'aria-label': 'Party' });
+
+    const paintCard = () => {
+      name.textContent = s.trainerName || '—';
+      id.textContent = `ID ${String(s.trainerId).padStart(5, '0')}`;
+      money.dd.textContent = `¥${s.money.toLocaleString('en-US')}`;
+      let owned = 0;
+      for (let n = 1; n <= DEX_COUNT; n++) owned += Number(s.isOwned(n));
+      dex.dd.textContent = String(owned);
+      time.dd.textContent = `${s.playHours}:${String(s.playMinutes).padStart(2, '0')}`;
+      badges.dd.textContent = `${badgeTotal()}/16`;
+      johto.setAttribute('aria-label', `${popcount(s.johtoBadges)} of 8 Johto badges earned`);
+      kanto.setAttribute('aria-label', `${popcount(s.kantoBadges)} of 8 Kanto badges earned`);
+      Array.from(johto.children).forEach((slot, i) => slot.classList.toggle('earned', Boolean((s.johtoBadges >> i) & 1)));
+      Array.from(kanto.children).forEach((slot, i) => slot.classList.toggle('earned', Boolean((s.kantoBadges >> i) & 1)));
+    };
+    const paintParty = () => {
+      clear(strip);
+      strip.append(...Array.from({ length: 6 }, (_, i) => {
+        const mon = s.party[i];
+        if (!mon) return h('span', { class: 'party-slot empty', 'aria-hidden': 'true' });
+        return h('button', {
+          class: 'party-slot', 'aria-label': `${monLabel(mon)}${mon.isEgg ? '' : `, level ${mon.level}`}. Edit`,
+          onclick: () => openMonEditor({ mon, party: true, onDone: (changed) => { if (changed) edited(); paintParty(); } }),
+        }, monIcon(mon),
+        h('span', { class: 'slot-name' }, monLabel(mon)),
+        h('span', { class: 'lv-tag' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`),
+        monHpBar(mon, true, 'small'));
+      }));
+    };
+    refreshers.push(paintCard);
+    paintCard();
+    paintParty();
+    const card = h('section', { class: 'card overview' },
+      h('div', { class: `lcd tcard${cardIntroPlayed ? '' : ' boot'}` },
+        h('div', { class: 'tcard-top' }, name, id),
+        h('dl', { class: 'tcard-stats' }, money.node, dex.node, time.node, badges.node),
+        johto, kanto),
+      strip);
+    cardIntroPlayed = true;
+    return card;
+  }
+
+  /** One region's eight badges as toggle buttons, with a line naming the ones you have (the names don't fit on a phone). */
+  function badgeCard(title: string, names: readonly string[], region: 'johto' | 'kanto', get: () => number, set: (v: number) => void): Node {
+    const caption = h('p', { class: 'muted badge-caption', 'aria-live': 'polite' });
+    const paintCaption = () => {
+      const earned = names.filter((_, i) => (get() >> i) & 1);
+      caption.textContent = earned.length === 0 ? 'None earned yet.'
+        : earned.length === names.length ? 'All eight earned.' : `Earned: ${earned.join(', ')}.`;
+    };
+    paintCaption();
+    const buttons = names.map((name, i) => {
+      const btn = h('button', { class: 'badge-btn', title: `${name} Badge`, 'aria-pressed': String(Boolean((get() >> i) & 1)) },
+        h('span', { class: 'gem', 'aria-hidden': 'true' }, badgeIcon(i + 1, '', region)), h('span', { class: 'badge-name' }, name));
+      btn.addEventListener('click', () => {
+        set(get() ^ (1 << i));
+        btn.setAttribute('aria-pressed', String(Boolean((get() >> i) & 1)));
+        paintCaption();
+        edited();
+      });
+      return btn;
+    });
+    const setAll = (v: number) => {
+      set(v);
+      buttons.forEach((b, i) => b.setAttribute('aria-pressed', String(Boolean((v >> i) & 1))));
+      paintCaption();
+      edited();
+    };
+    return h('div', { class: 'subgroup' },
+      h('h4', {}, title),
+      h('div', { class: 'badge-grid' }, buttons),
+      caption,
+      h('div', { class: 'button-row' },
+        h('button', { onclick: () => setAll(0xff) }, `All ${title.split(' ')[0]}`),
+        h('button', { onclick: () => setAll(0) }, 'Clear')));
+  }
+
+  function trainerTab(): Node {
+    return h('div', { class: 'stack' },
+      intro('Your trainer card, money, badges and game settings. Edit any field. Nothing is written to a file until you tap Save.'),
+      overview(),
+      h('section', { class: 'card' },
+        h('h3', {}, 'Trainer'),
+        h('p', { class: 'muted card-note' }, 'Names hold up to 7 characters, as on the naming screen. Type {PK} or {MN} for the PK and MN symbols.'),
+        h('div', { class: 'grid pair' },
+          nameField('Trainer name', s.trainerName, (v) => { s.trainerName = v; edited(); }, undefined, PLAYER_NAME_MAX),
+          nameField('Rival name', s.rivalName, (v) => { s.rivalName = v; markDirty(); }, undefined, PLAYER_NAME_MAX),
+        ),
+        h('div', { class: 'grid one' },
+          field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; edited(); }),
+            'Pokémon you caught remember this number. If you change it, they count as traded: they earn extra experience, but may ignore your orders without enough badges.'),
+        ),
+        h('div', { class: 'grid trio' },
+          field('Money (¥)', numberInput(s.money, 0, MONEY_MAX, (v) => { s.money = v; edited(); }), 'Up to ¥999,999.'),
+          field('Mom’s savings (¥)', numberInput(s.momsMoney, 0, MONEY_MAX, (v) => { s.momsMoney = v; markDirty(); }), 'What Mom is keeping for you. Up to ¥999,999.'),
+          field('Game Corner coins', numberInput(s.coins, 0, COINS_MAX, (v) => { s.coins = v; markDirty(); }), 'Up to 9,999. Needs the Coin Case to see.'),
+        ),
+        h('div', { class: 'button-row' },
+          h('button', { onclick: () => { s.money = MONEY_MAX; s.momsMoney = MONEY_MAX; s.coins = COINS_MAX; markDirty(); render(); } }, 'Max money & coins'),
+        ),
+        h('div', { class: 'subgroup' },
+          h('h4', {}, 'Play time'),
+          h('div', { class: 'grid trio' },
+            field('Hours', numberInput(s.playHours, 0, 999, (v) => { s.playHours = v; edited(); })),
+            field('Minutes', numberInput(s.playMinutes, 0, 59, (v) => { s.playMinutes = v; edited(); })),
+            field('Seconds', numberInput(s.playSeconds, 0, 59, (v) => { s.playSeconds = v; markDirty(); })),
+          ))),
+      h('section', { class: 'card' },
+        h('h3', {}, 'Badges'),
+        h('p', { class: 'muted card-note' }, 'Tap a badge to earn it or take it away. Badges decide which HMs work outside battle and how high a level traded Pokémon obey.'),
+        badgeCard('Johto badges', JOHTO_BADGES, 'johto', () => s.johtoBadges, (v) => { s.johtoBadges = v; }),
+        badgeCard('Kanto badges', KANTO_BADGES, 'kanto', () => s.kantoBadges, (v) => { s.kantoBadges = v; })),
+      optionsCard(),
+    );
+  }
+
+  /** The settings from the in-game OPTION menu. */
+  function optionsCard(): Node {
+    const o = s.options;
+    const keep = <T extends { value: number; label: string }>(list: readonly T[], v: number) =>
+      list.some((t) => t.value === v) ? [...list] : [...list, { value: v, label: `Custom (${v})` }];
+    const onOff = (on: boolean) => (on ? 'on' : 'off');
+    return h('section', { class: 'card' },
+      h('h3', {}, 'Game options'),
+      h('p', { class: 'muted card-note' }, 'The same settings as OPTION in the game’s start menu.'),
+      h('div', { class: 'lcd options-window' },
+        choiceRow('Text speed', keep(TEXT_SPEEDS, o.textSpeed).map((t) => ({ value: String(t.value), label: t.label })), String(o.textSpeed),
+          (v) => { o.textSpeed = Number(v); edited(); }),
+        choiceRow('Battle scene', [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }], onOff(!o.battleSceneOff),
+          (v) => { o.battleSceneOff = v === 'off'; edited(); }),
+        choiceRow('Battle style', [{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }], o.battleStyleSet ? 'set' : 'shift',
+          (v) => { o.battleStyleSet = v === 'set'; edited(); }),
+        choiceRow('Sound', [{ value: 'mono', label: 'Mono' }, { value: 'stereo', label: 'Stereo' }], o.stereo ? 'stereo' : 'mono',
+          (v) => { o.stereo = v === 'stereo'; edited(); }),
+        choiceRow('Print', keep(PRINT_SHADES, o.printShade).map((t) => ({ value: String(t.value), label: t.label })), String(o.printShade),
+          (v) => { o.printShade = Number(v); edited(); }),
+        choiceRow('Menu account', [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }], onOff(o.menuAccount),
+          (v) => { o.menuAccount = v === 'on'; edited(); }),
+        choiceRow('Frame', Array.from({ length: 8 }, (_, i) => ({ value: String(i), label: `Type ${i + 1}` })), String(o.frame),
+          (v) => { o.frame = Number(v); edited(); }),
+      ),
+      h('p', { class: 'muted section-note' },
+        'Battle scene Off skips move animations. Shift asks if you want to switch Pokémon after you knock one out; Set doesn’t. Print is how dark the Game Boy Printer prints. Menu account shows a line explaining each start-menu choice. Frame is the border drawn around text boxes.'));
+  }
+
+  // ---------- bag ----------
+
+  function itemList(title: string, note: string, items: BagItem[], max: number, options: { value: number; label: string }[], fresh: () => number): Node {
+    const wrap = h('section', { class: 'card' });
+    const draw = () => {
+      clear(wrap);
+      wrap.append(
+        h('h3', {}, title, h('span', { class: 'muted count' }, `${items.length}/${max}`)),
+        note ? h('p', { class: 'muted card-note' }, note) : null,
+        ...items.map((it, i) => {
+          const icon = itemIcon(itemSpritePath(it.id));
+          return h('div', { class: 'item-row' },
+            icon,
+            lazySelect(options.some((c) => c.value === it.id) ? options : [{ value: it.id, label: itemName(it.id) }, ...options],
+              it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }),
+            numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': 'Quantity' }),
+            h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { items.splice(i, 1); markDirty(); draw(); } }, '✕'),
+          );
+        }),
+        h('button', {
+          disabled: items.length >= max,
+          onclick: () => { items.push({ id: fresh(), count: 1 }); markDirty(); draw(); },
+        }, items.length >= max ? `Full (${max} of ${max})` : '+ Add item'),
+      );
+    };
+    draw();
+    return wrap;
+  }
+
+  /** The Key Items pocket: one of each, so no quantity. */
+  function keyList(): Node {
+    const wrap = h('section', { class: 'card' });
+    const max = BAG_MAX.keyItems;
+    const draw = () => {
+      clear(wrap);
+      const list = s.keyItems;
+      wrap.append(
+        h('h3', {}, 'Key Items pocket', h('span', { class: 'muted count' }, `${list.length}/${max}`)),
+        h('p', { class: 'muted card-note' }, 'Things you only ever have one of, like the Bicycle and the fishing rods.'),
+        ...list.map((id, i) => {
+          const icon = itemIcon(itemSpritePath(id));
+          return h('div', { class: 'item-row no-count' },
+            icon,
+            lazySelect(KEY_OPTIONS.some((c) => c.value === id) ? KEY_OPTIONS : [{ value: id, label: itemName(id) }, ...KEY_OPTIONS],
+              id, (v) => { list[i] = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(list[i]))); markDirty(); }),
+            h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { list.splice(i, 1); markDirty(); draw(); } }, '✕'),
+          );
+        }),
+        h('button', {
+          disabled: list.length >= max,
+          onclick: () => {
+            const next = KEY_OPTIONS.find((o) => !list.includes(o.value))?.value ?? KEY_OPTIONS[0].value;
+            list.push(next); markDirty(); draw();
+          },
+        }, list.length >= max ? `Full (${max} of ${max})` : '+ Add key item'),
+      );
+    };
+    draw();
+    return wrap;
+  }
+
+  /** TM/HM pocket: a count for each of the 57, as the game stores it. */
+  function tmhmCard(): Node {
+    const wrap = h('section', { class: 'card' });
+    const counter = h('span', { class: 'muted count' });
+    const paint = () => { counter.textContent = `${s.tmhm.filter((n) => n > 0).length}/${TM_COUNT + HM_COUNT}`; };
+    const rows = TMHM_MOVES.map((move, i) => {
+      const info = moveInfo(move);
+      const hm = i >= TM_COUNT;
+      const input = numberInput(s.tmhm[i], 0, hm ? 1 : 99, (v) => { s.tmhm[i] = v; markDirty(); paint(); }, { 'aria-label': `${TMHM_LABELS[i]} count` });
+      return h('div', { class: 'tm-row' },
+        itemIcon(discPath(i)),
+        h('span', { class: 'tm-label' }, h('span', { class: 'tm-no' }, TMHM_LABELS[i]), ' ', info?.name ?? `Move ${move}`),
+        input);
+    });
+    /** Set every TM to `tm` and every HM to `hm`; null leaves that kind as it is. */
+    const fill = (tm: number | null, hm: number | null) => {
+      s.tmhm = s.tmhm.map((n, i) => (i < TM_COUNT ? tm ?? n : hm ?? n));
+      markDirty();
+      render(); // rebuilt rather than patched, so each field's own idea of its value stays right
+    };
+    paint();
+    wrap.append(
+      h('h3', {}, 'TM/HM pocket', counter),
+      h('p', { class: 'muted card-note' }, 'How many of each you carry. In Gold and Silver a TM is used up when taught, so you can carry up to 99; HMs are 0 or 1.'),
+      h('div', { class: 'button-row' },
+        h('button', { onclick: () => fill(99, 1) }, 'All TMs ×99 and HMs'),
+        h('button', { onclick: () => fill(null, 1) }, 'All HMs'),
+        h('button', { onclick: () => fill(0, 0) }, 'Clear')),
+      h('div', { class: 'tm-grid' }, rows));
+    return wrap;
+  }
+
+  const bagTab = () => h('div', {},
+    intro('Pick an item, set how many (1 to 99), or tap ✕ to remove it. Each pocket only offers items the game files there.'),
+    h('div', { class: 'two-col' },
+      itemList('Items pocket', 'Medicine, held items, berries and the rest. Up to 20 different items.', s.items, BAG_MAX.items, ITEM_OPTIONS, () => RARE_CANDY),
+      itemList('Balls pocket', 'Poké Balls, including the Apricorn balls Kurt makes. Up to 12 kinds.', s.balls, BAG_MAX.balls, BALL_OPTIONS, () => ULTRA_BALL),
+      keyList(),
+      itemList('PC item storage', 'Items stored in your PC. Up to 50 different items (TMs and HMs can’t go in).', s.pcItems, BAG_MAX.pcItems, PC_OPTIONS, () => RARE_CANDY),
+    ),
+    tmhmCard());
+
+  // ---------- Pokémon lists ----------
+
+  function monCard(mon: Gen2Mon, onOpen: () => void, extra: Node[] = [], before: Node[] = []): HTMLElement {
+    const name = speciesName(mon.species);
+    const label = monLabel(mon);
+    return h('div', { class: 'mon' },
+      ...before,
+      h('button', { class: 'mon-main', onclick: onOpen },
+        monIcon(mon),
+        h('span', { class: 'mon-title' },
+          mon.isEgg ? null : h('span', { class: 'mon-dex' }, `#${String(mon.species).padStart(3, '0')}`),
+          h('span', { class: 'mon-name' }, label, ' '),
+          mon.isEgg ? h('span', { class: 'muted' }, `(${name})`) : label !== name ? h('span', { class: 'muted' }, `(${name})`) : null,
+          mon.isEgg ? null : genderMark(genderOf(mon.species, mon.dvs)),
+          shinyMark(mon)),
+        h('span', { class: 'mon-meta' },
+          h('span', { class: 'lcd lv' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`),
+          mon.isEgg ? null : typeChips(baseStatsFor(mon.species), false),
+          mon.item ? h('span', { class: 'held', title: `Holding ${itemName(mon.item)}` }, itemIcon(itemSpritePath(mon.item)), h('span', { class: 'sr-only' }, `Holding ${itemName(mon.item)}`)) : null),
+        monHpBar(mon, true, 'in-card'),
+      ),
+      ...extra,
+    );
+  }
+
+  function editMon(where: number, index: number, redraw: () => void): void {
+    const mon = listAt(s, where)[index];
+    if (mon) openMonEditor({ mon, party: where === PARTY, onDone: (changed) => { if (changed) markDirty(); redraw(); } });
+  }
+
+  function menuFor(where: number, index: number, redraw: () => void): void {
+    openMonMenu({
+      save: s, where, index,
+      onEdit: () => editMon(where, index, redraw),
+      onChange: () => { markDirty(); redraw(); },
+    });
+  }
+
+  /** A brand-new Pokémon with the trainer as its original owner (Togepi is just a starting point). */
+  function freshMon(party: boolean): Gen2Mon {
+    const mon = newMon(175, 5);
+    mon.otName = s.trainerName;
+    mon.otId = s.trainerId;
+    if (!party) depositInBox(mon);
+    return mon;
+  }
+
+  function partyTab(): Node {
+    const wrap = h('div', { class: 'mon-list' });
+    const draw = (focus?: { index: number; delta: -1 | 1 }) => {
+      clear(wrap);
+      s.party.forEach((mon, i) => {
+        const nudge = (delta: -1 | 1) => () => { if (shiftMon(s, PARTY, i, delta)) { markDirty(); draw({ index: i + delta, delta }); } };
+        const label = monLabel(mon);
+        wrap.append(monCard(mon, () => editMon(PARTY, i, draw), [
+          h('button', { class: 'icon', 'aria-label': `Actions for ${label}`, onclick: () => menuFor(PARTY, i, draw) }, '⋯'),
+        ], [
+          h('div', { class: 'reorder', role: 'group', 'aria-label': `Move ${label}` },
+            h('button', { class: 'icon', 'aria-label': `Move ${label} up`, disabled: i === 0, dataset: { reorder: `${i}:-1` }, onclick: nudge(-1) }, '↑'),
+            h('button', { class: 'icon', 'aria-label': `Move ${label} down`, disabled: i === s.party.length - 1, dataset: { reorder: `${i}:1` }, onclick: nudge(1) }, '↓')),
+        ]));
+      });
+      if (focus) {
+        const same = wrap.querySelector<HTMLButtonElement>(`[data-reorder="${focus.index}:${focus.delta}"]:not(:disabled)`);
+        (same ?? wrap.querySelector<HTMLButtonElement>(`[data-reorder="${focus.index}:${-focus.delta}"]:not(:disabled)`))?.focus();
+      }
+      if (!s.party.length) wrap.append(h('p', { class: 'muted' }, 'Your party is empty. The game needs at least one Pokémon, so add one.'));
+      wrap.append(h('button', {
+        disabled: s.party.length >= PARTY_MAX,
+        onclick: () => {
+          s.party.push(freshMon(true));
+          markDirty();
+          editMon(PARTY, s.party.length - 1, draw);
+          draw();
+        },
+      }, s.party.length >= PARTY_MAX ? `Party full (${PARTY_MAX} of ${PARTY_MAX})` : `+ Add Pokémon (${s.party.length}/${PARTY_MAX})`));
+    };
+    draw();
+    return h('div', { class: 'stack' },
+      intro('Up to 6 Pokémon. The first one that isn’t an egg battles first, so use the arrows to change the order. Tap a Pokémon to edit it, or ⋯ to move, duplicate or remove it.'),
+      wrap);
+  }
+
+  function boxesTab(): Node {
+    const holder = h('div', { class: 'boxes' });
+    const body = h('div');
+    const step = (d: number) => { boxView = (boxView + d + BOX_TOTAL) % BOX_TOTAL; draw(); };
+    const slotKey = (where: number, index: number) => `${where}:${index}`;
+    const parseKey = (key: string) => { const [where, index] = key.split(':').map(Number); return { where, index }; };
+    const boxLabel = (i: number) => s.boxNames[i] || `Box ${i + 1}`;
+
+    const drag = enableDrag({
+      root: holder,
+      pick: '[data-pick]',
+      drop: '[data-slot], [data-nav]',
+      onNav: step,
+      onDrop: (fromKey, toKey) => {
+        const from = parseKey(fromKey);
+        const to = parseKey(toKey);
+        const a = listAt(s, from.where)[from.index];
+        const b = listAt(s, to.where)[to.index];
+        const r = dropMon(s, from, to);
+        if (typeof r === 'string') { toast(REFUSAL_TEXT[r]); return; }
+        markDirty();
+        draw();
+        const A = a ? monLabel(a) : 'Pokémon';
+        toast(r.kind === 'swap' && b ? `Swapped ${A} and ${monLabel(b)}.` : `Moved ${A} to ${to.where === PARTY ? 'your party' : boxLabel(to.where)}.`);
+      },
+    });
+
+    const cellFor = (where: number, i: number): HTMLElement => {
+      const list = listAt(s, where);
+      const mon = list[i];
+      const key = slotKey(where, i);
+      if (mon) {
+        return h('button', {
+          class: drag.lifted() === key ? 'box-cell lifted' : 'box-cell',
+          'aria-label': `${monLabel(mon)}${mon.isEgg ? '' : `, level ${mon.level}`}, ${placeName(where)}${where === PARTY ? ' ' : ', slot '}${i + 1}. Actions`,
+          dataset: { slot: key, pick: '' },
+          onclick: () => menuFor(where, i, draw),
+        }, monIcon(mon),
+        h('span', { class: 'lv-tag' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`),
+        shinyMark(mon),
+        where === PARTY ? monHpBar(mon, true, 'small') : null);
+      }
+      if (where !== PARTY && i === list.length) {
+        return h('button', {
+          class: 'box-cell add', 'aria-label': `Add a Pokémon to ${boxLabel(where)}`, dataset: { slot: key },
+          onclick: () => { list.push(freshMon(false)); markDirty(); editMon(where, list.length - 1, draw); draw(); },
+        }, h('span', { class: 'plus', 'aria-hidden': 'true' }, '+'));
+      }
+      return h('span', { class: 'box-cell empty', 'aria-hidden': 'true', dataset: { slot: key } });
+    };
+
+    const draw = () => {
+      clear(body);
+      const list = listAt(s, boxView);
+      const picker = selectInput(
+        Array.from({ length: BOX_TOTAL }, (_, i) => ({
+          value: i,
+          label: `${boxLabel(i)}${i === s.currentBoxIndex ? ' (current)' : ''} · ${listAt(s, i).length}/${BOX_MAX}`,
+        })), boxView, (v) => { boxView = Number(v); draw(); });
+      picker.setAttribute('aria-label', 'Choose a box');
+      const shownBox = boxView;
+      const rename = nameField(`Name of box ${shownBox + 1}`, s.boxNames[shownBox], (v) => {
+        s.boxNames[shownBox] = v;
+        markDirty();
+        const opt = picker.options[shownBox];
+        if (opt) opt.textContent = `${boxLabel(shownBox)}${shownBox === s.currentBoxIndex ? ' (current)' : ''} · ${listAt(s, shownBox).length}/${BOX_MAX}`;
+      }, 'Up to 8 characters.', BOX_NAME_LEN - 1);
+      rename.classList.add('box-name');
+
+      body.append(
+        h('div', { class: 'box-party', role: 'group', 'aria-label': `Party, ${s.party.length} of ${PARTY_MAX}` },
+          h('span', { class: 'box-label' }, `Party ${s.party.length}/${PARTY_MAX}`),
+          h('div', { class: 'party-cells' }, Array.from({ length: PARTY_MAX }, (_, i) => cellFor(PARTY, i)))),
+        h('div', { class: 'box-nav' },
+          h('button', { class: 'icon', 'aria-label': 'Previous box', dataset: { nav: '-1' }, onclick: () => step(-1) }, '‹'),
+          picker,
+          h('button', { class: 'icon', 'aria-label': 'Next box', dataset: { nav: '1' }, onclick: () => step(1) }, '›')),
+        h('div', { class: 'box-grid', role: 'group', 'aria-label': `${boxLabel(boxView)}, ${list.length} of ${BOX_MAX}` },
+          Array.from({ length: BOX_MAX }, (_, i) => cellFor(boxView, i))),
+        rename,
+      );
+    };
+    holder.append(
+      intro('Your party and the 14 PC boxes. Tap a Pokémon to edit, move, duplicate or remove it, or drag one onto another to swap them.'),
+      h('details', { class: 'tips' },
+        h('summary', {}, 'How dragging works'),
+        h('ul', {},
+          h('li', {}, 'Drop a Pokémon on another one to swap them, in a box or with your party.'),
+          h('li', {}, 'Drop it on an empty spot to move it to the end of that box or your party.'),
+          h('li', {}, 'On a touch screen, press and hold for a moment before dragging. A quick swipe still scrolls the page.'),
+          h('li', {}, 'While dragging, hold over ‹ or › to turn to another box.'),
+          h('li', {}, 'As in the game, a Pokémon holding Mail can’t go in a box, and your party keeps at least one Pokémon that can battle.'),
+          h('li', {}, 'A Pokémon taken out of a box is healed, and one put in has its PP restored, just as the game does. “(current)” marks the box where new catches go.'))),
+      body);
+    draw();
+    return holder;
+  }
+
+  // ---------- Pokédex ----------
+
+  function dexTab(): Node {
+    type DexState = 'unseen' | 'seen' | 'owned';
+    const stateOf = (n: number): DexState => (s.isOwned(n) ? 'owned' : s.isSeen(n) ? 'seen' : 'unseen');
+    const seenEl = h('dd'), ownEl = h('dd');
+    const summary = h('div', { class: 'lcd dex-summary', role: 'group' },
+      h('dl', {}, h('div', {}, h('dt', {}, 'Seen'), seenEl), h('div', {}, h('dt', {}, 'Own'), ownEl)));
+    const paintSummary = () => {
+      const owned = DEX_NAMES.filter((_, i) => s.isOwned(i + 1)).length;
+      const seen = DEX_NAMES.filter((_, i) => s.isSeen(i + 1)).length;
+      seenEl.textContent = `${seen}/${DEX_COUNT}`;
+      ownEl.textContent = `${owned}/${DEX_COUNT}`;
+      summary.setAttribute('aria-label', `Seen ${seen} of ${DEX_COUNT}, owned ${owned} of ${DEX_COUNT}`);
+    };
+    const tiles = DEX_NAMES.map((name, i) => {
+      const n = i + 1;
+      const tile = h('button', { class: 'dex-tile' },
+        pokemonIcon(n),
+        itemIcon('ball/poke', 'dex-ball'),
+        h('span', { class: 'dex-no' }, `#${String(n).padStart(3, '0')}`),
+        h('span', { class: 'dex-name' }, name));
+      const paint = () => {
+        const st = stateOf(n);
+        tile.className = `dex-tile ${st}`;
+        tile.setAttribute('aria-label', `#${n} ${name}: ${st}. Tap to change.`);
+      };
+      tile.addEventListener('click', () => {
+        const st = stateOf(n);
+        if (st === 'unseen') s.setSeen(n, true);
+        else if (st === 'seen') s.setOwned(n, true);
+        else s.setSeen(n, false);
+        markDirty(); paint(); paintSummary();
+      });
+      paint();
+      return { tile, paint };
+    });
+    const repaint = () => { tiles.forEach((t) => t.paint()); paintSummary(); };
+    const each = (f: (n: number) => void) => { for (let n = 1; n <= DEX_COUNT; n++) f(n); markDirty(); repaint(); };
+    paintSummary();
+    return h('div', {},
+      intro('Tap a Pokémon to cycle it: not seen, then seen, then owned. A dark shape is not seen, colour is seen, and a highlighted tile with a Poké Ball is owned.'),
+      summary,
+      h('div', { class: 'button-row' },
+        h('button', { onclick: () => each((n) => s.setOwned(n, true)) }, `Own all ${DEX_COUNT}`),
+        h('button', { onclick: () => each((n) => s.setSeen(n, true)) }, 'Mark all seen'),
+        h('button', { onclick: () => each((n) => s.setSeen(n, false)) }, 'Clear all'),
+      ),
+      h('div', { class: 'dex-grid' }, tiles.map((t) => t.tile)),
+    );
+  }
+
+  render();
+};

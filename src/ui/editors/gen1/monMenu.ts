@@ -8,7 +8,7 @@ import {
 import type { Gen1Save } from '../../../core/gen1/save.ts';
 import { askConfirm, clear, h, toast } from '../../dom.ts';
 import { pokemonIcon } from '../../sprites.ts';
-import { typeChips } from './typeChip.ts';
+import { typeChips } from '../../typeChip.ts';
 
 export interface MonMenuOptions {
   save: Gen1Save;

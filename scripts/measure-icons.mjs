@@ -9,7 +9,7 @@ import { centreOffset } from './lib/png-alpha.mjs';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const rows = [];
 let size = null;
-for (let dex = 1; dex <= 151; dex++) {
+for (let dex = 1; dex <= 251; dex++) {
   const o = centreOffset(await readFile(join(root, 'assets', 'sprites', 'pokemon', `${dex}.png`)));
   size ??= [o.width, o.height];
   if (o.width !== size[0] || o.height !== size[1]) throw new Error(`icon ${dex} is ${o.width}x${o.height}, expected ${size.join('x')}`);

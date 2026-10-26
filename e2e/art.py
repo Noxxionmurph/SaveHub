@@ -27,7 +27,7 @@ def run(browser, mode):
     page.route(ART + '**', art_ok if mode == 'ok' else art_gone)
     page.goto(BASE)
     page.wait_for_selector('.sample-row button')
-    page.wait_for_function("[...document.querySelectorAll('img.tile-icon')].length === 3")
+    page.wait_for_function("[...document.querySelectorAll('img.tile-icon')].length === 5")
     page.wait_for_timeout(600)
     tiles = page.evaluate("[...document.querySelectorAll('img.tile-icon')].map(i => [i.hidden, i.complete, i.naturalWidth])")
     foot = page.locator('footer.site-foot')

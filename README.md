@@ -2,8 +2,8 @@
 
 One site, many games. Drop a save on the landing page, the game is detected from the file's structure
 (size, checksums, layout; never a hash, since saves change on every write), and that game's editor is
-lazy-loaded. Currently supported: Pokémon Red / Blue / Yellow (English). Everything is a self-contained
-"game module", so adding Pokémon Gen 2–5, Final Fantasy, Mega Man Battle Network, etc. never touches the shell.
+lazy-loaded. Currently supported: Pokémon Red / Blue / Yellow and Gold / Silver (English). Everything is a
+self-contained "game module", so adding Pokémon Gen 3–5, Final Fantasy, Mega Man Battle Network, etc. never touches the shell.
 
 ## Look and feel
 
@@ -30,7 +30,8 @@ of the page is the one exception: it still links Google Fonts.) A game can set `
 
 ## Artwork
 
-The pictures (Pokémon box icons for dex #1-151, item icons, type icons, gym badges and Pikachu's reactions) are **not in
+The pictures (Pokémon box icons for dex #1-251 plus Unown's letters and an egg, item icons, type icons, Kanto and Johto
+gym badges and Pikachu's reactions) are **not in
 this repository**. They live in [SaveHub-assets](https://github.com/Noxxionmurph/SaveHub-assets), which is served as its
 own site (`https://noxxionmurph.github.io/SaveHub-assets/`); the editor loads them from there. The images are
 © Nintendo / Creatures Inc. / GAME FREAK Inc. and come from PokéSprite, The Spriters Resource and Serebii (see
@@ -59,7 +60,9 @@ the editor carries on without pictures (a picture that can't load hides itself, 
   `scripts/measure-icons.mjs` measures where the visible pixels really are and writes `src/ui/spriteOffsets.ts`, and
   the UI nudges each icon by that much so Pokémon look vertically centred wherever they appear (the import script
   runs it for you, and `npm test` fails if the table is stale, when the artwork is checked out). Which file shows for which
-  Gen 1 item is one table in `src/ui/editors/gen1/itemSprites.ts`, and `npm test` checks that every file it names exists.
+  item is one table per game (`src/ui/editors/gen1/itemSprites.ts`, `src/ui/editors/gen2/itemSprites.ts`), and `npm test`
+  checks that every file they name exists. The Johto badges are Gold's own trainer card badges in the game's badge
+  palette; `scripts/extract-johto-badges.py` makes them from the pokegold disassembly.
 
 ## Not affiliated
 
@@ -79,6 +82,8 @@ node scripts/make-sample.ts sample.sav   # the same made-up save the "Try a samp
 node scripts/gen-moves.mjs <pokered checkout>   # regenerates src/core/gen1/moves.ts (type, power, accuracy, PP)
 node scripts/verify-against-rom.mjs rom.gb      # checks the Gen 1 tables below against a Red/Blue ROM you own (copies nothing)
 node scripts/measure-icons.mjs                  # regenerates src/ui/spriteOffsets.ts after changing the Pokémon icons
+node scripts/gen-gen2-data.mjs <pokegold checkout>   # regenerates src/core/gen2/tables.ts (species, base stats, moves, items)
+python3 scripts/boot-gen2-save.py gold.gbc edited.sav out.png   # opens a save in the real game (PyBoy, your own ROM) and takes pictures
 ```
 
 Everything runs client-side; saves never leave the browser. **Back up your real .sav before editing.**
@@ -107,6 +112,24 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
 - **Save** first shows a plain-language list of everything that changed (and "No changes yet" if nothing did)
 - "Try a sample save" on the landing page opens a made-up save, so nothing needs to be uploaded to look around
 - All checksums recalculated on export (main + box banks); an unedited save round-trips byte-for-byte
+
+## Gen 2 features (Gold / Silver)
+
+- Trainer: name, rival, ID, money, Mom's savings, coins, play time (to 999 hours), all 16 badges (Johto and Kanto, shown
+  on the trainer card in the game's own badge art), and every OPTION setting: text speed, battle scene, battle style,
+  sound, Game Boy Printer shade, menu account and text box frame.
+- All four bag pockets (Items, Balls, Key Items, TM/HM with a count for each of the 57) and PC item storage. Each picker
+  only offers what the game files in that pocket.
+- Party and all 14 boxes, with box names. Moving works as in Gen 1 (arrows, drag and drop, the action menu) and follows
+  the game's PC rules: a Pokémon holding Mail can't go in a box, the party always keeps one Pokémon that can battle (an
+  egg can't), a Pokémon taken out of a box is healed, and one put in has its PP restored.
+- Pokémon editor with what Gen 2 added: held item, friendship, Pokérus, Special Attack and Special Defense, and eggs
+  (egg cycles, and hatching one or turning it back into an egg). Gender, shininess and Unown's letter come from the
+  DVs in these games, so they're set from the DVs: pick a gender, tap Make shiny, or pick a letter, and the editor
+  changes as few DV bits as it can. Shiny Pokémon get a ★ and Unown shows its own letter everywhere.
+- Pokédex: all 251 seen / owned.
+- Both copies of the save are written (Gold and Silver keep a backup), with both checksums; an unedited save
+  round-trips byte for byte.
 
 ## Layout
 
@@ -209,6 +232,17 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   repeat), the Celadon Mansion granny's table (the friendship limit and wording of each of her six lines) and Melanie's
   Bulbasaur limit. The ROMs aren't in the repo and the script copies nothing from them.
 - Gen 1: English only (Japanese uses different offsets and text encoding). Event flags and map position are left untouched.
+- Gold / Silver: English only, and Crystal isn't supported yet (its layout differs). Tested against one real Gold save:
+  it loads and saves back byte for byte, and an edited copy (badges, money, a shiny Pokémon holding an item, a renamed
+  box, a Pokémon moved out of a box) loads and plays in the real game (checked in an emulator with
+  `scripts/boot-gen2-save.py`), as does the sample. Offsets come from the pokegold disassembly's symbol file. Event
+  flags, map position, the clock, the Day-Care and the Pokégear are left untouched.
+- A Pokémon's stats can be a point behind the editor's numbers in a real save: the game only recalculates stats when a
+  Pokémon levels up, so stat experience earned since then hasn't counted yet. The editor shows both and leaves the
+  stored ones alone unless you change the Pokémon.
+- Mail can't be given in the editor (the letter is written in the game's mail screen), but a Pokémon already holding
+  Mail keeps its letter, and taking the Mail off throws the letter away.
+- Gold and Silver saves are identical inside, so the site asks which one yours is.
 - Which bit is which in the options byte, and the PP Up rule, are confirmed in the game code (see above). The save
   offsets themselves come from the pokered and pokeyellow disassemblies and match the two real saves.
 - Yellow's Pikachu offsets (friendship at 0x271C, mood at 0x271D) come from the pokeyellow disassembly. The ROM check

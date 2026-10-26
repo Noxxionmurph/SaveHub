@@ -1,7 +1,7 @@
 // A row of choices drawn like a line of the game's OPTION screen: every choice side by side, the chosen one marked
 // with the menu cursor. Real radio buttons underneath, so the arrow keys, touch and screen readers all work.
 
-import { h } from '../../dom.ts';
+import { h } from './dom.ts';
 
 export interface Choice {
   value: string;
