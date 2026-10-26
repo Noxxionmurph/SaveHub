@@ -159,24 +159,23 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
           touched();
           refresh();
         }), base ? undefined : 'Unknown species'),
-        nameField('Nickname', mon.nickname, (v) => { mon.nickname = v; }, 'Up to 10 characters.'),
+        nameField('Nickname', mon.nickname, (v) => { mon.nickname = v; }),
         field('Level', numberInput(mon.level, 1, 100, (v) => {
           mon.level = v;
           mon.exp = expAt(v);
           touched();
           refresh();
         }), 'Changing the level also sets experience to match.'),
-        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; }), 'Total experience points.'),
+        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; })),
         field('Status', selectInput(STATUS_OPTIONS, STATUS_OPTIONS.some((s) => s.value === mon.status) ? mon.status : 0,
           (v) => { mon.status = Number(v); })),
-        nameField('Original trainer', mon.otName, (v) => { mon.otName = v; }, 'The name of whoever caught it.'),
+        nameField('Original trainer', mon.otName, (v) => { mon.otName = v; }),
         field('Original trainer ID', numberInput(mon.otId, 0, 65535, (v) => { mon.otId = v; }),
           'If this isn’t your Trainer ID, the game counts this Pokémon as traded.'),
         field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; refresh(); })),
       ),
 
       h('h3', {}, 'Moves'),
-      h('p', { class: 'muted section-note' }, 'Each PP Up (0 to 3) raises a move’s max PP and its current PP. A newly picked move starts with full PP.'),
       h('div', { class: 'moves' }, [0, 1, 2, 3].map(moveRow)),
 
       h('h3', {}, 'DVs (hidden genes)'),
@@ -210,9 +209,6 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
         h('button', { onclick: () => { mon.pp = mon.moves.map((m, i) => maxPp(m, mon.ppUps[i])) as typeof mon.pp; refresh(); } }, 'Restore PP'),
         party ? h('button', { onclick: () => { recalcPartyStats(mon, true); refresh(); } }, 'Heal and recalculate stats') : null,
       ),
-      h('p', { class: 'muted section-note' },
-        party ? 'Match exp to level sets experience to the lowest amount for the current level. Heal and recalculate stats refills HP and rebuilds the battle stats.'
-          : 'Match exp to level sets experience to the lowest amount for the current level.'),
       h('div', { class: 'dialog-foot' },
         h('span', { class: 'muted' }, 'Done keeps your changes and the ✕ at the top throws them away. The file is only written when you tap Save on the main page.'),
         h('button', { class: 'primary', onclick: () => { dialog.close(); } }, 'Done'),

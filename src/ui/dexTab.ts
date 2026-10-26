@@ -99,8 +99,7 @@ export function dexTab(s: DexSave, names: readonly string[], markDirty: () => vo
   applyFilter();
   return h('div', {},
     h('p', { class: 'tab-intro' },
-      'Tap a Pokémon to cycle it: not seen, then seen, then caught. A dark shape is not seen, colour is seen, and a tile '
-      + 'with a Poké Ball is caught. Caught only fills in the Pokédex; it doesn\'t give you the Pokémon.'),
+      'Tap a Pokémon to cycle it: not seen, seen, caught. Caught only fills in the Pokédex; it doesn\'t give you the Pokémon.'),
     summary,
     h('div', { class: 'dex-bar' },
       h('span', { class: 'dex-bar-label', id: 'dex-set-label' }, `Set all ${total} to`),

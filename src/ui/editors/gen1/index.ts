@@ -33,8 +33,6 @@ const itemLabel = (id: number, name = itemName(id)) => { const move = tmhmMoveNa
 /** One shared array, so the item picker's markup is built once and cloned for every bag row. */
 const ITEM_OPTIONS = ITEM_CHOICES.map((c) => ({ value: c.id, label: itemLabel(c.id, c.name) }));
 
-/** A short line at the top of a tab that says what it is for. */
-const intro = (...children: (Node | string)[]) => h('p', { class: 'tab-intro' }, ...children);
 
 export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
@@ -147,23 +145,22 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       return btn;
     }));
     return h('div', { class: 'stack' },
-      intro('Your trainer card, money, badges and game settings. Edit any field. Nothing is written to a file until you tap Save.'),
       overview(),
       // The fields follow the trainer card above: name, ID, money, coins, time, badges.
       h('section', { class: 'card' },
         h('h3', {}, 'Trainer'),
-        h('p', { class: 'muted card-note' }, 'The game shows up to 7 characters of a name. Type {PK} or {MN} for the PK and MN symbols.'),
+        h('p', { class: 'muted card-note' }, 'Type {PK} or {MN} for the PK and MN symbols.'),
         h('div', { class: 'grid pair' },
           nameField('Trainer name', s.trainerName, (v) => { s.trainerName = v; edited(); }),
           nameField('Rival name', s.rivalName, (v) => { s.rivalName = v; markDirty(); }),
         ),
         h('div', { class: 'grid one' },
           field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; edited(); }),
-            'Pokémon you caught remember this number. If you change it, they count as traded: they earn extra experience, but may ignore your orders at higher levels.'),
+            'Change it and the Pokémon you caught count as traded: more experience, but they may disobey at higher levels.'),
         ),
         h('div', { class: 'grid pair' },
-          field('Money (¥)', numberInput(s.money, 0, 999999, (v) => { s.money = v; edited(); }), 'Up to ¥999,999.'),
-          field('Game Corner coins', numberInput(s.coins, 0, 9999, (v) => { s.coins = v; edited(); }), 'Up to 9,999.'),
+          field('Money (¥)', numberInput(s.money, 0, 999999, (v) => { s.money = v; edited(); })),
+          field('Game Corner coins', numberInput(s.coins, 0, 9999, (v) => { s.coins = v; edited(); })),
         ),
         h('div', { class: 'button-row' },
           h('button', { onclick: () => { s.money = 999999; s.coins = 9999; markDirty(); render(); } }, 'Max money & coins'),
@@ -177,7 +174,6 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           ))),
       h('section', { class: 'card' },
         h('h3', {}, 'Badges'),
-        h('p', { class: 'muted card-note' }, 'Tap a badge to earn it or take it away.'),
         badgeRow,
         caption,
         h('div', { class: 'button-row' },
@@ -202,16 +198,13 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     if (!speeds.some((t) => t.value === s.options.textSpeed)) speeds.push({ value: s.options.textSpeed, label: `Custom (${s.options.textSpeed})` });
     return h('section', { class: 'card' },
       h('h3', {}, 'Game options'),
-      h('p', { class: 'muted card-note' }, 'The same settings as OPTION in the game’s start menu.'),
       h('div', { class: 'lcd options-window' },
         choiceRow('Text speed', speeds.map((t) => ({ value: String(t.value), label: t.label })), String(s.options.textSpeed),
-          (v) => { s.options.textSpeed = Number(v); edited(); }, 'How fast text appears.'),
+          (v) => { s.options.textSpeed = Number(v); edited(); }),
         choiceRow('Battle animations', [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
-          s.options.battleAnimationsOff ? 'off' : 'on', (v) => { s.options.battleAnimationsOff = v === 'off'; edited(); },
-          'Off skips the move animations in battle.'),
+          s.options.battleAnimationsOff ? 'off' : 'on', (v) => { s.options.battleAnimationsOff = v === 'off'; edited(); }),
         choiceRow('Battle style', [{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }],
-          s.options.battleStyleSet ? 'set' : 'shift', (v) => { s.options.battleStyleSet = v === 'set'; edited(); },
-          'Shift offers a switch after you knock a Pokémon out; Set doesn’t.'),
+          s.options.battleStyleSet ? 'set' : 'shift', (v) => { s.options.battleStyleSet = v === 'set'; edited(); }),
       ));
   }
 
@@ -246,10 +239,9 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   }
 
   const bagTab = () => h('div', {},
-    intro('Pick an item, set how many (1 to 99), or tap ✕ to remove it. Only items the game can really hold are listed.'),
     h('div', { class: 'two-col' },
-      itemList('Bag', 'What you carry. It holds up to 20 different items.', s.bag, 20),
-      itemList('PC item storage', 'Items stored in your PC. It holds up to 50 different items.', s.pcItems, 50)));
+      itemList('Bag', '', s.bag, 20),
+      itemList('PC item storage', '', s.pcItems, 50)));
 
   // ---------- Pokémon lists ----------
 
@@ -333,14 +325,13 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     };
     draw();
     return h('div', { class: 'stack' },
-      intro('Up to 6 Pokémon. The first one battles first, so use the arrows to change the order. Tap a Pokémon to edit it, or ⋯ to move, duplicate or remove it.'),
       wrap,
       pikachuSection((fn) => afterDraw.push(fn)));
   }
 
   function boxesTab(): Node {
     const holder = h('div', { class: 'boxes' });
-    /** The part that is rebuilt on every change; the intro and tips above it stay put, so an opened tip stays open. */
+    /** The part that is rebuilt on every change; the tips above it stay put, so an opened tip stays open. */
     const body = h('div');
     const step = (d: number) => { boxView = (boxView + d + BOX_TOTAL) % BOX_TOTAL; draw(); };
     const slotKey = (where: number, index: number) => `${where}:${index}`;
@@ -416,7 +407,6 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       );
     };
     holder.append(
-      intro('Your party and PC boxes. Tap a Pokémon to edit, move, duplicate or remove it, or drag one onto another to swap them.'),
       h('details', { class: 'tips' },
         h('summary', {}, 'How dragging works'),
         h('ul', {},

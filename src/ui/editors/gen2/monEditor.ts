@@ -187,7 +187,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
     });
     const heldNote = isMail(mon.item)
       ? 'It holds Mail with a letter written in the game. Pick another item to throw the letter away.'
-      : 'From the Items or Balls pocket. Mail can only be given in the game.';
+      : 'Mail can only be given in the game.';
 
     const rus = pokerusState(mon.pokerus);
     const caught = decodeCaught(mon.caught);
@@ -225,21 +225,20 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
           if (party) recalcPartyStats(mon, mon.isEgg);
           refresh();
         }), base ? undefined : 'Unknown species'),
-        nameField('Nickname', mon.nickname, (v) => { mon.nickname = v; }, mon.isEgg ? 'Eggs are named EGG; it gets the species name when it hatches.' : 'Up to 10 characters.'),
+        nameField('Nickname', mon.nickname, (v) => { mon.nickname = v; }, mon.isEgg ? 'Eggs are named EGG; it gets the species name when it hatches.' : undefined),
         field('Level', numberInput(mon.level, 1, 100, (v) => {
           mon.level = v;
           mon.exp = expAt(v);
           touched();
           refresh();
         }), mon.isEgg ? 'Eggs hatch at level 5.' : 'Changing the level also sets experience to match.'),
-        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; }), 'Total experience points.'),
+        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; })),
         party && !mon.isEgg ? field('Status', selectInput(statusOptions(mon.status), mon.status, (v) => { mon.status = Number(v); })) : null,
         party && !mon.isEgg ? field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; refresh(); })) : null,
         mon.isEgg
           ? field('Egg cycles left', numberInput(mon.friendship, 0, 255, (v) => { mon.friendship = v; }),
             'Each cycle is 256 steps. At 0 it hatches on your next step.')
-          : field('Friendship', numberInput(mon.friendship, 0, 255, (v) => { mon.friendship = v; }),
-            '0 to 255. Some evolve at 220 or more; Return is strongest at 255.'),
+          : field('Friendship', numberInput(mon.friendship, 0, 255, (v) => { mon.friendship = v; })),
         h('div', { class: 'field' },
           h('span', { class: 'field-label' }, 'Held item'),
           h('div', { class: 'item-row bare' }, heldIcon, heldPicker),
@@ -247,11 +246,10 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
         field('Pokérus', selectInput(POKERUS_OPTIONS, rus, (v) => {
           // Strain 1, which lasts 2 days; cured keeps the strain with no days left.
           mon.pokerus = v === 'none' ? 0 : v === 'cured' ? (mon.pokerus & 0xf0 || 0x10) : (mon.pokerus & 0x0f ? mon.pokerus : 0x12);
-        }), 'A rare, helpful virus: it doubles the stat experience earned.'),
+        })),
       ),
 
       h('h3', {}, mon.isEgg ? 'Moves it hatches with' : 'Moves'),
-      h('p', { class: 'muted section-note' }, 'Each PP Up (0 to 3) raises a move’s max PP and its current PP. A newly picked move starts with full PP.'),
       h('div', { class: 'moves' }, [0, 1, 2, 3].map(moveRow)),
 
       mon.isEgg ? null : h('h3', {}, 'Looks'),
@@ -307,10 +305,10 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
           'If this isn’t your Trainer ID, the game counts this Pokémon as traded.'),
         game === 'crystal' ? [
           field('Place', selectInput(locations, caught.location, (v) => setCaught({ location: Number(v) })), 'Gift and Event are what the game records for Pokémon it gives you.'),
-          field('Level when caught', numberInput(caught.level, 0, CAUGHT_LEVEL_MAX, (v) => setCaught({ level: v })), `0 to ${CAUGHT_LEVEL_MAX}. Eggs record level 1.`),
+          field('Level when caught', numberInput(caught.level, 0, CAUGHT_LEVEL_MAX, (v) => setCaught({ level: v })), 'Eggs record level 1.'),
           field('Time of day', selectInput(TIME_OPTIONS, caught.time ?? '', (v) => setCaught({ time: (v || null) as CaughtData['time'] }))),
           field('Caught by', selectInput([{ value: 'boy', label: 'A boy' }, { value: 'girl', label: 'A girl' }], caught.otGender,
-            (v) => setCaught({ otGender: v === 'girl' ? 'girl' : 'boy' })), 'Whether the original trainer played as the boy or the girl.'),
+            (v) => setCaught({ otGender: v === 'girl' ? 'girl' : 'boy' }))),
         ] : null,
       ),
 

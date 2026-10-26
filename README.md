@@ -219,13 +219,16 @@ Every screen explains itself in plain words, so keep it that way when you add a 
 - One name per thing: **Save** (the button and the act), "the file you opened" (the original, which is never changed),
   "your edited copy", **Party** and **Box 1-12**, **slot** (only for a position inside a box), **Duplicate**, **Swap**,
   **Move**, **Caught** / **Seen**. Money is shown as ¥ everywhere, including the review list.
-- Each tab opens with one line saying what it is for, so people know how to use the editor. Anything that needs more
-  (the Boxes tab's dragging tips) sits in a collapsed "How ... works" section that stays open across redraws.
+- Assume the reader plays these games. No tab intros or hints for what a Pokémon player already knows (money, text
+  speed, nicknames, friendship, ranges the field already enforces). Only the Pokédex tab keeps a line, since tapping
+  cycles three states. How-to that needs more (the Boxes tab's dragging tips) sits in a collapsed "How ... works"
+  section that stays open across redraws.
 - This is a save editor, not a game guide. Say how to use the editor, but don't add reference material about the game:
   no galleries, no tables of rules, no walkthroughs. (A friendship rules table and a chart of every Pikachu reaction
   were tried on the Pikachu card and removed.)
-- Explain jargon where it appears, in a one-line note under the heading or field (DVs, EVs, original trainer, growth
-  rate), not in a separate manual. Only state game rules you've checked against the disassembly.
+- Explain only the niche or surprising parts, in a one-line note under the heading or field: DVs, stat experience and
+  stat calculations, what an edit silently changes (Trainer ID makes Pokémon traded, shiny and gender come from DVs),
+  egg cycles, Crystal's caught data. Only state game rules you've checked against the disassembly.
 - Say why a control is unavailable ("Party full (6 of 6)", "Full (20 of 20)"), not just grey it out.
 - Errors say what happened and what to do next. Warnings in the review list start with "Warning:" and name the fix.
 - Sentence case, active voice, plain verbs ("Tap", "Pick", "Drop"). A game can describe itself to the shell with

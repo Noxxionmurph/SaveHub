@@ -36,7 +36,7 @@ with sync_playwright() as p:
     page.screenshot(path=f'{SP}/g1-trainer.png', full_page=True)
 
     # --- trainer: badges and options
-    page.click('button:has-text("All Johto")')
+    page.click('.subgroup:has(h4:text-is("Johto badges")) button:has-text("All badges")')
     assert page.locator('.tcard-badges').first.locator('.badge-slot.earned').count() == 8
     page.click('.opt-row:has(.opt-label:text-is("Text speed")) label:has-text("Fast")')
     page.click('.opt-row:has(.opt-label:text-is("Sound")) label:has-text("Stereo")')
