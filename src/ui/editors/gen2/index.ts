@@ -353,7 +353,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
     return wrap;
   }
 
-  const bagTab = () => h('div', {},
+  const bagTab = () => h('div', { class: 'stack' },
     intro('Pick an item, set how many (1 to 99), or tap ✕ to remove it. Each pocket only offers items the game files there.'),
     h('div', { class: 'two-col' },
       itemList('Items pocket', 'Medicine, held items, berries and the rest. Up to 20 different items.', s.items, BAG_MAX.items, ITEM_OPTIONS, () => RARE_CANDY),
