@@ -38,9 +38,11 @@ async function loadFile(file: File): Promise<void> {
 
 /** "Pokémon: Red / Blue / Yellow", for places that list a whole module (chooser, errors). */
 function moduleLabel(g: GameModule): string {
-  const short = g.games.map((n) => (n.startsWith(`${g.family} `) ? n.slice(g.family.length + 1) : n));
-  return `${g.family}: ${short.join(' / ')}`;
+  return `${g.family}: ${shortNames(g).join(' / ')}`;
 }
+
+/** The module's game names without the series name: "Red", "Blue", "Yellow". */
+const shortNames = (g: GameModule): string[] => g.games.map((n) => (n.startsWith(`${g.family} `) ? n.slice(g.family.length + 1) : n));
 
 const setPageTitle = (name?: string) => { document.title = name ? `${name} · ${APP_NAME}` : APP_NAME; };
 
@@ -223,7 +225,7 @@ function sampleRow(): HTMLElement | null {
   return h('div', { class: 'sample-row' },
     h('span', { class: 'muted' }, 'No save handy?'),
     withSample.map((g) => h('button', { onclick: () => void openSample(g) },
-      withSample.length === 1 ? 'Try a sample save' : `Try a sample ${g.family} save`)));
+      withSample.length === 1 ? 'Try a sample save' : `Try a ${shortNames(g).join(' / ')} sample`)));
 }
 
 function renderWelcome(): void {
@@ -281,18 +283,21 @@ function renderWelcome(): void {
       ...[...gamesByFamily()].map(([family, games]) =>
         h('div', { class: 'family' },
           h('h3', {}, family),
-          ...games.filter((g) => g.editable).map((g) => h('p', { class: 'muted family-edits' }, h('strong', {}, 'You can edit: '), g.editable)),
-          h('ul', { class: 'tiles' }, games.flatMap((g) => g.games.map((name) => {
-            const picture = g.icons?.[name];
-            const tile = h('li', { class: 'tile' },
-              h('span', { class: 'tile-label', 'aria-hidden': 'true' }),
-              h('span', { class: 'tile-name' }, name),
-              h('span', { class: 'muted tile-platform' }, g.platform),
-              picture ? pictureIcon(picture, 68, 56, 'tile-icon') : null);
-            const color = g.colors?.[name];
-            if (color) tile.style.setProperty('--label', color);
-            return tile;
-          }))))),
+          // Each module's "You can edit" line sits right above its own games, so it's clear which games it means.
+          ...games.flatMap((g) => [
+            g.editable ? h('p', { class: 'muted family-edits' }, h('strong', {}, `In ${shortNames(g).join(', ').replace(/, ([^,]*)$/, ' and $1')} you can edit: `), g.editable) : null,
+            h('ul', { class: 'tiles' }, g.games.map((name) => {
+              const picture = g.icons?.[name];
+              const tile = h('li', { class: 'tile' },
+                h('span', { class: 'tile-label', 'aria-hidden': 'true' }),
+                h('span', { class: 'tile-name' }, name),
+                h('span', { class: 'muted tile-platform' }, g.platform),
+                picture ? pictureIcon(picture, 68, 56, 'tile-icon') : null);
+              const color = g.colors?.[name];
+              if (color) tile.style.setProperty('--label', color);
+              return tile;
+            })),
+          ]))),
       h('p', { class: 'request' }, 'Want another game? ', externalLink(`${REPO}/issues/new`, 'Request it on GitHub'), '.'),
     ),
 

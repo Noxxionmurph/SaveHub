@@ -40,6 +40,6 @@ versions = {parse_qs(urlparse(u).query).get('v', [''])[0] for u in local + scrip
 assert len(versions) == 1 and re.fullmatch(r'[0-9a-f]{10}', next(iter(versions))), ('every script and stylesheet must carry the same version', versions)
 assert all(status == 200 for _, status in loaded), loaded
 assert len(loaded) >= 20, ('the modules did not all load through the versioned addresses', len(loaded))
-paths = [urlparse(u).path.rsplit('/', 1)[-1] for u, _ in loaded]
+paths = [urlparse(u).path for u, _ in loaded]   # whole paths: gen1/data.js and gen2/data.js are different modules
 assert len(paths) == len(set(paths)), ('a module was loaded twice, so two copies would be running', sorted(paths))
 print('versioned: ok', next(iter(versions)), len(loaded), 'files')

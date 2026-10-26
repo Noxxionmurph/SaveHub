@@ -1,0 +1,312 @@
+// Pokémon editor dialog for Gold and Silver: Gen 1's, plus what Gen 2 added (held item, friendship, Pokérus, gender,
+// shininess, Unown's letter, eggs) and the split of Special into Special Attack and Special Defense.
+
+import {
+  DEX_NAMES, MOVE_NAMES, UNOWN, UNOWN_LETTERS, attackDvForGender, baseStatsFor, dvsForUnownLetter, expForLevel,
+  genderOf, growthOf, guessGrowth, hasTwoGenders, hpDv, isMail, isShiny, itemChoices, itemName, maxPp, moveInfo,
+  pokerusState, shinyDvs, speciesName, unownLetter,
+} from '../../../core/gen2/data.ts';
+import { calcStats, defaultNickname, recalcPartyStats, type Gen2Mon } from '../../../core/gen2/save.ts';
+import { askConfirm, clear, field, h, lazySelect, numberInput, selectInput } from '../../dom.ts';
+import { itemIcon, itemIconUrl, setIconSrc, typeIcon } from '../../sprites.ts';
+import { typeChips } from '../../typeChip.ts';
+import { monHpBar } from './hpBar.ts';
+import { itemSpritePath } from './itemSprites.ts';
+import { monIcon, genderMark } from './monBits.ts';
+import { nameField } from './nameField.ts';
+
+const SPECIES_OPTIONS = DEX_NAMES.map((name, i) => ({ value: i + 1, label: `#${String(i + 1).padStart(3, '0')} ${name}` }));
+const MOVE_OPTIONS = MOVE_NAMES.map((name, i) => ({ value: i, label: i === 0 ? '— (none)' : name }));
+/** What a Pokémon can be given to hold: the Items and Balls pockets. Mail is left out (see heldOptions). */
+const HOLD_CHOICES = itemChoices('item', 'ball').filter((c) => !isMail(c.id));
+const HOLD_OPTIONS = [{ value: 0, label: '— (nothing)' }, ...HOLD_CHOICES.map((c) => ({ value: c.id, label: c.name }))];
+const STAT_LABELS = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' } as const;
+const DV_LABELS = { atk: 'Atk', def: 'Def', spe: 'Spe', spc: 'Spc' } as const;
+const EV_LABELS = { hp: 'HP', atk: 'Atk', def: 'Def', spe: 'Spe', spc: 'Spc' } as const;
+// pokegold constants/battle_constants.asm: bits 0-2 are turns asleep, then poison, burn, freeze, paralysis.
+const STATUS_OPTIONS = [
+  { value: 0, label: 'Healthy' }, { value: 3, label: 'Asleep' }, { value: 8, label: 'Poisoned' },
+  { value: 16, label: 'Burned' }, { value: 32, label: 'Frozen' }, { value: 64, label: 'Paralyzed' },
+];
+/** The status choices, plus the Pokémon's own value if it isn't one of them (asleep for 1 or 2 turns, say), so it isn't changed by opening the window. */
+const statusOptions = (current: number) => (STATUS_OPTIONS.some((o) => o.value === current) ? STATUS_OPTIONS
+  : [...STATUS_OPTIONS, { value: current, label: current & 7 ? `Asleep (${current & 7} turns)` : `Other (${current})` }]);
+const POKERUS_OPTIONS = [
+  { value: 'none', label: 'Never had it' },
+  { value: 'infected', label: 'Infected (spreads, doubles stat experience)' },
+  { value: 'cured', label: 'Cured (still doubles stat experience)' },
+];
+
+/**
+ * The held-item picker's choices. Mail is only offered if this Pokémon already holds it: a letter is written in the
+ * game's mail screen, and the editor can't write one, so giving Mail here would leave a blank letter.
+ */
+function heldOptions(current: number): { value: number; label: string }[] {
+  if (HOLD_OPTIONS.some((o) => o.value === current)) return HOLD_OPTIONS;
+  return [{ value: current, label: itemName(current) }, ...HOLD_OPTIONS];
+}
+
+export interface MonEditorOptions {
+  mon: Gen2Mon;
+  party: boolean;
+  /** Called once the window has closed. `changed` is whether the Pokémon now differs from how it was when the window opened. */
+  onDone: (changed: boolean) => void;
+}
+
+/** A comparable picture of a Pokémon (raw name and mail bytes included), to tell whether anything was edited. */
+const fingerprint = (mon: Gen2Mon): string => JSON.stringify(mon, (_key, v) => (v instanceof Uint8Array ? Array.from(v) : v));
+
+export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
+  const guessed = guessGrowth(mon.level, mon.exp);
+  const expAt = (level: number) => expForLevel(growthOf(mon.species, guessed), level);
+  const dialog = h('dialog', { class: 'mon-dialog' });
+  const body = h('div', { class: 'dialog-body' });
+  dialog.append(body);
+
+  // Edits are applied to `mon` as they're made. Done (and Escape) keep them; the X puts it back as it was.
+  const original = structuredClone(mon);
+  const originalPrint = fingerprint(mon);
+  const changed = () => fingerprint(mon) !== originalPrint;
+  const discardAndClose = async () => {
+    if (changed()) {
+      const label = original.nickname || speciesName(original.species);
+      if (!await askConfirm(`Discard your changes to ${label}?`, 'Discard', 'Keep editing')) return;
+      const target = mon as unknown as Record<string, unknown>;
+      for (const key of Object.keys(target)) if (!(key in original)) delete target[key];
+      Object.assign(mon, structuredClone(original));
+    }
+    dialog.close();
+  };
+  const closeBar = h('div', { class: 'dialog-x-bar' },
+    h('button', {
+      class: 'dialog-x', type: 'button', title: 'Close without keeping changes', 'aria-label': 'Close without keeping changes',
+      onclick: () => { void discardAndClose(); },
+    }));
+
+  let refreshing = false;
+  const refresh = () => {
+    if (refreshing) return;
+    refreshing = true;
+    try {
+      const y = body.scrollTop;
+      clear(body);
+      body.append(closeBar, ...render().filter((n): n is Node => n !== null));
+      body.scrollTop = y;
+    } finally { refreshing = false; }
+  };
+  const touched = () => { if (party) recalcPartyStats(mon); };
+  const setDvs = (dvs: Gen2Mon['dvs']) => { mon.dvs = dvs; touched(); refresh(); };
+
+  /** Hatch it, or turn it back into an egg. The game names an egg EGG and counts its hatching down in the friendship byte. */
+  const setEgg = (egg: boolean) => {
+    const hadDefaultName = mon.nickname === defaultNickname(mon.species, mon.isEgg);
+    mon.isEgg = egg;
+    if (hadDefaultName) mon.nickname = defaultNickname(mon.species, egg);
+    mon.friendship = egg ? baseStatsFor(mon.species)?.eggCycles ?? 20 : 120; // a hatched Pokémon starts at 120
+    if (egg) { mon.level = 5; mon.exp = expAt(5); mon.status = 0; }
+    if (party) recalcPartyStats(mon, true);
+    refresh();
+  };
+
+  function render(): (Node | null)[] {
+    const base = baseStatsFor(mon.species);
+    const calc = calcStats(mon.species, mon.level, mon.dvs, mon.evs);
+    const shiny = isShiny(mon.dvs);
+    const gender = genderOf(mon.species, mon.dvs);
+
+    const moveRow = (i: number): HTMLElement => {
+      const redraw = () => row.replaceWith((row = build()));
+      const setUps = (n: number) => {
+        const id = mon.moves[i];
+        const before = maxPp(id, mon.ppUps[i]);
+        mon.ppUps[i] = n;
+        const after = maxPp(id, n);
+        mon.pp[i] = Math.max(0, Math.min(after, mon.pp[i] + after - before));
+        redraw();
+      };
+      const build = (): HTMLElement => {
+        const id = mon.moves[i];
+        const info = moveInfo(id);
+        const ups = mon.ppUps[i];
+        // Curse's type is "???" in Gen 2 and has no icon; it shows the Ghost icon it got later.
+        const iconType = info?.type === '???' ? 'Ghost' : info?.type;
+        return h('div', { class: 'move-row' },
+          h('div', { class: 'move-pick' },
+            iconType ? typeIcon(iconType, 'move-type') : h('span', { class: 'move-type blank', 'aria-hidden': 'true' }),
+            selectInput(MOVE_OPTIONS, id, (v) => {
+              mon.moves[i] = Number(v);
+              mon.pp[i] = maxPp(mon.moves[i], mon.ppUps[i]);
+              redraw();
+            })),
+          h('div', { class: 'move-nums' },
+            h('div', { class: 'inline-field' },
+              h('span', { class: 'field-label' }, 'PP'),
+              h('output', { class: 'lcd pp-value', 'aria-label': 'PP' }, id ? String(mon.pp[i]) : '–'),
+              h('span', { class: 'max-pp' }, id ? `Max ${maxPp(id, ups)}` : '')),
+            h('div', { class: 'inline-field' },
+              h('span', { class: 'field-label' }, 'PP Up'),
+              h('div', { class: 'stepper', role: 'group', 'aria-label': 'PP Up' },
+                h('button', { class: 'icon', 'aria-label': 'Fewer PP Ups', disabled: !id || ups <= 0, onclick: () => setUps(ups - 1) }, '−'),
+                h('output', { class: 'lcd stepper-value', 'aria-label': 'PP Ups used' }, id ? String(ups) : '–'),
+                h('button', { class: 'icon', 'aria-label': 'More PP Ups', disabled: !id || ups >= 3, onclick: () => setUps(ups + 1) }, '+')))));
+      };
+      let row = build();
+      return row;
+    };
+
+    const dvInputs = (['atk', 'def', 'spe', 'spc'] as const).map((k) =>
+      field(DV_LABELS[k], numberInput(mon.dvs[k], 0, 15, (v) => { setDvs({ ...mon.dvs, [k]: v }); })));
+    const hpDvCell = h('div', { class: 'field' },
+      h('span', { class: 'field-label' }, 'HP'),
+      h('output', { class: 'derived', 'aria-label': 'HP DV, worked out from the other four' }, String(hpDv(mon.dvs))));
+    const evInputs = (['hp', 'atk', 'def', 'spe', 'spc'] as const).map((k) =>
+      field(EV_LABELS[k], numberInput(mon.evs[k], 0, 65535, (v) => { mon.evs[k] = v; touched(); refresh(); })));
+
+    const keys = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const;
+    const shown: Record<(typeof keys)[number], string | number> = mon.isEgg
+      ? { hp: '—', atk: '—', def: '—', spa: '—', spd: '—', spe: '—' }
+      : party
+        ? { hp: `${mon.hp}/${mon.maxHp}`, atk: mon.atk, def: mon.def, spa: mon.spa, spd: mon.spd, spe: mon.spe }
+        : calc ?? { hp: '—', atk: '—', def: '—', spa: '—', spd: '—', spe: '—' };
+
+    // The held item's picture changes in place, so picking one doesn't redraw (and scroll) the whole window.
+    const heldIcon = itemIcon(itemSpritePath(mon.item), mon.item ? '' : 'none');
+    const heldPicker = lazySelect(heldOptions(mon.item), mon.item, (v) => {
+      mon.item = Number(v);
+      if (!isMail(mon.item)) delete mon.mail;
+      heldIcon.classList.toggle('none', !mon.item);
+      setIconSrc(heldIcon, itemIconUrl(itemSpritePath(mon.item)));
+    });
+    const heldNote = isMail(mon.item)
+      ? 'It holds Mail with a letter written in the game. Pick another item to throw the letter away.'
+      : 'Anything from the Items or Balls pocket. Mail can only be given in the game, where you write the letter.';
+
+    const rus = pokerusState(mon.pokerus);
+    const title = mon.isEgg ? 'Egg' : mon.nickname || speciesName(mon.species);
+
+    return [
+      h('div', { class: 'mon-head' },
+        h('div', { class: 'mon-id' },
+          monIcon(mon, 'big'),
+          h('div', {},
+            h('h2', {}, title, ' ', mon.isEgg ? null : genderMark(gender), shiny && !mon.isEgg ? h('span', { class: 'shiny-star', title: 'Shiny' }, '★', h('span', { class: 'sr-only' }, 'Shiny')) : null),
+            h('p', { class: 'muted' }, mon.isEgg ? `Will hatch into ${speciesName(mon.species)}` : `#${String(mon.species).padStart(3, '0')} ${speciesName(mon.species)}${mon.species === UNOWN ? ` · letter ${unownLetter(mon.dvs)}` : ''}`),
+            typeChips(base),
+            (() => { const bar = monHpBar(mon, party, '', true); return bar ? h('div', { class: 'hp-row' }, h('span', { class: 'hp-label', 'aria-hidden': 'true' }, 'HP'), bar) : null; })())),
+        h('span', { class: 'lcd lv' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`)),
+      h('dl', { class: 'lcd stats six', 'aria-label': party ? 'Current stats' : 'Calculated stats' },
+        keys.map((k) => h('div', {}, h('dt', {}, STAT_LABELS[k]), h('dd', {}, String(shown[k]))))),
+      party || mon.isEgg ? null : h('p', { class: 'muted stats-note' }, 'Box Pokémon don’t store stats, so these are calculated from level, DVs and stat experience.'),
+
+      h('label', { class: 'check-row' },
+        h('input', { type: 'checkbox', checked: mon.isEgg, onchange: (e: Event) => setEgg((e.target as HTMLInputElement).checked) }),
+        h('span', {}, 'It’s an egg'),
+        h('span', { class: 'muted' }, mon.isEgg ? ' Untick to hatch it now.' : ' The species is what will hatch.')),
+
+      h('div', { class: 'grid' },
+        field(mon.isEgg ? 'Hatches into' : 'Species', selectInput(SPECIES_OPTIONS, mon.species, (v) => {
+          const hadDefaultName = !mon.nickname || mon.nickname === defaultNickname(mon.species, mon.isEgg);
+          mon.species = Number(v);
+          if (hadDefaultName) mon.nickname = defaultNickname(mon.species, mon.isEgg);
+          if (party) recalcPartyStats(mon, mon.isEgg);
+          refresh();
+        }), base ? undefined : 'Unknown species'),
+        nameField('Nickname', mon.nickname, (v) => { mon.nickname = v; }, mon.isEgg ? 'Eggs are named EGG; it gets the species name when it hatches.' : 'Up to 10 characters.'),
+        field('Level', numberInput(mon.level, 1, 100, (v) => {
+          mon.level = v;
+          mon.exp = expAt(v);
+          touched();
+          refresh();
+        }), mon.isEgg ? 'Eggs hatch at level 5.' : 'Changing the level also sets experience to match.'),
+        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; }), 'Total experience points.'),
+        mon.isEgg
+          ? field('Egg cycles left', numberInput(mon.friendship, 0, 255, (v) => { mon.friendship = v; }),
+            'Each cycle is 256 steps. At 0 it hatches on your next step. (Stored where friendship goes.)')
+          : field('Friendship', numberInput(mon.friendship, 0, 255, (v) => { mon.friendship = v; }),
+            '0 to 255. Some Pokémon evolve at 220 or more, and Return is strongest at 255.'),
+        h('div', { class: 'field' },
+          h('span', { class: 'field-label' }, 'Held item'),
+          h('div', { class: 'item-row bare' }, heldIcon, heldPicker),
+          h('span', { class: 'field-hint' }, heldNote)),
+        party && !mon.isEgg ? field('Status', selectInput(statusOptions(mon.status), mon.status, (v) => { mon.status = Number(v); })) : null,
+        party && !mon.isEgg ? field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; refresh(); })) : null,
+        nameField('Original trainer', mon.otName, (v) => { mon.otName = v; }, 'The name of whoever caught it.', 7),
+        field('Original trainer ID', numberInput(mon.otId, 0, 65535, (v) => { mon.otId = v; }),
+          'If this isn’t your Trainer ID, the game counts this Pokémon as traded.'),
+        field('Pokérus', selectInput(POKERUS_OPTIONS, rus, (v) => {
+          // Strain 1, which lasts 2 days; cured keeps the strain with no days left.
+          mon.pokerus = v === 'none' ? 0 : v === 'cured' ? (mon.pokerus & 0xf0 || 0x10) : (mon.pokerus & 0x0f ? mon.pokerus : 0x12);
+        }), 'A rare virus that helps: it doubles the stat experience a Pokémon earns.'),
+      ),
+
+      mon.isEgg ? null : h('h3', {}, 'Looks'),
+      mon.isEgg ? null : h('p', { class: 'muted section-note' }, 'In Gold and Silver, gender, shininess and Unown’s letter all come from the DVs, so these change the DVs below.'),
+      mon.isEgg ? null : h('div', { class: 'grid' },
+        hasTwoGenders(mon.species)
+          ? field('Gender', selectInput([{ value: 'male', label: '♂ Male' }, { value: 'female', label: '♀ Female' }], gender, (v) => {
+            setDvs({ ...mon.dvs, atk: attackDvForGender(mon.species, mon.dvs, v as 'male' | 'female') });
+          }), 'Changes the Attack DV as little as it can.')
+          : h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Gender'),
+            h('output', { class: 'derived' }, gender === 'male' ? '♂ Always male' : gender === 'female' ? '♀ Always female' : 'None'), h('span', { class: 'field-hint' }, 'Fixed for this species.')),
+        h('div', { class: 'field' },
+          h('span', { class: 'field-label' }, 'Shiny'),
+          h('div', { class: 'button-row tight' },
+            h('button', { 'aria-pressed': String(shiny), disabled: shiny, onclick: () => setDvs(shinyDvs(mon.dvs)) }, '★ Make shiny'),
+            h('button', { disabled: !shiny, onclick: () => setDvs({ ...mon.dvs, spc: 11 }) }, 'Not shiny')),
+          h('span', { class: 'field-hint' }, 'Shiny means Defense, Speed and Special DVs of 10 and a matching Attack DV, so a shiny Pokémon can’t have top DVs.')),
+        mon.species === UNOWN
+          ? field('Unown letter', selectInput([...UNOWN_LETTERS].map((l) => ({ value: l, label: l })), unownLetter(mon.dvs),
+            (v) => setDvs(dvsForUnownLetter(mon.dvs, v))), 'A shiny Unown can only be I or V.')
+          : null,
+      ),
+
+      h('h3', {}, mon.isEgg ? 'Moves it hatches with' : 'Moves'),
+      h('p', { class: 'muted section-note' }, 'Each PP Up (0 to 3) raises a move’s max PP and its current PP. A newly picked move starts with full PP.'),
+      h('div', { class: 'moves' }, [0, 1, 2, 3].map(moveRow)),
+
+      h('h3', {}, 'DVs (hidden genes)'),
+      h('p', { class: 'muted section-note' }, '0 to 15, higher is better. HP’s DV is worked out from the other four, and Special covers Special Attack and Special Defense.'),
+      h('div', { class: 'grid compact cols5' }, dvInputs, hpDvCell),
+      h('h3', {}, 'Stat experience (EVs)'),
+      h('p', { class: 'muted section-note' }, '0 to 65,535 for each stat. More raises the stat, and 65,535 is the most that counts.'),
+      h('div', { class: 'grid compact cols5' }, evInputs),
+
+      party && !mon.isEgg
+        ? h('div', {},
+          h('h3', {}, 'Battle stats'),
+          h('p', { class: 'muted section-note' }, 'Saved with the Pokémon. They update when you change level, DVs or stat experience, and you can also type your own.'),
+          h('div', { class: 'grid compact cols6' },
+            field('Max HP', numberInput(mon.maxHp, 1, 999, (v) => { mon.maxHp = v; })),
+            field('Attack', numberInput(mon.atk, 1, 999, (v) => { mon.atk = v; })),
+            field('Defense', numberInput(mon.def, 1, 999, (v) => { mon.def = v; })),
+            field('Sp. Atk', numberInput(mon.spa, 1, 999, (v) => { mon.spa = v; })),
+            field('Sp. Def', numberInput(mon.spd, 1, 999, (v) => { mon.spd = v; })),
+            field('Speed', numberInput(mon.spe, 1, 999, (v) => { mon.spe = v; })),
+          ),
+          calc ? h('p', { class: 'muted' },
+            `For this level, DVs and stat experience the game works out: HP ${calc.hp}, Atk ${calc.atk}, Def ${calc.def}, SpA ${calc.spa}, SpD ${calc.spd}, Spe ${calc.spe}.`) : null,
+        )
+        : null,
+
+      h('h3', {}, 'Shortcuts'),
+      h('div', { class: 'button-row' },
+        h('button', { onclick: () => setDvs({ atk: 15, def: 15, spe: 15, spc: 15 }) }, 'Max DVs'),
+        h('button', { onclick: () => { mon.evs = { hp: 65535, atk: 65535, def: 65535, spe: 65535, spc: 65535 }; touched(); refresh(); } }, 'Max stat experience'),
+        mon.isEgg ? null : h('button', { onclick: () => { mon.friendship = 255; refresh(); } }, 'Max friendship'),
+        h('button', { onclick: () => { mon.exp = expAt(mon.level); refresh(); } }, 'Match exp to level'),
+        h('button', { onclick: () => { mon.pp = mon.moves.map((m, i) => maxPp(m, mon.ppUps[i])) as Gen2Mon['pp']; refresh(); } }, 'Restore PP'),
+        party && !mon.isEgg ? h('button', { onclick: () => { mon.status = 0; recalcPartyStats(mon, true); refresh(); } }, 'Heal and recalculate stats') : null,
+      ),
+      h('p', { class: 'muted section-note' }, 'Max DVs gives the best stats; on a species that can be either gender it also makes it male, and it is never shiny.'),
+      h('div', { class: 'dialog-foot' },
+        h('span', { class: 'muted' }, 'Done keeps your changes and the ✕ at the top throws them away. The file is only written when you tap Save on the main page.'),
+        h('button', { class: 'primary', onclick: () => { dialog.close(); } }, 'Done'),
+      ),
+    ];
+  }
+
+  dialog.addEventListener('close', () => { dialog.remove(); onDone(changed()); });
+  document.body.append(dialog);
+  refresh();
+  dialog.showModal();
+}

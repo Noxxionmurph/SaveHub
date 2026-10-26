@@ -12,7 +12,7 @@ import { maxPp, moveInfo } from '../../../core/gen1/moves.ts';
 import { pokemonIcon, typeIcon } from '../../sprites.ts';
 import { monHpBar } from './hpBar.ts';
 import { nameField } from './nameField.ts';
-import { typeChips } from './typeChip.ts';
+import { typeChips } from '../../typeChip.ts';
 
 const SPECIES_OPTIONS = DEX_NAMES.map((name, i) => ({
   value: DEX_TO_INTERNAL[i + 1],

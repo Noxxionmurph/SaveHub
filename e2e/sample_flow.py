@@ -16,7 +16,7 @@ with sync_playwright() as p:
     page.goto(BASE)
 
     # --- sample save from the landing page
-    assert page.locator('.sample-row button').inner_text() == 'Try a sample save'
+    assert page.locator('.sample-row button').first.inner_text() == 'Try a Red / Blue / Yellow sample'
     page.screenshot(path=f'{SP}/c1-welcome.png')
     page.click('.sample-row button')
     page.wait_for_selector('.tabs')

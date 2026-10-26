@@ -10,14 +10,18 @@ the same (without the pictures) if they are ever removed. This is who made them.
 ## Pokémon, item and type icons
 
 From **PokéSprite** by msikma (https://github.com/msikma/pokesprite), copied unchanged except for renaming the
-Pokémon files to their National Dex number. PokéSprite's own code is MIT licensed; the artwork is not covered by that
+Pokémon files to their National Dex number (and Unown's other letters to `201-<letter>.png`). PokéSprite's own code is MIT licensed; the artwork is not covered by that
 licence.
 
 ## Gym badges
 
-The eight badges are cut from the Red/Blue "Trainer Card" sheet on The Spriters Resource
+The eight Kanto badges are cut from the Red/Blue "Trainer Card" sheet on The Spriters Resource
 (https://www.spriters-resource.com/game_boy_gbc/pokemonredblue/asset/8733/, ripped by FrenchOrange), using the Super
 Game Boy colour panel. `scripts/extract-badges.py` redoes the cut.
+
+The eight Johto badges are Gold and Silver's own trainer card badges, from the pret/pokegold disassembly
+(https://github.com/pret/pokegold, `gfx/trainer_card/badges.png`), in the colours the game gives them on a Game Boy
+Color (its badge palette). `scripts/extract-johto-badges.py` redoes them.
 
 ## Pikachu's reactions
 

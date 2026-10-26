@@ -7,9 +7,10 @@ import { ICON_OFFSETS, ICON_SIZE } from './spriteOffsets.ts';
 
 const BASE = artUrl('sprites');
 
-export const pokemonIconUrl = (dex: number) => `${BASE}/pokemon/${dex}.png`;
+/** `form` picks one of a species' other looks; only Unown has any in Gen 2 ('b' to 'z'; A is the plain icon). */
+export const pokemonIconUrl = (dex: number, form = '') => `${BASE}/pokemon/${dex}${form ? `-${form}` : ''}.png`;
 export const itemIconUrl = (path: string) => `${BASE}/items/${path}.png`;
-export const badgeIconUrl = (n: number) => `${BASE}/badges/${n}.png`;
+export const badgeIconUrl = (n: number, region: 'kanto' | 'johto' = 'kanto') => `${BASE}/badges/${region === 'johto' ? 'johto/' : ''}${n}.png`;
 export const typeIconUrl = (type: string) => `${BASE}/types/${type.toLowerCase()}.png`;
 
 function icon(src: string, w: number, h_: number, cls: string): HTMLImageElement {
@@ -32,10 +33,18 @@ function centre(img: HTMLImageElement, dex: number): HTMLImageElement {
   return img;
 }
 
-/** Pokémon box icon (68x56) by National Dex number. Dex 0 (glitch species) gets an empty spacer. */
-export function pokemonIcon(dex: number, cls = ''): HTMLElement {
+/** Pokémon box icon (68x56) by National Dex number, optionally in another form. Dex 0 (glitch species) gets an empty spacer. */
+export function pokemonIcon(dex: number, cls = '', form = ''): HTMLElement {
   if (!dex) return h('span', { class: `sprite mon-icon empty ${cls}`.trim(), 'aria-hidden': 'true' });
-  return centre(icon(pokemonIconUrl(dex), ICON_SIZE[0], ICON_SIZE[1], `mon-icon ${cls}`.trim()), dex);
+  return centre(icon(pokemonIconUrl(dex, form), ICON_SIZE[0], ICON_SIZE[1], `mon-icon ${cls}`.trim()), dex);
+}
+
+/** An egg, the same size as a Pokémon box icon. */
+export function eggIcon(cls = ''): HTMLElement {
+  const img = icon(`${BASE}/pokemon/egg.png`, ICON_SIZE[0], ICON_SIZE[1], `mon-icon egg ${cls}`.trim());
+  // Measured like the others (scripts/measure-icons.mjs): the egg's centre sits 0.5px right and 18px low.
+  img.style.transform = `translate(${(-0.5 / ICON_SIZE[0] * 100).toFixed(2)}%, ${(-18 / ICON_SIZE[1] * 100).toFixed(2)}%)`;
+  return img;
 }
 
 /** Item icon (32x32) from a "<category>/<name>" path. */
@@ -43,9 +52,9 @@ export function itemIcon(path: string, cls = ''): HTMLImageElement {
   return icon(itemIconUrl(path), 32, 32, `item-icon ${cls}`.trim());
 }
 
-/** Kanto gym badge (16x16): 1 = Boulder ... 8 = Earth. Drawn with hard pixel edges. */
-export function badgeIcon(n: number, cls = ''): HTMLImageElement {
-  return icon(badgeIconUrl(n), 16, 16, `badge-icon ${cls}`.trim());
+/** Gym badge (16x16): Kanto 1 = Boulder ... 8 = Earth, Johto 1 = Zephyr ... 8 = Rising. Drawn with hard pixel edges. */
+export function badgeIcon(n: number, cls = '', region: 'kanto' | 'johto' = 'kanto'): HTMLImageElement {
+  return icon(badgeIconUrl(n, region), 16, 16, `badge-icon ${cls}`.trim());
 }
 
 /** Round type icon (Fire, Water, ...). The file is 128px; CSS sizes it. */

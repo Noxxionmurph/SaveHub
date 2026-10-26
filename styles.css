@@ -24,6 +24,10 @@
   --slot-bar: #23272f;
   --focus: #1a56db;
   --danger: #a4161a;
+  /* The gender signs, in the game's blue and red. */
+  --male: #1d55b8;
+  --female: #b8213a;
+  --shiny: #9a6a00;
   --font-display: "Pixelify Sans", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -37,6 +41,7 @@
     --lcd: #223018; --lcd-ink: #c2d96e; --lcd-dim: #8aa04a; --lcd-edge: #3b4f27;
     --cart: #a9afba; --cart-shade: #8d93a0; --pin: #d0d4db; --slot-bar: #0e1014;
     --focus: #7fb0ff; --danger: #ff9a9a;
+    --male: #8ab4ff; --female: #ff8ea0; --shiny: #ffd257;
     color-scheme: dark;
   }
 }
@@ -47,6 +52,7 @@
   --lcd: #223018; --lcd-ink: #c2d96e; --lcd-dim: #8aa04a; --lcd-edge: #3b4f27;
   --cart: #a9afba; --cart-shade: #8d93a0; --pin: #d0d4db; --slot-bar: #0e1014;
   --focus: #7fb0ff; --danger: #ff9a9a;
+  --male: #8ab4ff; --female: #ff8ea0; --shiny: #ffd257;
   color-scheme: dark;
 }
 
@@ -287,7 +293,7 @@ a { color: inherit; text-underline-offset: 3px; }
 
 .supported { margin-top: 44px; }
 .family + .family { margin-top: 8px; }
-.tiles { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.tiles { list-style: none; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
 .tile {
   display: grid; grid-template-columns: 10px 1fr auto; column-gap: 12px; align-items: center; padding: 6px 8px 6px 0;
   background: var(--surface); border: 1px solid var(--line); border-radius: 4px; overflow: hidden;
@@ -774,3 +780,37 @@ button.danger { color: var(--danger); }
 .tips ul { margin: 0 0 4px; padding-left: 1.25em; display: grid; gap: 6px; }
 .dialog-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; margin-top: 20px; }
 .dialog-foot .muted { flex: 1 1 14em; font-size: 0.8125rem; }
+
+/* ---- Gold / Silver additions ---- */
+/* Six stats (Special is split in two) and six battle-stat fields. */
+.stats.six { grid-template-columns: repeat(6, 1fr); }
+.mon-dialog .grid.cols6 { grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); gap: 6px; }
+.mon-dialog .cols6 .field { gap: 2px; }
+.mon-dialog .cols6 .field-label { font-size: 0.75rem; }
+.mon-dialog .cols6 input { padding-inline: 3px; text-align: center; }
+.gender { font-weight: 700; margin-left: 4px; }
+.gender.male { color: var(--male); }
+.gender.female { color: var(--female); }
+.shiny-star { color: var(--shiny); margin-left: 4px; font-weight: 700; }
+.box-cell .shiny-star { position: absolute; top: 2px; right: 4px; margin: 0; font-size: 0.875rem; }
+.box-cell { position: relative; }
+/* On the screen-coloured tiles the theme's own ink reads better than the page colours. */
+.box-cell .shiny-star { color: var(--lcd-ink); }
+.held { display: inline-flex; }
+.held .item-icon { width: 24px; height: 24px; }
+.check-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; font-weight: 600; }
+.check-row input { width: 20px; height: 20px; margin: 0; }
+.check-row .muted { font-weight: 400; font-size: 0.875rem; }
+.item-row.no-count { grid-template-columns: 32px 1fr auto; }
+.item-row.bare { grid-template-columns: 32px 1fr; margin: 0; }
+.item-icon.none { visibility: hidden; }
+.button-row.tight { margin-top: 0; }
+.tcard-badges + .tcard-badges { margin-top: 6px; }
+.subgroup + .subgroup { margin-top: 16px; }
+/* TM/HM pocket: one compact row per disc. */
+.tm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 16px; margin-top: 10px; }
+.tm-row { display: grid; grid-template-columns: 32px 1fr 64px; gap: 8px; align-items: center; }
+.tm-label { font-size: 0.875rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-no { font: 600 0.8125rem var(--font-display); color: var(--muted); }
+.tm-row input { text-align: center; }
+.box-name { margin-top: 12px; max-width: 22em; }

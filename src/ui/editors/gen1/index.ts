@@ -10,13 +10,13 @@ import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '..
 import { enableDrag } from '../../drag.ts';
 import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
-import { choiceRow } from './gameChoice.ts';
+import { choiceRow } from '../../gameChoice.ts';
 import { monHpBar } from './hpBar.ts';
 import { openMonEditor } from './monEditor.ts';
 import { openMonMenu } from './monMenu.ts';
 import { nameField } from './nameField.ts';
 import { pikachuCard } from './pikachuCard.ts';
-import { typeChips } from './typeChip.ts';
+import { typeChips } from '../../typeChip.ts';
 
 type Tab = 'trainer' | 'bag' | 'party' | 'boxes' | 'dex';
 const TABS: { id: Tab; label: string }[] = [
