@@ -26,14 +26,14 @@ test('every selectable Gen 1 item resolves to an icon file that exists', art, ()
 });
 
 test('every Gold / Silver item has an icon file that exists', art, () => {
-  for (const { id, name } of itemChoices('item', 'ball', 'key', 'tmhm')) {
+  for (const { id, name } of itemChoices(['item', 'ball', 'key', 'tmhm'])) {
     const path = gen2SpritePath(id);
     assert.ok(has(`items/${path}.png`), `${name} (0x${id.toString(16)}) -> missing items/${path}.png`);
   }
 });
 
 test('only the Gold / Silver items PokéSprite never drew use the generic icon', () => {
-  const generic = itemChoices('item', 'ball', 'key', 'tmhm').filter((c) => gen2SpritePath(c.id) === UNKNOWN_ITEM).map((c) => c.name);
+  const generic = itemChoices(['item', 'ball', 'key', 'tmhm']).filter((c) => gen2SpritePath(c.id) === UNKNOWN_ITEM).map((c) => c.name);
   assert.deepEqual(generic, ['Berserk Gene', 'Normal Box', 'Gorgeous Box', 'Polkadot Bow', 'Brick Piece']);
 });
 

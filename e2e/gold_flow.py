@@ -1,4 +1,4 @@
-"""Gold / Silver: the sample save from the landing page, every tab, the Pokémon window's Gen 2 parts (gender, shiny,
+"""Gold / Silver: a made-up Gold save (e2e/make-fixtures.ts), every tab, the Pokémon window's Gen 2 parts (gender, shiny,
 Unown's letter, eggs, held items), the PC's rules (Mail, a party that can battle) and the saved file's checksums."""
 import sys
 from playwright.sync_api import sync_playwright
@@ -22,12 +22,16 @@ with sync_playwright() as p:
     page.on('console', lambda m: errors.append(f'console.{m.type}: {m.text}') if m.type == 'error' and 'ERR_TUNNEL' not in m.text else None)
     page.goto(BASE)
 
-    gold = page.locator('.sample-row button:has-text("Gold")')
-    assert gold.inner_text() == 'Try a Gold / Silver sample', gold.inner_text()
-    gold.click()
+    with page.expect_file_chooser() as fc:
+        page.click('.slot')
+    fc.value.set_files(f'{SP}/gold.sav')
     page.wait_for_selector('.tabs')
     assert page.get_attribute('html', 'data-console') == 'gbc'
-    assert page.inner_text('.file-line').startswith('sample-gold.sav')
+    assert page.inner_text('.file-line').startswith('gold.sav')
+    assert page.locator('.version-pick button').count() == 2     # Gold / Silver: the file can't say which
+    page.click('.version-pick button:has-text("Gold")')
+    assert page.inner_text('.game-name') == 'Pokémon Gold', page.inner_text('.game-name')
+    assert page.locator('.player-gender').count() == 0            # Crystal only
     assert page.input_value('label.field:has-text("Trainer name") input') == 'GOLD'
     page.screenshot(path=f'{SP}/g1-trainer.png', full_page=True)
 

@@ -3,6 +3,7 @@
 // Unlike Gen 1, the save stores a Pokémon's National Dex number itself as its species, so there is no internal
 // index to translate.
 
+import { CRYSTAL_ITEMS } from './crystalTables.ts';
 import { BASE_TABLE, ITEM_TABLE, MOVE_TABLE, SPECIES_NAMES, TMHM_MOVES } from './tables.ts';
 
 export const DEX_COUNT = 251;
@@ -186,20 +187,30 @@ export { TMHM_MOVES };
 // ---------- items ----------
 
 export type Pocket = 'item' | 'key' | 'ball' | 'tmhm';
-const ITEMS = new Map(ITEM_TABLE.map(([id, name, pocket]) => [id, { name, pocket }]));
+/** Gold and Silver ('gs') or Crystal, which names four ids the others leave unused. */
+export type ItemSet = 'gs' | 'crystal';
+type ItemRow = (typeof ITEM_TABLE)[number];
+const TABLES: Record<ItemSet, readonly ItemRow[]> = {
+  gs: ITEM_TABLE,
+  crystal: ITEM_TABLE.map((row) => CRYSTAL_ITEMS.find(([id]) => id === row[0]) ?? row),
+};
+const ITEMS: Record<ItemSet, Map<number, { name: string; pocket: ItemRow[2] }>> = {
+  gs: new Map(TABLES.gs.map(([id, name, pocket]) => [id, { name, pocket }])),
+  crystal: new Map(TABLES.crystal.map(([id, name, pocket]) => [id, { name, pocket }])),
+};
 
-export function itemName(id: number): string {
+export function itemName(id: number, set: ItemSet = 'gs'): string {
   if (id === 0) return 'Nothing';
-  const it = ITEMS.get(id);
+  const it = ITEMS[set].get(id);
   return it?.name || `Item 0x${id.toString(16).toUpperCase().padStart(2, '0')}`;
 }
 
 /** Which pocket the game files an item in, or null for its unused placeholder entries. */
-export const pocketOf = (id: number): Pocket | null => ITEMS.get(id)?.pocket || null;
+export const pocketOf = (id: number, set: ItemSet = 'gs'): Pocket | null => ITEMS[set].get(id)?.pocket || null;
 
-/** Items offered by a picker: the real items of one pocket, in id order. */
-export function itemChoices(...pockets: Pocket[]): { id: number; name: string }[] {
-  return ITEM_TABLE.filter(([, name, pocket]) => name && pockets.includes(pocket as Pocket)).map(([id, name]) => ({ id, name }));
+/** Items offered by a picker: the real items of the pockets given, in id order. */
+export function itemChoices(pockets: readonly Pocket[], set: ItemSet = 'gs'): { id: number; name: string }[] {
+  return TABLES[set].filter(([, name, pocket]) => name && pockets.includes(pocket as Pocket)).map(([id, name]) => ({ id, name }));
 }
 
 /** What a Pokémon can hold: anything from the Items and Balls pockets (the game won't give it a key item or a TM). */

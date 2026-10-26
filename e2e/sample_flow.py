@@ -16,12 +16,13 @@ with sync_playwright() as p:
     page.goto(BASE)
 
     # --- sample save from the landing page
-    assert page.locator('.sample-row button').first.inner_text() == 'Try a Red / Blue / Yellow sample'
+    buttons = page.locator('.sample-row button')
+    assert [buttons.nth(i).inner_text() for i in range(buttons.count())] == ['Try a Yellow sample', 'Try a Crystal sample']
     page.screenshot(path=f'{SP}/c1-welcome.png')
-    page.click('.sample-row button')
+    page.click('.sample-row button >> nth=0')
     page.wait_for_selector('.tabs')
     assert 'made-up sample' in page.inner_text('.sample-note')
-    assert page.inner_text('.file-line').startswith('sample.sav')
+    assert page.inner_text('.file-line').startswith('sample-yellow.sav')
     assert page.locator('.save-btn.dirty').count() == 0
     assert page.input_value('label.field:has-text("Trainer name") input') == 'ASH'
 
@@ -125,7 +126,7 @@ with sync_playwright() as p:
     assert len(data) == 32768 and checksum_ok(data)
     assert data[0x2601] == 0x81, hex(data[0x2601])
     assert page.locator('.save-btn.dirty').count() == 0
-    assert 'Saved sample-edited.sav' in page.inner_text('#toast')
+    assert 'Saved sample-yellow-edited.sav' in page.inner_text('#toast')
 
     # --- last party member cannot leave
     page.click('button.tab:has-text("Party")')

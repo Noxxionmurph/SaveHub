@@ -1,12 +1,12 @@
-// Gen 2 (Gold / Silver, English) save file model.
-// Layout: pret/pokegold (ram/sram.asm, ram/wram.asm and the addresses in its pokegold.sym), checked against a real
-// Gold save. Gold and Silver share every address.
+// Gen 2 (Gold / Silver / Crystal, English) save file model.
+// Layout: pret/pokegold and pret/pokecrystal (ram/sram.asm, ram/wram.asm and the addresses in their .sym files), checked
+// against a real Gold save and a real Crystal save. Gold and Silver share every address; Crystal moved most of them.
 //
 // The file is the cartridge's 32 KB of battery RAM, four 8 KB banks:
-//   bank 0  party mail, mailbox, and the first half of the backup copy of the game
-//   bank 1  options and the game itself (0x2000-0x2D6B, one checksum), the PC box that is open, Hall of Fame,
-//           and more of the backup
-//   bank 2  PC boxes 1-7        bank 3  PC boxes 8-14, then the rest of the backup and its checksum
+//   bank 0  party mail, mailbox, and (Gold, Silver) the first half of the backup copy of the game, or (Crystal) all of it
+//   bank 1  options and the game itself (one checksum), the PC box that is open, Hall of Fame, and in Gold and Silver
+//           more of the backup
+//   bank 2  PC boxes 1-7        bank 3  PC boxes 8-14, then (Gold, Silver) the rest of the backup and its checksum
 // The game loads the main copy if its checksum and two check bytes are right, and the backup otherwise. On save it
 // writes both, so this does too: once anything has changed, the backup is refreshed from the main copy.
 
@@ -19,64 +19,101 @@ import { decodeText, encodeText } from './text.ts';
 
 export const SAVE_SIZE = 0x8000;
 
-const OFF = {
-  options: 0x2000, // wOptions: bits 0-2 text speed, 5 stereo, 6 battle style Set, 7 battle scene off
-  textboxFrame: 0x2002, // 0-7, shown as frame TYPE 1-8
-  textboxFlags: 0x2003,
-  printShade: 0x2004, // wGBPrinterBrightness
-  options2: 0x2005, // bit 0: menu account on
-  checkValue1: 0x2008, // always 99
-  gameData: 0x2009, // the checksum covers 0x2009 up to (not including) 0x2D69
-  playerId: 0x2009, // u16 big-endian
-  playerName: 0x200b,
-  momName: 0x2016,
-  rivalName: 0x2021,
-  gameTimeCap: 0x2052, // bit 0: the clock stopped at 999:59:59
-  playHours: 0x2053, // u16 big-endian
-  playMinutes: 0x2055,
-  playSeconds: 0x2056,
-  playFrames: 0x2057,
-  money: 0x23db, // 3 bytes, big-endian binary (not BCD as in Gen 1)
-  momsMoney: 0x23de,
-  coins: 0x23e2, // u16 big-endian
-  johtoBadges: 0x23e4,
-  kantoBadges: 0x23e5,
-  tmhm: 0x23e6, // one count per TM (50) and HM (7)
-  items: 0x241f, // count, 20 × (id, qty), 0xFF
-  keyItems: 0x2449, // count, 25 × id, 0xFF
-  balls: 0x2464, // count, 12 × (id, qty), 0xFF
-  pcItems: 0x247e, // count, 50 × (id, qty), 0xFF
-  curBox: 0x2724,
-  boxNames: 0x2727, // 14 × 9
-  party: 0x288a, // count, 6 species + 0xFF, 6 × 48 mons, 6 × 11 OT names, 6 × 11 nicknames
-  dexCaught: 0x2a4c, // 32 bytes, one bit per species
-  dexSeen: 0x2a6c,
-  checksum: 0x2d69, // u16 little-endian: the byte sum of 0x2009-0x2D68
-  checkValue2: 0x2d6b, // always 127
-  currentBox: 0x2d6c, // the open PC box (its own slot in the box banks is only updated when you change box)
-  partyMail: 0x0600, // 6 × 47 bytes, then the same again as a backup
-  partyMailBackup: 0x071a,
-} as const;
-/** The save offsets, for scripts/verify-gen2-against-rom.mjs to check against a ROM. */
-export const GEN2_OFFSETS = OFF;
+/** Which cartridge wrote the save: Gold and Silver share one layout, Crystal moved most things a few bytes. */
+export type Gen2Game = 'gs' | 'crystal';
+
+interface Layout {
+  options: number; // wOptions: bits 0-2 text speed, 5 stereo, 6 battle style Set, 7 battle scene off
+  textboxFrame: number; // 0-7, shown as frame TYPE 1-8
+  textboxFlags: number;
+  printShade: number; // wGBPrinterBrightness
+  options2: number; // bit 0: menu account on
+  checkValue1: number; // always 99
+  gameData: number; // the checksum covers gameData up to (not including) gameDataEnd
+  gameDataEnd: number;
+  playerId: number; // u16 big-endian
+  playerName: number;
+  momName: number;
+  rivalName: number;
+  gameTimeCap: number; // bit 0: the clock stopped at 999:59:59
+  playHours: number; // u16 big-endian
+  playMinutes: number;
+  playSeconds: number;
+  money: number; // 3 bytes, big-endian binary (not BCD as in Gen 1)
+  momsMoney: number;
+  coins: number; // u16 big-endian
+  johtoBadges: number;
+  kantoBadges: number;
+  tmhm: number; // one count per TM (50) and HM (7)
+  items: number; // count, 20 × (id, qty), 0xFF
+  keyItems: number; // count, 25 × id, 0xFF
+  balls: number; // count, 12 × (id, qty), 0xFF
+  pcItems: number; // count, 50 × (id, qty), 0xFF
+  curBox: number;
+  boxNames: number; // 14 × 9
+  party: number; // count, 6 species + 0xFF, 6 × 48 mons, 6 × 11 OT names, 6 × 11 nicknames
+  dexCaught: number; // 32 bytes, one bit per species
+  dexSeen: number;
+  checksum: number; // u16 little-endian: the byte sum of the game data
+  checkValue2: number; // always 127
+  currentBox: number; // the open PC box (its own slot in the box banks is only updated when you change box)
+  partyMail: number; // 6 × 47 bytes, then the same again as a backup
+  partyMailBackup: number;
+  /** Crystal only: wPlayerGender (bit 0 set for a girl), kept outside the checksummed data. */
+  playerGender?: number;
+  /**
+   * Where the game keeps its backup copy: each piece of the main data (start, end) and where its copy goes. The backup
+   * checksum is the byte sum of the copies, which is the same as the main checksum.
+   */
+  backup: readonly [from: number, to: number, at: number][];
+  backupChecksum: number;
+  backupCheckValue2: number;
+}
+
+const GOLD: Layout = {
+  options: 0x2000, textboxFrame: 0x2002, textboxFlags: 0x2003, printShade: 0x2004, options2: 0x2005, checkValue1: 0x2008,
+  gameData: 0x2009, gameDataEnd: 0x2d69,
+  playerId: 0x2009, playerName: 0x200b, momName: 0x2016, rivalName: 0x2021,
+  gameTimeCap: 0x2052, playHours: 0x2053, playMinutes: 0x2055, playSeconds: 0x2056,
+  money: 0x23db, momsMoney: 0x23de, coins: 0x23e2, johtoBadges: 0x23e4, kantoBadges: 0x23e5, tmhm: 0x23e6,
+  items: 0x241f, keyItems: 0x2449, balls: 0x2464, pcItems: 0x247e,
+  curBox: 0x2724, boxNames: 0x2727, party: 0x288a, dexCaught: 0x2a4c, dexSeen: 0x2a6c,
+  checksum: 0x2d69, checkValue2: 0x2d6b, currentBox: 0x2d6c, partyMail: 0x0600, partyMailBackup: 0x071a,
+  backup: [
+    [0x2000, 0x2009, 0x7e30], // options and the first check byte
+    [0x2009, 0x222f, 0x15c7], // wPlayerData1
+    [0x222f, 0x23d9, 0x3d96], // wPlayerData2
+    [0x23d9, 0x2856, 0x0c6b], // wPlayerData3
+    [0x2856, 0x288a, 0x7e39], // wCurMapData
+    [0x288a, 0x2d69, 0x10e8], // wPokemonData
+  ],
+  backupChecksum: 0x7e6d, backupCheckValue2: 0x7e6f,
+};
+
+// pret/pokecrystal (ram/sram.asm and pokecrystal11.sym); Crystal 1.0 and 1.1 save at the same addresses. Crystal keeps
+// the backup in one piece in bank 0, and the game data ends early, with padding before the checksum.
+const CRYSTAL: Layout = {
+  options: 0x2000, textboxFrame: 0x2002, textboxFlags: 0x2003, printShade: 0x2004, options2: 0x2005, checkValue1: 0x2008,
+  gameData: 0x2009, gameDataEnd: 0x2b83,
+  playerId: 0x2009, playerName: 0x200b, momName: 0x2016, rivalName: 0x2021,
+  gameTimeCap: 0x2051, playHours: 0x2052, playMinutes: 0x2054, playSeconds: 0x2055,
+  money: 0x23dc, momsMoney: 0x23df, coins: 0x23e3, johtoBadges: 0x23e5, kantoBadges: 0x23e6, tmhm: 0x23e7,
+  items: 0x2420, keyItems: 0x244a, balls: 0x2465, pcItems: 0x247f,
+  curBox: 0x2700, boxNames: 0x2703, party: 0x2865, dexCaught: 0x2a27, dexSeen: 0x2a47,
+  checksum: 0x2d0d, checkValue2: 0x2d0f, currentBox: 0x2d10, partyMail: 0x0600, partyMailBackup: 0x071a,
+  playerGender: 0x3e3d, // sCrystalData
+  backup: [
+    [0x2000, 0x2009, 0x1200], // options and the first check byte
+    [0x2009, 0x2b83, 0x1209], // the game data
+  ],
+  backupChecksum: 0x1f0d, backupCheckValue2: 0x1f0f,
+};
+
+/** The save offsets for each layout, for scripts and tests. */
+export const GEN2_LAYOUTS: Readonly<Record<Gen2Game, Layout>> = { gs: GOLD, crystal: CRYSTAL };
 
 const CHECK_VALUE_1 = 99;
 const CHECK_VALUE_2 = 127;
-
-/**
- * Where the game keeps its backup copy: each piece of the main data (start, end) and where its copy goes. The backup
- * checksum is the byte sum of the copies, which is the same as the main checksum.
- */
-const BACKUP: readonly [from: number, to: number, at: number][] = [
-  [0x2000, 0x2009, 0x7e30], // options and the first check byte
-  [0x2009, 0x222f, 0x15c7], // wPlayerData1
-  [0x222f, 0x23d9, 0x3d96], // wPlayerData2
-  [0x23d9, 0x2856, 0x0c6b], // wPlayerData3
-  [0x2856, 0x288a, 0x7e39], // wCurMapData
-  [0x288a, 0x2d69, 0x10e8], // wPokemonData
-];
-const BACKUP_CHECKSUM = 0x7e6d;
-const BACKUP_CHECK_VALUE_2 = 0x7e6f;
 
 const NAME_LEN = 11;
 /** The game keeps a player's name to 7 characters and a box's to 8. */
@@ -126,8 +163,8 @@ export interface Gen2Mon {
   /** Friendship (happiness). For an egg, the egg cycles left before it hatches. */
   friendship: number;
   pokerus: number;
-  /** Two bytes Gold and Silver never use (Crystal records where a Pokémon was caught there); kept as they are. */
-  unused: [number, number];
+  /** Crystal's record of where and when it was caught (see caught.ts). Gold and Silver leave these two bytes alone. */
+  caught: [number, number];
   level: number;
   nickname: string;
   otName: string;
@@ -210,7 +247,7 @@ export function newMon(species: number, level = 5): Gen2Mon {
   const mon: Gen2Mon = {
     species, isEgg: false, item: 0, moves: [33, 0, 0, 0], otId: 0, exp: 0,
     evs: { hp: 0, atk: 0, def: 0, spe: 0, spc: 0 }, dvs: { atk: 8, def: 8, spe: 8, spc: 8 },
-    pp: [35, 0, 0, 0], ppUps: [0, 0, 0, 0], friendship: 70, pokerus: 0, unused: [0, 0], level,
+    pp: [35, 0, 0, 0], ppUps: [0, 0, 0, 0], friendship: 70, pokerus: 0, caught: [0, 0], level,
     nickname: defaultNickname(species), otName: '',
     status: 0, partyUnused: 0, hp: 1, maxHp: 1, atk: 1, def: 1, spe: 1, spa: 1, spd: 1,
   };
@@ -234,7 +271,7 @@ function readMon(d: Uint8Array, off: number, party: boolean, listSpecies: number
     ppUps: [d[off + 23] >> 6, d[off + 24] >> 6, d[off + 25] >> 6, d[off + 26] >> 6],
     friendship: d[off + 27],
     pokerus: d[off + 28],
-    unused: [d[off + 29], d[off + 30]],
+    caught: [d[off + 29], d[off + 30]],
     level: d[off + 31],
     nickname: decodeText(nickRaw),
     otName: decodeText(otRaw),
@@ -271,8 +308,8 @@ function writeMon(d: Uint8Array, off: number, mon: Gen2Mon, party: boolean): voi
   for (let i = 0; i < 4; i++) d[off + 23 + i] = ((mon.ppUps[i] & 3) << 6) | (mon.pp[i] & 0x3f);
   d[off + 27] = mon.friendship & 0xff;
   d[off + 28] = mon.pokerus & 0xff;
-  d[off + 29] = mon.unused[0];
-  d[off + 30] = mon.unused[1];
+  d[off + 29] = mon.caught[0];
+  d[off + 30] = mon.caught[1];
   d[off + 31] = mon.level;
   if (party) {
     d[off + 32] = mon.status;
@@ -368,49 +405,66 @@ export class Gen2Save implements EditableSave {
   dexCaught: Uint8Array;
   dexSeen: Uint8Array;
 
+  /** Which layout the file uses. */
+  readonly game: Gen2Game;
+  /** Crystal only: the player chose the boy or the girl at the start (null for Gold and Silver). */
+  playerGender: 'boy' | 'girl' | null;
+
+  private L: Layout;
   private original: Uint8Array;
   private raw: { name: Uint8Array; rival: Uint8Array; mom: Uint8Array; boxNames: Uint8Array[] };
 
-  constructor(data: Uint8Array) {
-    if (data.length < SAVE_SIZE) throw new Error(`Gold and Silver saves are ${SAVE_SIZE.toLocaleString('en-US')} bytes (this file is ${data.length.toLocaleString('en-US')}).`);
+  /** Opens the file with the layout given, or else the one whose checksum is right (Gold and Silver if neither is). */
+  constructor(data: Uint8Array, game?: Gen2Game) {
+    if (data.length < SAVE_SIZE) throw new Error(`Gen 2 Pokémon saves are ${SAVE_SIZE.toLocaleString('en-US')} bytes (this file is ${data.length.toLocaleString('en-US')}).`);
+    this.game = game ?? Gen2Save.detectGame(data) ?? 'gs';
+    const L = this.L = GEN2_LAYOUTS[this.game];
     this.original = data.slice();
     const d = this.original;
+    this.playerGender = L.playerGender === undefined ? null : d[L.playerGender] & 1 ? 'girl' : 'boy';
     this.raw = {
-      name: d.slice(OFF.playerName, OFF.playerName + NAME_LEN),
-      rival: d.slice(OFF.rivalName, OFF.rivalName + NAME_LEN),
-      mom: d.slice(OFF.momName, OFF.momName + NAME_LEN),
-      boxNames: Array.from({ length: BOX_COUNT }, (_, i) => d.slice(OFF.boxNames + i * BOX_NAME_LEN, OFF.boxNames + (i + 1) * BOX_NAME_LEN)),
+      name: d.slice(L.playerName, L.playerName + NAME_LEN),
+      rival: d.slice(L.rivalName, L.rivalName + NAME_LEN),
+      mom: d.slice(L.momName, L.momName + NAME_LEN),
+      boxNames: Array.from({ length: BOX_COUNT }, (_, i) => d.slice(L.boxNames + i * BOX_NAME_LEN, L.boxNames + (i + 1) * BOX_NAME_LEN)),
     };
     this.trainerName = decodeText(this.raw.name);
     this.rivalName = decodeText(this.raw.rival);
     this.momName = decodeText(this.raw.mom);
     this.boxNames = this.raw.boxNames.map(decodeText);
-    this.trainerId = u16(d, OFF.playerId);
-    this.money = u24(d, OFF.money);
-    this.momsMoney = u24(d, OFF.momsMoney);
-    this.coins = u16(d, OFF.coins);
-    this.johtoBadges = d[OFF.johtoBadges];
-    this.kantoBadges = d[OFF.kantoBadges];
-    const o = d[OFF.options];
+    this.trainerId = u16(d, L.playerId);
+    this.money = u24(d, L.money);
+    this.momsMoney = u24(d, L.momsMoney);
+    this.coins = u16(d, L.coins);
+    this.johtoBadges = d[L.johtoBadges];
+    this.kantoBadges = d[L.kantoBadges];
+    const o = d[L.options];
     this.options = {
       textSpeed: o & 7, stereo: !!(o & 0x20), battleStyleSet: !!(o & 0x40), battleSceneOff: !!(o & 0x80),
-      frame: d[OFF.textboxFrame] & 7, printShade: d[OFF.printShade], menuAccount: !!(d[OFF.options2] & 1),
+      frame: d[L.textboxFrame] & 7, printShade: d[L.printShade], menuAccount: !!(d[L.options2] & 1),
     };
-    this.playHours = u16(d, OFF.playHours);
-    this.playMinutes = d[OFF.playMinutes];
-    this.playSeconds = d[OFF.playSeconds];
-    this.currentBoxIndex = Math.min(d[OFF.curBox], BOX_COUNT - 1);
-    this.items = readItems(d, OFF.items, BAG_MAX.items);
-    this.balls = readItems(d, OFF.balls, BAG_MAX.balls);
-    this.pcItems = readItems(d, OFF.pcItems, BAG_MAX.pcItems);
-    this.keyItems = Array.from(d.slice(OFF.keyItems + 1, OFF.keyItems + 1 + Math.min(d[OFF.keyItems], BAG_MAX.keyItems)));
-    this.tmhm = Array.from(d.slice(OFF.tmhm, OFF.tmhm + TM_COUNT + HM_COUNT));
-    this.dexCaught = d.slice(OFF.dexCaught, OFF.dexCaught + DEX_BYTES);
-    this.dexSeen = d.slice(OFF.dexSeen, OFF.dexSeen + DEX_BYTES);
-    this.party = readMonList(d, OFF.party, true);
-    this.party.forEach((mon, i) => { mon.mail = d.slice(OFF.partyMail + i * MAIL_SIZE, OFF.partyMail + (i + 1) * MAIL_SIZE); });
+    this.playHours = u16(d, L.playHours);
+    this.playMinutes = d[L.playMinutes];
+    this.playSeconds = d[L.playSeconds];
+    this.currentBoxIndex = Math.min(d[L.curBox], BOX_COUNT - 1);
+    this.items = readItems(d, L.items, BAG_MAX.items);
+    this.balls = readItems(d, L.balls, BAG_MAX.balls);
+    this.pcItems = readItems(d, L.pcItems, BAG_MAX.pcItems);
+    this.keyItems = Array.from(d.slice(L.keyItems + 1, L.keyItems + 1 + Math.min(d[L.keyItems], BAG_MAX.keyItems)));
+    this.tmhm = Array.from(d.slice(L.tmhm, L.tmhm + TM_COUNT + HM_COUNT));
+    this.dexCaught = d.slice(L.dexCaught, L.dexCaught + DEX_BYTES);
+    this.dexSeen = d.slice(L.dexSeen, L.dexSeen + DEX_BYTES);
+    this.party = readMonList(d, L.party, true);
+    this.party.forEach((mon, i) => { mon.mail = d.slice(L.partyMail + i * MAIL_SIZE, L.partyMail + (i + 1) * MAIL_SIZE); });
     this.boxes = Array.from({ length: BOX_COUNT }, (_, i) =>
-      readMonList(d, i === this.currentBoxIndex ? OFF.currentBox : Gen2Save.boxOffset(i), false));
+      readMonList(d, i === this.currentBoxIndex ? L.currentBox : Gen2Save.boxOffset(i), false));
+  }
+
+  /** The layout whose main copy is valid, or null. Only one can be: the checksums sit in different places. */
+  static detectGame(data: Uint8Array): Gen2Game | null {
+    if (Gen2Save.mainValid(data, 'crystal')) return 'crystal';
+    if (Gen2Save.mainValid(data, 'gs')) return 'gs';
+    return null;
   }
 
   static boxOffset(i: number): number {
@@ -418,9 +472,10 @@ export class Gen2Save implements EditableSave {
   }
 
   /** The main copy is the one the game loads: both check bytes in place and the checksum right. */
-  static mainValid(data: Uint8Array): boolean {
-    return data.length >= SAVE_SIZE && data[OFF.checkValue1] === CHECK_VALUE_1 && data[OFF.checkValue2] === CHECK_VALUE_2
-      && (data[OFF.checksum] | (data[OFF.checksum + 1] << 8)) === sum16(data, OFF.gameData, OFF.checksum);
+  static mainValid(data: Uint8Array, game: Gen2Game = 'gs'): boolean {
+    const L = GEN2_LAYOUTS[game];
+    return data.length >= SAVE_SIZE && data[L.checkValue1] === CHECK_VALUE_1 && data[L.checkValue2] === CHECK_VALUE_2
+      && (data[L.checksum] | (data[L.checksum + 1] << 8)) === sum16(data, L.gameData, L.gameDataEnd);
   }
 
   private bit = (arr: Uint8Array, dex: number) => (arr[(dex - 1) >> 3] >> ((dex - 1) & 7)) & 1;
@@ -457,70 +512,76 @@ export class Gen2Save implements EditableSave {
   }
 
   serialize(): Uint8Array {
+    const L = this.L;
     const d = this.original.slice();
 
-    d[OFF.options] = (d[OFF.options] & 0x18) | (this.options.textSpeed & 7) | (this.options.stereo ? 0x20 : 0)
+    d[L.options] = (d[L.options] & 0x18) | (this.options.textSpeed & 7) | (this.options.stereo ? 0x20 : 0)
       | (this.options.battleStyleSet ? 0x40 : 0) | (this.options.battleSceneOff ? 0x80 : 0);
-    d[OFF.textboxFrame] = (d[OFF.textboxFrame] & ~7) | (this.options.frame & 7);
-    d[OFF.printShade] = this.options.printShade & 0xff;
-    d[OFF.options2] = (d[OFF.options2] & ~1) | (this.options.menuAccount ? 1 : 0);
+    d[L.textboxFrame] = (d[L.textboxFrame] & ~7) | (this.options.frame & 7);
+    d[L.printShade] = this.options.printShade & 0xff;
+    d[L.options2] = (d[L.options2] & ~1) | (this.options.menuAccount ? 1 : 0);
 
-    setU16(d, OFF.playerId, this.trainerId & 0xffff);
-    d.set(encodeText(this.trainerName, NAME_LEN, this.raw.name, 0), OFF.playerName);
-    d.set(encodeText(this.momName, NAME_LEN, this.raw.mom, 0), OFF.momName);
-    d.set(encodeText(this.rivalName, NAME_LEN, this.raw.rival, 0), OFF.rivalName);
+    setU16(d, L.playerId, this.trainerId & 0xffff);
+    d.set(encodeText(this.trainerName, NAME_LEN, this.raw.name, 0), L.playerName);
+    d.set(encodeText(this.momName, NAME_LEN, this.raw.mom, 0), L.momName);
+    d.set(encodeText(this.rivalName, NAME_LEN, this.raw.rival, 0), L.rivalName);
     const hours = clamp(this.playHours, 0, 999);
-    if (hours !== u16(this.original, OFF.playHours) || this.playMinutes !== this.original[OFF.playMinutes]) {
+    if (hours !== u16(this.original, L.playHours) || this.playMinutes !== this.original[L.playMinutes]) {
       // A clock that was stopped at 999:59:59 starts again once it is below that.
-      if (hours < 999 || this.playMinutes < 59) d[OFF.gameTimeCap] &= ~1;
+      if (hours < 999 || this.playMinutes < 59) d[L.gameTimeCap] &= ~1;
     }
-    setU16(d, OFF.playHours, hours);
-    d[OFF.playMinutes] = clamp(this.playMinutes, 0, 59);
-    d[OFF.playSeconds] = clamp(this.playSeconds, 0, 59);
-    setU24(d, OFF.money, clamp(this.money, 0, MONEY_MAX));
-    setU24(d, OFF.momsMoney, clamp(this.momsMoney, 0, MONEY_MAX));
-    setU16(d, OFF.coins, clamp(this.coins, 0, COINS_MAX));
-    d[OFF.johtoBadges] = this.johtoBadges & 0xff;
-    d[OFF.kantoBadges] = this.kantoBadges & 0xff;
+    setU16(d, L.playHours, hours);
+    d[L.playMinutes] = clamp(this.playMinutes, 0, 59);
+    d[L.playSeconds] = clamp(this.playSeconds, 0, 59);
+    setU24(d, L.money, clamp(this.money, 0, MONEY_MAX));
+    setU24(d, L.momsMoney, clamp(this.momsMoney, 0, MONEY_MAX));
+    setU16(d, L.coins, clamp(this.coins, 0, COINS_MAX));
+    d[L.johtoBadges] = this.johtoBadges & 0xff;
+    d[L.kantoBadges] = this.kantoBadges & 0xff;
 
-    this.tmhm.forEach((n, i) => { d[OFF.tmhm + i] = clamp(n, 0, i < TM_COUNT ? 99 : 1); });
-    writeItems(d, OFF.items, this.items, BAG_MAX.items);
-    writeItems(d, OFF.balls, this.balls, BAG_MAX.balls);
-    writeItems(d, OFF.pcItems, this.pcItems, BAG_MAX.pcItems);
+    this.tmhm.forEach((n, i) => { d[L.tmhm + i] = clamp(n, 0, i < TM_COUNT ? 99 : 1); });
+    writeItems(d, L.items, this.items, BAG_MAX.items);
+    writeItems(d, L.balls, this.balls, BAG_MAX.balls);
+    writeItems(d, L.pcItems, this.pcItems, BAG_MAX.pcItems);
     const keys = this.keyItems.filter((id) => id !== 0 && id !== 0xff).slice(0, BAG_MAX.keyItems);
-    d[OFF.keyItems] = keys.length;
-    d.set(keys, OFF.keyItems + 1);
-    d[OFF.keyItems + 1 + keys.length] = 0xff;
+    d[L.keyItems] = keys.length;
+    d.set(keys, L.keyItems + 1);
+    d[L.keyItems + 1 + keys.length] = 0xff;
 
-    this.boxNames.forEach((name, i) => d.set(encodeText(name, BOX_NAME_LEN, this.raw.boxNames[i], 0), OFF.boxNames + i * BOX_NAME_LEN));
-    d.set(this.dexCaught, OFF.dexCaught);
-    d.set(this.dexSeen, OFF.dexSeen);
+    this.boxNames.forEach((name, i) => d.set(encodeText(name, BOX_NAME_LEN, this.raw.boxNames[i], 0), L.boxNames + i * BOX_NAME_LEN));
+    d.set(this.dexCaught, L.dexCaught);
+    d.set(this.dexSeen, L.dexSeen);
 
-    writeMonList(d, OFF.party, this.party, true);
-    d[OFF.curBox] = this.currentBoxIndex;
+    writeMonList(d, L.party, this.party, true);
+    d[L.curBox] = this.currentBoxIndex;
     for (let i = 0; i < BOX_COUNT; i++) {
-      writeMonList(d, i === this.currentBoxIndex ? OFF.currentBox : Gen2Save.boxOffset(i), this.boxes[i] ?? [], false);
+      writeMonList(d, i === this.currentBoxIndex ? L.currentBox : Gen2Save.boxOffset(i), this.boxes[i] ?? [], false);
     }
 
     // Mail travels with the party Pokémon that holds it; the game keeps a second copy right after the first.
     this.party.forEach((mon, i) => {
       if (!mon.mail) return;
-      d.set(mon.mail, OFF.partyMail + i * MAIL_SIZE);
-      d.set(mon.mail, OFF.partyMailBackup + i * MAIL_SIZE);
+      d.set(mon.mail, L.partyMail + i * MAIL_SIZE);
+      d.set(mon.mail, L.partyMailBackup + i * MAIL_SIZE);
     });
 
-    const sum = sum16(d, OFF.gameData, OFF.checksum);
-    d[OFF.checksum] = sum & 0xff;
-    d[OFF.checksum + 1] = sum >> 8;
+    // Crystal's player gender lives outside the checksummed data, and the game reads it back on Continue.
+    if (L.playerGender !== undefined && this.playerGender) {
+      d[L.playerGender] = (d[L.playerGender] & ~1) | (this.playerGender === 'girl' ? 1 : 0);
+    }
+
+    const sum = sum16(d, L.gameData, L.gameDataEnd);
+    d[L.checksum] = sum & 0xff;
+    d[L.checksum + 1] = sum >> 8;
 
     // The backup copy, refreshed only when the main copy changed (so an unedited file comes back byte for byte).
     let changed = false;
-    for (let i = OFF.options; i < OFF.checkValue2 + 1 && !changed; i++) changed = d[i] !== this.original[i];
+    for (let i = L.options; i < L.checkValue2 + 1 && !changed; i++) changed = d[i] !== this.original[i];
     if (changed) {
-      for (const [from, to, at] of BACKUP) d.set(d.subarray(from, to), at);
-      d[BACKUP_CHECKSUM] = sum & 0xff;
-      d[BACKUP_CHECKSUM + 1] = sum >> 8;
-      d[BACKUP_CHECK_VALUE_2] = CHECK_VALUE_2;
+      for (const [from, to, at] of L.backup) d.set(d.subarray(from, to), at);
+      d[L.backupChecksum] = sum & 0xff;
+      d[L.backupChecksum + 1] = sum >> 8;
+      d[L.backupCheckValue2] = CHECK_VALUE_2;
     }
     return d;
   }

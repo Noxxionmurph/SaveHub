@@ -44,6 +44,10 @@ function moduleLabel(g: GameModule): string {
 /** The module's game names without the series name: "Red", "Blue", "Yellow". */
 const shortNames = (g: GameModule): string[] => g.games.map((n) => (n.startsWith(`${g.family} `) ? n.slice(g.family.length + 1) : n));
 
+/** The game a module's sample save is from, without the series name ("Yellow"), or all of its games. */
+const sampleName = (g: GameModule): string =>
+  (g.sampleGame && g.sampleGame.startsWith(`${g.family} `) ? g.sampleGame.slice(g.family.length + 1) : g.sampleGame) ?? shortNames(g).join(' / ');
+
 const setPageTitle = (name?: string) => { document.title = name ? `${name} · ${APP_NAME}` : APP_NAME; };
 
 /**
@@ -225,7 +229,7 @@ function sampleRow(): HTMLElement | null {
   return h('div', { class: 'sample-row' },
     h('span', { class: 'muted' }, 'No save handy?'),
     withSample.map((g) => h('button', { onclick: () => void openSample(g) },
-      withSample.length === 1 ? 'Try a sample save' : `Try a ${shortNames(g).join(' / ')} sample`)));
+      withSample.length === 1 ? 'Try a sample save' : `Try a ${sampleName(g)} sample`)));
 }
 
 function renderWelcome(): void {

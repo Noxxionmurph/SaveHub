@@ -14,14 +14,14 @@ export default defineGame<Gen2Save>({
   // Each box's mascot: Ho-Oh and Lugia.
   icons: { 'Pokémon Gold': 'sprites/pokemon/250.png', 'Pokémon Silver': 'sprites/pokemon/249.png' },
   theme: 'gbc',
-  detect: (data) => (Gen2Save.mainValid(data) ? { confidence: 'certain' } : null),
+  // Crystal's checksum sits elsewhere, so a Crystal save never passes this (pokemon-crystal.ts opens those).
+  detect: (data) => (Gen2Save.detectGame(data) === 'gs' ? { confidence: 'certain' } : null),
   // Gold and Silver write their saves at the same addresses in the same way, and nothing in the file says which
   // cartridge wrote it.
   identify: () => ({
     names: GAMES,
     note: "Gold and Silver saves are identical inside, so the file can't say which one yours is. Your choice only changes the name shown here; the editor works the same either way.",
   }),
-  sample: async () => ({ fileName: 'sample-gold.sav', data: (await import('../core/gen2/sample.ts')).buildSampleSave() }),
-  load: (data) => new Gen2Save(data),
+  load: (data) => new Gen2Save(data, 'gs'),
   loadEditor: async () => (await import('../ui/editors/gen2/index.ts')).mountGen2Editor,
 });

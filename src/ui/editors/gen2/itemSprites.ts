@@ -1,11 +1,12 @@
-// Which sprite file shows for each Gold / Silver item. Values are "<category>/<name>" inside assets/sprites/items/
+// Which sprite file shows for each Gold / Silver / Crystal item. Values are "<category>/<name>" inside assets/sprites/items/
 // (the PokéSprite layout). Items with no entry fall back to the generic "?" bag icon.
 // scripts/import-sprites.mjs reads this table to know which files to copy, so edit it here only.
 //
 // PokéSprite draws items as later games show them. Gold and Silver's berries were renamed in Ruby and Sapphire, so
 // each one shows the later berry that does the same job (PSNCureBerry is Pecha, MiracleBerry is Lum, ...), and its
 // mail designs never came back, so all ten letters share one picture. Five items only Gold and Silver had (Berserk
-// Gene, Normal Box, Gorgeous Box, Polkadot Bow, Brick Piece) have no picture there and use the generic one.
+// Gene, Normal Box, Gorgeous Box, Polkadot Bow, Brick Piece) have no picture there and use the generic one, as do
+// Crystal's GS Ball and Egg Ticket.
 
 import { HM_COUNT, TMHM_MOVES, TM_COUNT, moveInfo } from '../../../core/gen2/data.ts';
 
@@ -30,6 +31,7 @@ const BASE: Record<number, string> = {
   0x3a: 'key-item/old-rod', 0x3b: 'key-item/good-rod', 0x3c: 'partner-gift/silver-leaf', 0x3d: 'key-item/super-rod',
   0x3e: 'medicine/pp-up', 0x3f: 'medicine/ether', 0x40: 'medicine/max-ether', 0x41: 'medicine/elixir',
   0x42: 'key-item/red-scale', 0x43: 'key-item/secret-potion', 0x44: 'key-item/ss-ticket', 0x45: 'key-item/mystery-egg',
+  0x46: 'key-item/clear-bell', // Crystal only
   0x47: 'key-item/silver-wing', 0x48: 'medicine/moomoo-milk', 0x49: 'hold-item/quick-claw', 0x4a: 'berry/pecha',
   0x4b: 'partner-gift/gold-leaf', 0x4c: 'hold-item/soft-sand', 0x4d: 'hold-item/sharp-beak', 0x4e: 'berry/cheri',
   0x4f: 'berry/aspear', 0x50: 'berry/rawst', 0x51: 'hold-item/poison-barb', 0x52: 'hold-item/kings-rock',
@@ -40,7 +42,7 @@ const BASE: Record<number, string> = {
   0x65: 'apricorn/pink', 0x66: 'hold-item/black-glasses', 0x67: 'valuable-item/slowpoke-tail', 0x68: 'hold-item/silk-scarf',
   0x69: 'hold-item/stick', 0x6a: 'hold-item/smoke-ball', 0x6b: 'hold-item/never-melt-ice', 0x6c: 'hold-item/magnet',
   0x6d: 'berry/lum', 0x6e: 'valuable-item/pearl', 0x6f: 'valuable-item/big-pearl', 0x70: 'hold-item/everstone',
-  0x71: 'hold-item/spell-tag', 0x72: 'medicine/rage-candy-bar', 0x75: 'hold-item/miracle-seed', 0x76: 'hold-item/thick-club',
+  0x71: 'hold-item/spell-tag', 0x72: 'medicine/rage-candy-bar', 0x74: 'key-item/blue-card', 0x75: 'hold-item/miracle-seed', 0x76: 'hold-item/thick-club',
   0x77: 'hold-item/focus-band', 0x79: 'medicine/energy-powder', 0x7a: 'medicine/energy-root', 0x7b: 'medicine/heal-powder',
   0x7c: 'medicine/revival-herb', 0x7d: 'hold-item/hard-stone', 0x7e: 'hold-item/lucky-egg', 0x7f: 'key-item/card-key',
   0x80: 'key-item/machine-part', 0x82: 'key-item/lost-item', 0x83: 'valuable-item/stardust', 0x84: 'valuable-item/star-piece',

@@ -102,6 +102,8 @@ export interface GameModule<S extends EditableSave = EditableSave> {
    * Built in code (no binary file shipped); load it lazily so it costs nothing until used.
    */
   sample?(): Promise<{ fileName: string; data: Uint8Array }>;
+  /** Which of `games` the sample save is from, for its button ("Try a Yellow sample"). Omit to name them all. */
+  readonly sampleGame?: string;
   /** Parse into an editable model. May throw with a user-readable message if the file is unusable. */
   load(data: Uint8Array): S;
   /** Lazily import the editor UI, so visitors only download code for the game they open. */
