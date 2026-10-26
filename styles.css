@@ -28,6 +28,8 @@
   --male: #1d55b8;
   --female: #b8213a;
   --shiny: #9a6a00;
+  /* Caught Pokédex tiles. The olive LCD reads as "filled in"; the paler GBC and GBA screens don't, so they tint the shell colour instead. */
+  --caught: var(--lcd); --caught-ink: var(--lcd-ink); --caught-dim: var(--lcd-dim); --caught-edge: var(--lcd-edge);
   --font-display: "Pixelify Sans", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --font-body: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -59,6 +61,7 @@
 /* Game Boy Color (teal), for games that set theme: 'gbc' (see GameModule.theme; ?console=gbc previews it). Colours only:
    a pale cool-grey screen with a dark bezel in place of the olive one, a teal shell, dark teal buttons. */
 :root[data-console="gbc"] {
+  --caught: color-mix(in srgb, var(--cart) 42%, var(--surface)); --caught-ink: var(--text); --caught-dim: var(--muted); --caught-edge: var(--cart-shade);
   --bg: #bfe0db; --surface: #d7ece9; --surface-2: #e8f5f3; --line: #93c4be; --line-strong: #5f9d96;
   --text: #0f2427; --muted: #2e5557;
   --button: #24515a; --button-edge: #123038; --button-ink: #ffffff;
@@ -90,6 +93,7 @@
    frame and the faint ruled paper of the Gen 3 trainer card and summary screens. The window's screen colour is a bright,
    cool white-blue, since the GBA screen shows full colour, not an olive or grey LCD. */
 :root[data-console="gba"] {
+  --caught: color-mix(in srgb, var(--cart) 35%, var(--surface)); --caught-ink: var(--text); --caught-dim: var(--muted); --caught-edge: var(--cart-shade);
   --bg: #dcd8ef; --surface: #ebe8f7; --surface-2: #f6f4fc; --line: #b9b3de; --line-strong: #7b72b8;
   --text: #1c1840; --muted: #4a4478;
   --button: #4b3d9a; --button-edge: #2c2266; --button-ink: #ffffff;
@@ -240,10 +244,21 @@ a { color: inherit; text-underline-offset: 3px; }
 .opt-choice input:checked + span { background: var(--lcd-ink); color: var(--lcd); border-color: var(--lcd-ink); }
 .opt-choice input:checked + span::before { visibility: visible; }
 .opt-choice input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
+/* What a setting does, under its choices: small and dimmer, but still in the pixel face like the rest of the window. */
+.opt-note { grid-column: 2; margin: 0 0 2px; font: 400 0.875rem/1.3 var(--font-display); color: var(--lcd-dim); text-wrap: pretty; }
+/* A setting with many values (Frame, Print), stepped through between arrows like the game's own ◀ TYPE 1 ▶. */
+.opt-step { align-items: center; gap: 2px; }
+.opt-arrow {
+  min-width: 40px; min-height: 40px; padding: 0; background: transparent; color: var(--lcd-ink);
+  border: 2px solid transparent; border-radius: 4px; font: 0.875rem var(--font-display);
+}
+.opt-arrow:hover:not(:disabled) { border-color: var(--lcd-edge); filter: none; }
+.opt-value { min-width: 6.5em; text-align: center; font-size: 1.0625rem; text-transform: uppercase; }
 /* Where the label and the choices no longer fit side by side (Text speed needs 276px for its three choices), the label sits
    above them, and the choices get a little tighter so all three still share one line on the smallest phones. */
 @media (max-width: 560px) {
   .opt-row { grid-template-columns: 1fr; }
+  .opt-note { grid-column: 1; }
   .opt-choices { gap: 4px; }
   .opt-choice span { padding: 0 8px 0 18px; }
 }
@@ -349,6 +364,8 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .grid.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.one { grid-template-columns: minmax(0, 32em); }
 .grid.trio { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 8px; }
+/* Money, Mom's savings and coins: three across where their hints fit, two to a line on a phone. */
+@media (max-width: 560px) { .grid.trio.money { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 10px; } }
 .card > .grid + .grid { margin-top: 12px; }
 .card > .grid + p { margin-top: 10px; }
 .subgroup { margin-top: 14px; }
@@ -554,20 +571,27 @@ img[hidden] { display: none !important; }
 .item-row { grid-template-columns: 32px 1fr 76px auto; align-items: center; }
 
 /* ---- Pokédex icon grid ---- */
-.dex-grid { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; }
+.dex-grid { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 5px; }
 .dex-tile {
-  position: relative; display: grid; justify-items: center; gap: 0; padding: 4px 2px 6px; min-height: 0; text-align: center;
+  position: relative; display: grid; justify-items: center; gap: 0; padding: 2px 2px 4px; min-height: 0; text-align: center;
   background: var(--surface); border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 8px; font-weight: 400;
 }
-.dex-tile .dex-no { font: 500 0.75rem var(--font-display); color: var(--muted); }
-.dex-tile .dex-name { font-size: 0.8125rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dex-tile .mon-icon { width: 100%; max-width: 56px; height: auto; }
-.dex-tile .dex-ball { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; display: none; }
+.dex-tile .dex-no { font: 500 0.6875rem/1.2 var(--font-display); color: var(--muted); }
+.dex-tile .dex-name { font-size: 0.6875rem; letter-spacing: -0.03em; line-height: 1.25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dex-tile .mon-icon { width: 100%; max-width: 48px; height: auto; }
+.dex-tile .dex-ball { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; display: none; }
 .dex-tile.unseen .mon-icon { filter: brightness(0); opacity: 0.2; }
 .dex-tile.unseen .dex-name { color: var(--muted); }
-.dex-tile.seen { border-color: var(--lcd-edge); }
-.dex-tile.caught { background: var(--lcd); color: var(--lcd-ink); border-color: var(--lcd-edge); }
-.dex-tile.caught .dex-no { color: var(--lcd-dim); }
+.dex-tile.caught { background: var(--caught); color: var(--caught-ink); border-color: var(--caught-edge); }
+.dex-tile.caught .dex-no { color: var(--caught-dim); }
+.dex-tile[hidden] { display: none; }
+.dex-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.dex-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; }
+.dex-filter { display: flex; flex-wrap: wrap; gap: 6px; }
+.dex-filter .chip-btn { min-height: 34px; padding: 2px 14px; }
+.dex-search { flex: 1 1 160px; max-width: 260px; }
+@media (max-width: 560px) { .dex-search { max-width: none; } }
+.dex-empty { margin-top: 12px; }
 .dex-tile.caught .dex-ball { display: block; }
 
 /* the legal line gets a row to itself */
@@ -754,6 +778,8 @@ button.danger { color: var(--danger); }
 .mon-dialog h3 { margin: 16px 0 6px; }
 .mon-dialog .section-note { margin-bottom: 8px; }
 .mon-dialog .grid { gap: 10px 12px; }
+/* On a phone the fields pair up (Species and Nickname, Level and Experience, ...) instead of one long column. */
+@media (max-width: 560px) { .mon-dialog .grid:not(.compact) { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 10px; } }
 .mon-dialog .button-row { gap: 6px; margin-top: 10px; }
 .mon-dialog .button-row button { min-height: 36px; padding: 3px 12px; }
 /* Five numbers in one row (DVs, EVs, battle stats). Digits are centred and the spin arrows are hidden so five digits fit. */
@@ -814,3 +840,5 @@ button.danger { color: var(--danger); }
 .tm-no { font: 600 0.8125rem var(--font-display); color: var(--muted); }
 .tm-row input { text-align: center; }
 .box-name { margin-top: 12px; max-width: 22em; }
+.tm-only { margin: 14px 0 0; font-weight: 500; }
+.tm-row[hidden] { display: none; }

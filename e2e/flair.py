@@ -206,6 +206,22 @@ with sync_playwright() as p:
     seen2, own2 = [int(x.split('/')[0]) for x in totals.locator('dd').all_inner_texts()]
     assert (seen2, own2) == (seen0, own0), ((seen0, own0), (seen2, own2))
 
+    # the filter and search narrow the grid, and come back as they were after switching tabs
+    visible = page.locator('.dex-tile:visible')
+    page.click('.dex-filter button:text-is("Caught")')
+    assert visible.count() == own0 and page.locator('.dex-tile.caught:visible').count() == own0
+    page.click('.dex-filter button:text-is("All")')
+    page.fill('.dex-search', 'pika')
+    assert visible.count() == 1 and 'Pikachu' in visible.first.inner_text()
+    page.fill('.dex-search', '#15')
+    assert [t.split('\n')[0] for t in visible.all_inner_texts()] == ['#015', '#150', '#151']
+    page.click('button.tab:has-text("Trainer")'); page.click('button.tab:has-text("Pokédex")')
+    assert page.input_value('.dex-search') == '#15' and visible.count() == 3
+    page.fill('.dex-search', 'zzz')
+    assert page.locator('.dex-empty').is_visible()
+    page.fill('.dex-search', '')
+    assert visible.count() == 151
+
     # the save window at the top of the review dialog says whose save this is, as edited
     page.click('button.tab:has-text("Trainer")')
     card_name = page.locator('.tcard-name').inner_text()
@@ -221,7 +237,7 @@ with sync_playwright() as p:
     page.click('dialog.review-dialog button:has-text("Keep editing")'); page.wait_for_selector('dialog.review-dialog', state='detached')
     field(page, 'Trainer name').fill('RED'); field(page, 'Hours').fill('20'); field(page, 'Hours').dispatch_event('change')
     page.click('button:has-text("All badges")')
-    page.click('button.tab:has-text("Pokédex")'); page.click('button:has-text("Mark all caught")')
+    page.click('button.tab:has-text("Pokédex")'); page.click('button:has-text("All caught")')
     page.click('.save-btn'); page.wait_for_selector('dialog.review-dialog[open]')
     assert page.locator('dialog.review-dialog dl.save-window dd').all_inner_texts() == ['RED', '8', '151', '20:34'], \
         page.locator('dialog.review-dialog dl.save-window dd').all_inner_texts()
@@ -267,7 +283,7 @@ with sync_playwright() as p:
     page.click('dialog.mon-dialog button.primary'); page.wait_for_selector('dialog.mon-dialog', state='detached')
     page.click('button.tab:has-text("Pokédex")'); page.wait_for_selector('.dex-summary')
     pixel_only(page, '.lcd.dex-summary', 'dex summary')
-    page.click('button:has-text("Mark all caught")')
+    page.click('button:has-text("All caught")')
     page.click('.save-btn'); page.wait_for_selector('dialog.review-dialog[open]')
     pixel_only(page, 'dialog.review-dialog .lcd.save-window', 'save window'); pixel_only(page, 'dialog.review-dialog .lcd.review-list', 'review list')
     ctx.close()

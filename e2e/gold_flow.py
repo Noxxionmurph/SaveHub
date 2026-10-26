@@ -40,6 +40,12 @@ with sync_playwright() as p:
     assert page.locator('.tcard-badges').first.locator('.badge-slot.earned').count() == 8
     page.click('.opt-row:has(.opt-label:text-is("Text speed")) label:has-text("Fast")')
     page.click('.opt-row:has(.opt-label:text-is("Sound")) label:has-text("Stereo")')
+    frame = page.locator('.opt-row:has(.opt-label:text-is("Frame"))')
+    frame0 = frame.locator('output').inner_text()
+    frame.locator('button[aria-label="Previous frame"]').click()      # steps round: from TYPE 1 back to TYPE 8
+    frame.locator('button[aria-label="Next frame"]').click(); frame.locator('button[aria-label="Next frame"]').click()
+    frame_now = int(frame.locator('output').inner_text().split()[-1])
+    assert frame_now == int(frame0.split()[-1]) % 8 + 1, (frame0, frame_now)
     assert page.locator('.save-btn.dirty').count() == 1
 
     # --- bag: every pocket is there, TM counts
@@ -47,6 +53,11 @@ with sync_playwright() as p:
     for pocket in ['Items pocket', 'Balls pocket', 'Key Items pocket', 'PC item storage', 'TM/HM pocket']:
         assert page.locator(f'h3:has-text("{pocket}")').count() >= 1, pocket
     page.fill('input[aria-label="TM01 count"]', '5'); page.press('input[aria-label="TM01 count"]', 'Tab')
+    held_tms = sum(1 for v in page.locator('.tm-row input').evaluate_all('els => els.map(e => e.value)') if v != '0')
+    page.check('.tm-only input')
+    assert page.locator('.tm-row:visible').count() == held_tms and page.locator('input[aria-label="TM01 count"]').is_visible()
+    page.uncheck('.tm-only input')
+    assert page.locator('.tm-row:visible').count() == 57
     page.screenshot(path=f'{SP}/g2-bag.png', full_page=True)
 
     # --- party: gender and shiny marks, an egg, Gen 2 parts of the Pokémon window
@@ -105,6 +116,7 @@ with sync_playwright() as p:
     assert len(data) == 32768 and checksums_ok(data)
     assert data[0x23e4] == 0xff                     # all Johto badges
     assert data[0x2000] & 7 == 1 and data[0x2000] & 0x20   # Fast text, stereo
+    assert data[0x2002] & 7 == frame_now - 1           # Frame, as stepped to
     assert data[0x23e6] == 5                        # five TM01
     gligar = 0x288a + 8 + 3 * 48
     assert data[gligar] == 207 and data[gligar + 1] == 0x92          # Gligar holding Leftovers

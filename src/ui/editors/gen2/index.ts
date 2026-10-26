@@ -14,8 +14,9 @@ import {
 import type { MountEditor } from '../../../core/types.ts';
 import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '../../dom.ts';
 import { enableDrag } from '../../drag.ts';
-import { choiceRow } from '../../gameChoice.ts';
-import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
+import { dexTab as sharedDexTab } from '../../dexTab.ts';
+import { choiceRow, stepRow } from '../../gameChoice.ts';
+import { badgeIcon, itemIcon, itemIconUrl, setIconSrc } from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
 import { discPath, itemSpritePath } from './itemSprites.ts';
@@ -57,6 +58,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
   let boxView = s.currentBoxIndex;
   let cardIntroPlayed = false;
+  let tmOnlyHeld = false;
   const { item: ITEM_OPTIONS, ball: BALL_OPTIONS, key: KEY_OPTIONS, pc: PC_OPTIONS } = pickers(s.game);
   const nameOf = (id: number) => itemName(id, s.game);
   const markDirty = () => host.markDirty();
@@ -200,7 +202,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
           field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; edited(); }),
             'Pokémon you caught remember this number. If you change it, they count as traded: they earn extra experience, but may ignore your orders without enough badges.'),
         ),
-        h('div', { class: 'grid trio' },
+        h('div', { class: 'grid trio money' },
           field('Money (¥)', numberInput(s.money, 0, MONEY_MAX, (v) => { s.money = v; edited(); }), 'Up to ¥999,999.'),
           field('Mom’s savings (¥)', numberInput(s.momsMoney, 0, MONEY_MAX, (v) => { s.momsMoney = v; markDirty(); }), 'What Mom is keeping for you. Up to ¥999,999.'),
           field('Game Corner coins', numberInput(s.coins, 0, COINS_MAX, (v) => { s.coins = v; markDirty(); }), 'Up to 9,999. Needs the Coin Case to see.'),
@@ -235,22 +237,20 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       h('p', { class: 'muted card-note' }, 'The same settings as OPTION in the game’s start menu.'),
       h('div', { class: 'lcd options-window' },
         choiceRow('Text speed', keep(TEXT_SPEEDS, o.textSpeed).map((t) => ({ value: String(t.value), label: t.label })), String(o.textSpeed),
-          (v) => { o.textSpeed = Number(v); edited(); }),
+          (v) => { o.textSpeed = Number(v); edited(); }, 'How fast text appears.'),
         choiceRow('Battle scene', [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }], onOff(!o.battleSceneOff),
-          (v) => { o.battleSceneOff = v === 'off'; edited(); }),
+          (v) => { o.battleSceneOff = v === 'off'; edited(); }, 'Off skips move animations.'),
         choiceRow('Battle style', [{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }], o.battleStyleSet ? 'set' : 'shift',
-          (v) => { o.battleStyleSet = v === 'set'; edited(); }),
+          (v) => { o.battleStyleSet = v === 'set'; edited(); }, 'Shift offers a switch after you knock a Pokémon out; Set doesn’t.'),
         choiceRow('Sound', [{ value: 'mono', label: 'Mono' }, { value: 'stereo', label: 'Stereo' }], o.stereo ? 'stereo' : 'mono',
           (v) => { o.stereo = v === 'stereo'; edited(); }),
-        choiceRow('Print', keep(PRINT_SHADES, o.printShade).map((t) => ({ value: String(t.value), label: t.label })), String(o.printShade),
-          (v) => { o.printShade = Number(v); edited(); }),
+        stepRow('Print', keep(PRINT_SHADES, o.printShade).map((t) => ({ value: String(t.value), label: t.label })), String(o.printShade),
+          (v) => { o.printShade = Number(v); edited(); }, 'How dark the Game Boy Printer prints.'),
         choiceRow('Menu account', [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }], onOff(o.menuAccount),
-          (v) => { o.menuAccount = v === 'on'; edited(); }),
-        choiceRow('Frame', Array.from({ length: 8 }, (_, i) => ({ value: String(i), label: `Type ${i + 1}` })), String(o.frame),
-          (v) => { o.frame = Number(v); edited(); }),
-      ),
-      h('p', { class: 'muted section-note' },
-        'Battle scene Off skips move animations. Shift asks if you want to switch Pokémon after you knock one out; Set doesn’t. Print is how dark the Game Boy Printer prints. Menu account shows a line explaining each start-menu choice. Frame is the border drawn around text boxes.'));
+          (v) => { o.menuAccount = v === 'on'; edited(); }, 'On shows a line explaining each start-menu choice.'),
+        stepRow('Frame', Array.from({ length: 8 }, (_, i) => ({ value: String(i), label: `Type ${i + 1}` })), String(o.frame),
+          (v) => { o.frame = Number(v); edited(); }, 'The border drawn around text boxes.'),
+      ));
   }
 
   // ---------- bag ----------
@@ -323,7 +323,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       const info = moveInfo(move);
       const hm = i >= TM_COUNT;
       const input = numberInput(s.tmhm[i], 0, hm ? 1 : 99, (v) => { s.tmhm[i] = v; markDirty(); paint(); }, { 'aria-label': `${TMHM_LABELS[i]} count` });
-      return h('div', { class: 'tm-row' },
+      return h('div', { class: 'tm-row', hidden: tmOnlyHeld && s.tmhm[i] === 0 },
         itemIcon(discPath(i)),
         h('span', { class: 'tm-label' }, h('span', { class: 'tm-no' }, TMHM_LABELS[i]), ' ', info?.name ?? `Move ${move}`),
         input);
@@ -334,14 +334,20 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       markDirty();
       render(); // rebuilt rather than patched, so each field's own idea of its value stays right
     };
+    // Hides the ones you have none of; a count you set to 0 stays on screen until you switch this off and on again.
+    const onlyHeld = h('input', {
+      type: 'checkbox', checked: tmOnlyHeld,
+      onchange: () => { tmOnlyHeld = onlyHeld.checked; rows.forEach((r, i) => { r.hidden = tmOnlyHeld && s.tmhm[i] === 0; }); },
+    });
     paint();
     wrap.append(
       h('h3', {}, 'TM/HM pocket', counter),
-      h('p', { class: 'muted card-note' }, 'How many of each you carry. In Gold and Silver a TM is used up when taught, so you can carry up to 99; HMs are 0 or 1.'),
+      h('p', { class: 'muted card-note' }, 'How many of each you carry. In these games a TM is used up when taught, so you can carry up to 99; HMs are 0 or 1.'),
       h('div', { class: 'button-row' },
         h('button', { onclick: () => fill(99, 1) }, 'All TMs ×99 and HMs'),
         h('button', { onclick: () => fill(null, 1) }, 'All HMs'),
         h('button', { onclick: () => fill(0, 0) }, 'Clear')),
+      h('label', { class: 'check-row tm-only' }, onlyHeld, 'Only show the ones I have'),
       h('div', { class: 'tm-grid' }, rows));
     return wrap;
   }
@@ -540,54 +546,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
   // ---------- Pokédex ----------
 
   function dexTab(): Node {
-    type DexState = 'unseen' | 'seen' | 'caught';
-    const DEX_LABEL: Record<DexState, string> = { unseen: 'not seen', seen: 'seen', caught: 'caught' };
-    const stateOf = (n: number): DexState => (s.isOwned(n) ? 'caught' : s.isSeen(n) ? 'seen' : 'unseen');
-    const seenEl = h('dd'), ownEl = h('dd');
-    const summary = h('div', { class: 'lcd dex-summary', role: 'group' },
-      h('dl', {}, h('div', {}, h('dt', {}, 'Seen'), seenEl), h('div', {}, h('dt', {}, 'Caught'), ownEl)));
-    const paintSummary = () => {
-      const caught = DEX_NAMES.filter((_, i) => s.isOwned(i + 1)).length;
-      const seen = DEX_NAMES.filter((_, i) => s.isSeen(i + 1)).length;
-      seenEl.textContent = `${seen}/${DEX_COUNT}`;
-      ownEl.textContent = `${caught}/${DEX_COUNT}`;
-      summary.setAttribute('aria-label', `Seen ${seen} of ${DEX_COUNT}, caught ${caught} of ${DEX_COUNT}`);
-    };
-    const tiles = DEX_NAMES.map((name, i) => {
-      const n = i + 1;
-      const tile = h('button', { class: 'dex-tile' },
-        pokemonIcon(n),
-        itemIcon('ball/poke', 'dex-ball'),
-        h('span', { class: 'dex-no' }, `#${String(n).padStart(3, '0')}`),
-        h('span', { class: 'dex-name' }, name));
-      const paint = () => {
-        const st = stateOf(n);
-        tile.className = `dex-tile ${st}`;
-        tile.setAttribute('aria-label', `#${n} ${name}: ${DEX_LABEL[st]}. Tap to change.`);
-      };
-      tile.addEventListener('click', () => {
-        const st = stateOf(n);
-        if (st === 'unseen') s.setSeen(n, true);
-        else if (st === 'seen') s.setOwned(n, true);
-        else s.setSeen(n, false);
-        markDirty(); paint(); paintSummary();
-      });
-      paint();
-      return { tile, paint };
-    });
-    const repaint = () => { tiles.forEach((t) => t.paint()); paintSummary(); };
-    const each = (f: (n: number) => void) => { for (let n = 1; n <= DEX_COUNT; n++) f(n); markDirty(); repaint(); };
-    paintSummary();
-    return h('div', {},
-      intro('Tap a Pokémon to cycle it: not seen, then seen, then caught. A dark shape is not seen, colour is seen, and a highlighted tile with a Poké Ball is caught. Caught only fills in the Pokédex; it doesn\'t give you the Pokémon.'),
-      summary,
-      h('div', { class: 'button-row' },
-        h('button', { onclick: () => each((n) => s.setOwned(n, true)) }, 'Mark all caught'),
-        h('button', { onclick: () => each((n) => s.setSeen(n, true)) }, 'Mark all seen'),
-        h('button', { onclick: () => each((n) => s.setSeen(n, false)) }, 'Clear all'),
-      ),
-      h('div', { class: 'dex-grid' }, tiles.map((t) => t.tile)),
-    );
+    return sharedDexTab(s, DEX_NAMES, markDirty);
   }
 
   render();

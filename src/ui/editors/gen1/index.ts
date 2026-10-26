@@ -10,6 +10,7 @@ import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '..
 import { enableDrag } from '../../drag.ts';
 import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
+import { dexTab as sharedDexTab } from '../../dexTab.ts';
 import { choiceRow } from '../../gameChoice.ts';
 import { monHpBar } from './hpBar.ts';
 import { openMonEditor } from './monEditor.ts';
@@ -199,17 +200,17 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     if (!speeds.some((t) => t.value === s.options.textSpeed)) speeds.push({ value: s.options.textSpeed, label: `Custom (${s.options.textSpeed})` });
     return h('section', { class: 'card' },
       h('h3', {}, 'Game options'),
-      h('p', { class: 'muted card-note' }, 'The same settings as OPTION in the game’s start menu. Text speed is how fast text appears.'),
+      h('p', { class: 'muted card-note' }, 'The same settings as OPTION in the game’s start menu.'),
       h('div', { class: 'lcd options-window' },
         choiceRow('Text speed', speeds.map((t) => ({ value: String(t.value), label: t.label })), String(s.options.textSpeed),
-          (v) => { s.options.textSpeed = Number(v); edited(); }),
+          (v) => { s.options.textSpeed = Number(v); edited(); }, 'How fast text appears.'),
         choiceRow('Battle animations', [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
-          s.options.battleAnimationsOff ? 'off' : 'on', (v) => { s.options.battleAnimationsOff = v === 'off'; edited(); }),
+          s.options.battleAnimationsOff ? 'off' : 'on', (v) => { s.options.battleAnimationsOff = v === 'off'; edited(); },
+          'Off skips the move animations in battle.'),
         choiceRow('Battle style', [{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }],
-          s.options.battleStyleSet ? 'set' : 'shift', (v) => { s.options.battleStyleSet = v === 'set'; edited(); }),
-      ),
-      h('p', { class: 'muted section-note' },
-        'Animations Off skips the move animations in battle. Shift asks if you want to switch Pokémon after you knock one out; Set doesn’t ask.'));
+          s.options.battleStyleSet ? 'set' : 'shift', (v) => { s.options.battleStyleSet = v === 'set'; edited(); },
+          'Shift offers a switch after you knock a Pokémon out; Set doesn’t.'),
+      ));
   }
 
   // ---------- bag ----------
@@ -430,54 +431,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   // ---------- Pokédex ----------
 
   function dexTab(): Node {
-    type DexState = 'unseen' | 'seen' | 'caught';
-    const DEX_LABEL: Record<DexState, string> = { unseen: 'not seen', seen: 'seen', caught: 'caught' };
-    const stateOf = (n: number): DexState => (s.isOwned(n) ? 'caught' : s.isSeen(n) ? 'seen' : 'unseen');
-    // The game's own SEEN / OWN window (called Caught here, which says what it is).
-    const seenEl = h('dd'), ownEl = h('dd');
-    const summary = h('div', { class: 'lcd dex-summary', role: 'group' },
-      h('dl', {}, h('div', {}, h('dt', {}, 'Seen'), seenEl), h('div', {}, h('dt', {}, 'Caught'), ownEl)));
-    const paintSummary = () => {
-      const caught = DEX_NAMES.filter((_, i) => s.isOwned(i + 1)).length;
-      const seen = DEX_NAMES.filter((_, i) => s.isSeen(i + 1)).length;
-      seenEl.textContent = `${seen}/151`;
-      ownEl.textContent = `${caught}/151`;
-      summary.setAttribute('aria-label', `Seen ${seen} of 151, caught ${caught} of 151`);
-    };
-    const tiles = DEX_NAMES.map((name, i) => {
-      const n = i + 1;
-      const tile = h('button', { class: 'dex-tile' },
-        pokemonIcon(n),
-        itemIcon('ball/poke', 'dex-ball'),
-        h('span', { class: 'dex-no' }, `#${String(n).padStart(3, '0')}`),
-        h('span', { class: 'dex-name' }, name));
-      const paint = () => {
-        const st = stateOf(n);
-        tile.className = `dex-tile ${st}`;
-        tile.setAttribute('aria-label', `#${n} ${name}: ${DEX_LABEL[st]}. Tap to change.`);
-      };
-      tile.addEventListener('click', () => {
-        const st = stateOf(n);
-        if (st === 'unseen') s.setSeen(n, true);
-        else if (st === 'seen') s.setOwned(n, true);
-        else s.setSeen(n, false);
-        markDirty(); paint(); paintSummary();
-      });
-      paint();
-      return { tile, paint };
-    });
-    const repaint = () => { tiles.forEach((t) => t.paint()); paintSummary(); };
-    paintSummary();
-    return h('div', {},
-      intro('Tap a Pokémon to cycle it: not seen, then seen, then caught. A dark shape is not seen, colour is seen, and a highlighted tile with a Poké Ball is caught. Caught only fills in the Pokédex; it doesn\'t give you the Pokémon.'),
-      summary,
-      h('div', { class: 'button-row' },
-        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setOwned(i + 1, true)); markDirty(); repaint(); } }, 'Mark all caught'),
-        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, true)); markDirty(); repaint(); } }, 'Mark all seen'),
-        h('button', { onclick: () => { DEX_NAMES.forEach((_, i) => s.setSeen(i + 1, false)); markDirty(); repaint(); } }, 'Clear all'),
-      ),
-      h('div', { class: 'dex-grid' }, tiles.map((t) => t.tile)),
-    );
+    return sharedDexTab(s, DEX_NAMES, markDirty);
   }
 
   render();
