@@ -50,6 +50,8 @@ with sync_playwright() as p:
 
     # --- bag: every pocket is there, TM counts
     page.click('button.tab:has-text("Bag")')
+    gap = page.evaluate("() => { const c = document.querySelector('.panel .two-col'); return c.nextElementSibling.getBoundingClientRect().top - c.getBoundingClientRect().bottom; }")
+    assert gap >= 12, f'TM/HM card touches the pockets above it ({gap}px)'
     for pocket in ['Items pocket', 'Balls pocket', 'Key Items pocket', 'PC item storage', 'TM/HM pocket']:
         assert page.locator(f'h3:has-text("{pocket}")').count() >= 1, pocket
     page.fill('input[aria-label="TM01 count"]', '5'); page.press('input[aria-label="TM01 count"]', 'Tab')
