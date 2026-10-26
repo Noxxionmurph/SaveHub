@@ -292,6 +292,18 @@ export function itemName(id: number): string {
   return `Item 0x${id.toString(16).toUpperCase().padStart(2, '0')}`;
 }
 
+/** The move each HM (items 0xC4-0xC8) and TM (0xC9-0xFA) teaches, as move ids (pokered: constants/item_constants.asm). */
+const TMHM_MOVE_IDS = [
+  15, 19, 57, 70, 148, // HM01-HM05
+  5, 13, 14, 18, 25, 92, 32, 34, 36, 38, 61, 55, 58, 59, 63, 6, 66, 68, 69, 99, 72, 76, 82, 85, 87,
+  89, 90, 91, 94, 100, 102, 104, 115, 117, 118, 120, 121, 126, 129, 130, 135, 138, 143, 156, 86, 149, 153, 157, 161, 164, // TM01-TM50
+];
+
+/** The move a TM or HM item teaches ("Thunderbolt" for TM24), or null for any other item. */
+export function tmhmMoveName(id: number): string | null {
+  return id >= 0xc4 && id <= 0xfa ? MOVE_NAMES[TMHM_MOVE_IDS[id - 0xc4]] : null;
+}
+
 /**
  * Entries in the game's item table that you can't normally hold in the bag, so the picker doesn't offer them.
  * (A save that already contains one still shows it; this only limits what can be newly chosen.)

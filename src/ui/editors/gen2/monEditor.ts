@@ -232,7 +232,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
           touched();
           refresh();
         }), mon.isEgg ? 'Eggs hatch at level 5.' : 'Changing the level also sets experience to match.'),
-        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; })),
+        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; }), 'Total experience points.'),
         party && !mon.isEgg ? field('Status', selectInput(statusOptions(mon.status), mon.status, (v) => { mon.status = Number(v); })) : null,
         party && !mon.isEgg ? field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; refresh(); })) : null,
         mon.isEgg

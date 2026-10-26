@@ -19,6 +19,8 @@ with sync_playwright() as p:
     assert page.title() == 'SaveForge'
     page.screenshot(path=f'{SP}/0-ambiguous.png')
     assert page.locator('.version-pick button').count() == 2     # Red / Blue only; Yellow is told apart by the file
+    tops = page.evaluate("() => [...document.querySelectorAll('.version-pick button')].map(e => Math.round(e.getBoundingClientRect().top))")
+    assert tops[0] == tops[1], f'Red and Blue on different lines: {tops}'
     assert page.locator('.pikachu-card').count() == 0            # no Yellow-only controls on a Red/Blue save
     page.click('.version-pick button:has-text("Blue")')
     assert page.inner_text('.game-name') == 'Pokémon Blue', page.inner_text('.game-name')

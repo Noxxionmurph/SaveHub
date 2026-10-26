@@ -71,6 +71,8 @@ with sync_playwright() as p:
     page.locator('.mon-main').nth(3).click()                                          # Gligar
     page.wait_for_selector('dialog.mon-dialog[open]')
     assert page.locator('dialog .stats.six dt').count() == 6
+    # checkboxes in the window are checkbox-sized, not the 36px of its text fields (which left a stray strip above them)
+    assert page.evaluate("() => [...document.querySelectorAll('dialog[open] input[type=checkbox]')].every(e => e.getBoundingClientRect().height <= 22)")
     page.click('dialog .shiny-toggle input')
     assert page.locator('dialog h2 .shiny-star').count() == 1
     page.select_option('dialog label.field:has-text("Gender") select', 'female')

@@ -130,7 +130,8 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
           onclick: () => openMonEditor({ mon, party: true, game: s.game, onDone: (changed) => { if (changed) edited(); paintParty(); } }),
         }, monIcon(mon),
         h('span', { class: 'slot-name' }, monLabel(mon)),
-        h('span', { class: 'lv-tag' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`),
+        // An egg's name already says Egg, so it gets no level line
+        mon.isEgg ? null : h('span', { class: 'lv-tag' }, `Lv ${mon.level}`),
         monHpBar(mon, true, 'small'));
       }));
     };
@@ -152,8 +153,8 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
     const caption = h('p', { class: 'muted badge-caption', 'aria-live': 'polite' });
     const paintCaption = () => {
       const earned = names.filter((_, i) => (get() >> i) & 1);
-      caption.textContent = earned.length === 0 ? 'None earned yet.'
-        : earned.length === names.length ? 'All eight earned.' : `Earned: ${earned.join(', ')}.`;
+      caption.textContent = earned.length === 0 ? `No ${title} earned yet.`
+        : earned.length === names.length ? `All eight ${title} earned.` : `Earned: ${earned.join(', ')}.`;
     };
     paintCaption();
     const buttons = names.map((name, i) => {
@@ -178,8 +179,8 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       h('div', { class: 'badge-grid' }, buttons),
       caption,
       h('div', { class: 'button-row' },
-        h('button', { onclick: () => setAll(0xff) }, `All ${title.split(' ')[0]}`),
-        h('button', { onclick: () => setAll(0) }, 'Clear')));
+        h('button', { onclick: () => setAll(0xff) }, `All ${title}`),
+        h('button', { onclick: () => setAll(0) }, `Clear ${title}`)));
   }
 
   function trainerTab(): Node {
@@ -243,7 +244,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
         choiceRow('Battle style', [{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }], o.battleStyleSet ? 'set' : 'shift',
           (v) => { o.battleStyleSet = v === 'set'; edited(); }, 'Shift offers a switch after you knock a Pokémon out; Set doesn’t.'),
         choiceRow('Sound', [{ value: 'mono', label: 'Mono' }, { value: 'stereo', label: 'Stereo' }], o.stereo ? 'stereo' : 'mono',
-          (v) => { o.stereo = v === 'stereo'; edited(); }),
+          (v) => { o.stereo = v === 'stereo'; edited(); }, 'Stereo only makes a difference with headphones.'),
         stepRow('Print', keep(PRINT_SHADES, o.printShade).map((t) => ({ value: String(t.value), label: t.label })), String(o.printShade),
           (v) => { o.printShade = Number(v); edited(); }, 'How dark the Game Boy Printer prints.'),
         choiceRow('Menu account', [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }], onOff(o.menuAccount),

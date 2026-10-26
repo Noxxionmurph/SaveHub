@@ -1,7 +1,7 @@
 // Gen 1 (Red / Blue / Yellow) editor UI. Loaded lazily by the shell via the game module.
 
 import {
-  BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, TEXT_SPEEDS, baseStatsFor, itemName, speciesName,
+  BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, TEXT_SPEEDS, baseStatsFor, itemName, speciesName, tmhmMoveName,
 } from '../../../core/gen1/data.ts';
 import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, dropMon, listAt, placeName, shiftMon } from '../../../core/gen1/roster.ts';
 import { newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
@@ -28,8 +28,10 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'dex', label: 'Pokédex' },
 ];
 const BADGES = BADGE_NAMES;
+/** An item as the picker names it: a TM or HM also says which move it teaches ("TM24 Thunderbolt"), as in Gen 2. */
+const itemLabel = (id: number, name = itemName(id)) => { const move = tmhmMoveName(id); return move ? `${name} ${move}` : name; };
 /** One shared array, so the item picker's markup is built once and cloned for every bag row. */
-const ITEM_OPTIONS = ITEM_CHOICES.map((c) => ({ value: c.id, label: c.name }));
+const ITEM_OPTIONS = ITEM_CHOICES.map((c) => ({ value: c.id, label: itemLabel(c.id, c.name) }));
 
 /** A short line at the top of a tab that says what it is for. */
 const intro = (...children: (Node | string)[]) => h('p', { class: 'tab-intro' }, ...children);
@@ -134,7 +136,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     };
     paintCaption();
     const badgeRow = h('div', { class: 'badge-grid' }, BADGES.map((name, i) => {
-      const btn = h('button', { class: 'badge-btn', title: name, 'aria-pressed': String(Boolean((s.badges >> i) & 1)) },
+      const btn = h('button', { class: 'badge-btn', title: `${name} Badge`, 'aria-pressed': String(Boolean((s.badges >> i) & 1)) },
         h('span', { class: 'gem', 'aria-hidden': 'true' }, badgeIcon(i + 1)), h('span', { class: 'badge-name' }, name));
       btn.addEventListener('click', () => {
         s.badges ^= 1 << i;
@@ -227,7 +229,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           return h('div', { class: 'item-row' },
             icon,
             lazySelect(
-              ITEM_CHOICES.some((c) => c.id === it.id) ? ITEM_OPTIONS : [{ value: it.id, label: itemName(it.id) }, ...ITEM_OPTIONS],
+              ITEM_CHOICES.some((c) => c.id === it.id) ? ITEM_OPTIONS : [{ value: it.id, label: itemLabel(it.id) }, ...ITEM_OPTIONS],
               it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }),
             numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': 'Quantity' }),
             h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { items.splice(i, 1); markDirty(); draw(); } }, '✕'),
@@ -235,7 +237,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         }),
         h('button', {
           disabled: items.length >= max,
-          onclick: () => { items.push({ id: 0x28, count: 99 }); markDirty(); draw(); },
+          onclick: () => { items.push({ id: 0x28, count: 1 }); markDirty(); draw(); },
         }, items.length >= max ? `Full (${max} of ${max})` : '+ Add item'),
       );
     };

@@ -848,3 +848,25 @@ button.danger { color: var(--danger); }
 .tm-only { margin: 14px 0 0; font-weight: 500; }
 .tm-row[hidden] { display: none; }
 .shiny-toggle { margin: 0; min-height: 36px; }
+
+/* ---- Gen 1 / Gen 2 runthrough fixes ---- */
+/* The Pokémon window's 36px fields don't apply to its checkboxes, which otherwise sit under an empty strip of field */
+.mon-dialog input[type="checkbox"] { min-height: 20px; padding: 0; }
+/* "Which game is this save from?": the version buttons wrap together, never one left on a line of its own */
+.version-buttons { display: inline-flex; flex-wrap: wrap; gap: 8px; }
+/* Trainer card figures: each column as wide as its label or value, the spare room shared out between them, so a long label
+   (Gen 2's POKÉDEX) never runs into the next one */
+.tcard-stats { grid-template-columns: repeat(4, auto); justify-content: space-between; }
+/* Party slots line up from the top, so an egg (no level, no HP bar) has its picture in line with the others */
+.party-slot, .party-cells .box-cell { align-content: start; }
+/* Landing page tiles: "Game Boy Color · English" breaks between its parts. Where tiles sit three to a row, every tile puts
+   the language on its own line, so Gen 1's row is as tall as Gen 2's */
+.tile-part { white-space: nowrap; }
+@media (min-width: 620px) {
+  .tile-sep { display: none; }
+  .tile-part { display: block; }
+}
+/* Pokédex tiles: a touch tighter, so ten-letter names (Charmander, Hitmonchan) fit a phone-width tile without being cut */
+.dex-tile .dex-name { letter-spacing: -0.05em; }
+/* Bag rows on a phone: the count only ever needs two digits, so the item name gets the room (MooMoo Milk, TM24 Thunderbolt) */
+@media (max-width: 480px) { .item-row { grid-template-columns: 32px 1fr 52px auto; gap: 6px; } }
