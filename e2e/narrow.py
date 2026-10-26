@@ -29,7 +29,7 @@ with sync_playwright() as p:
         seen['Pokémon window'] = page.evaluate(SCAN)
         page.screenshot(path=f'{SP}/narrow-{width}-window.png')
         page.click('dialog.mon-dialog button.primary'); page.wait_for_selector('dialog.mon-dialog', state='detached')
-        page.click('button.tab:has-text("Pokédex")'); page.click('button:has-text("Mark all caught")')
+        page.click('button.tab:has-text("Pokédex")'); page.click('button:has-text("All caught")')
         page.click('.save-btn'); page.wait_for_selector('dialog.review-dialog[open]'); page.wait_for_timeout(250)
         seen['review dialog'] = page.evaluate(SCAN)
         page.screenshot(path=f'{SP}/narrow-{width}-review.png')

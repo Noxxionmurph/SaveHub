@@ -51,7 +51,7 @@ with sync_playwright() as p:
     page.click('dialog button.primary')
     # Dex tab
     page.click('button.tab:has-text("Pokédex")')
-    page.click('text=Mark all caught')
+    page.click('text=All caught')
     assert page.locator('.dex-summary').get_attribute('aria-label') == 'Seen 151 of 151, caught 151 of 151'
     page.screenshot(path=f'{SP}/5-dex.png')
     page.click('.save-btn')

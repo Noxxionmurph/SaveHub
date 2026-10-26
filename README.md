@@ -109,7 +109,8 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
 - Full Pokémon editor: species, nickname, OT, level, exp (the species' own growth curve), status, moves (with type icons), DVs, EVs,
   battle stats. Each move shows its PP (read-only) and a PP Up stepper (0-3); every PP Up raises the maximum and the
   current PP with it, like the game, and "Max PP" is shown under both. Restore PP refills all four.
-- Pokédex: not seen / seen / caught (caught only marks the Pokédex, it doesn't add the Pokémon)
+- Pokédex: not seen / seen / caught (caught only marks the Pokédex, it doesn't add the Pokémon), with a filter
+  (All / Not seen / Seen / Caught) and a search by name or number. Gen 1 and Gen 2 share it (`src/ui/dexTab.ts`).
 - **Save** first shows a plain-language list of everything that changed (and "No changes yet" if nothing did)
 - "Try a Yellow sample" and "Try a Crystal sample" on the landing page open made-up saves, so nothing needs to be uploaded to look around
 - All checksums recalculated on export (main + box banks); an unedited save round-trips byte-for-byte
@@ -119,7 +120,7 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
 - Trainer: name, rival, ID, money, Mom's savings, coins, play time (to 999 hours), all 16 badges (Johto and Kanto, shown
   on the trainer card in the game's own badge art), and every OPTION setting: text speed, battle scene, battle style,
   sound, Game Boy Printer shade, menu account and text box frame.
-- All four bag pockets (Items, Balls, Key Items, TM/HM with a count for each of the 57) and PC item storage. Each picker
+- All four bag pockets (Items, Balls, Key Items, TM/HM with a count for each of the 57, and a switch to show only the ones you have) and PC item storage. Each picker
   only offers what the game files in that pocket.
 - Party and all 14 boxes, with box names. Moving works as in Gen 1 (arrows, drag and drop, the action menu) and follows
   the game's PC rules: a Pokémon holding Mail can't go in a box, the party always keeps one Pokémon that can battle (an
