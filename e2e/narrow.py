@@ -1,6 +1,6 @@
 """Nothing runs off the edge of a small screen: at 320, 360, 390 and 768px wide, the page never scrolls sideways and no
 text in a retro window spills out of it or past the screen, on the landing page, every tab, the Pokémon window and
-the review dialog (with every Pokémon owned, the widest numbers)."""
+the review dialog (with every Pokémon caught, the widest numbers)."""
 import sys
 from playwright.sync_api import sync_playwright
 from lib import BASE
@@ -29,7 +29,7 @@ with sync_playwright() as p:
         seen['Pokémon window'] = page.evaluate(SCAN)
         page.screenshot(path=f'{SP}/narrow-{width}-window.png')
         page.click('dialog.mon-dialog button.primary'); page.wait_for_selector('dialog.mon-dialog', state='detached')
-        page.click('button.tab:has-text("Pokédex")'); page.click('button:has-text("Own all 151")')
+        page.click('button.tab:has-text("Pokédex")'); page.click('button:has-text("Mark all caught")')
         page.click('.save-btn'); page.wait_for_selector('dialog.review-dialog[open]'); page.wait_for_timeout(250)
         seen['review dialog'] = page.evaluate(SCAN)
         page.screenshot(path=f'{SP}/narrow-{width}-review.png')

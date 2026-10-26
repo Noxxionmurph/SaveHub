@@ -109,7 +109,7 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
 - Full Pokémon editor: species, nickname, OT, level, exp (the species' own growth curve), status, moves (with type icons), DVs, EVs,
   battle stats. Each move shows its PP (read-only) and a PP Up stepper (0-3); every PP Up raises the maximum and the
   current PP with it, like the game, and "Max PP" is shown under both. Restore PP refills all four.
-- Pokédex seen / owned
+- Pokédex: not seen / seen / caught (caught only marks the Pokédex, it doesn't add the Pokémon)
 - **Save** first shows a plain-language list of everything that changed (and "No changes yet" if nothing did)
 - "Try a Yellow sample" and "Try a Crystal sample" on the landing page open made-up saves, so nothing needs to be uploaded to look around
 - All checksums recalculated on export (main + box banks); an unedited save round-trips byte-for-byte
@@ -128,7 +128,7 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
   (egg cycles, and hatching one or turning it back into an egg). Gender, shininess and Unown's letter come from the
   DVs in these games, so they're set from the DVs: pick a gender, tap Make shiny, or pick a letter, and the editor
   changes as few DV bits as it can. Shiny Pokémon get a ★ and Unown shows its own letter everywhere.
-- Pokédex: all 251 seen / owned.
+- Pokédex: all 251 seen / caught.
 - Both copies of the save are written (Gold and Silver keep a backup), with both checksums; an unedited save
   round-trips byte for byte.
 
@@ -217,7 +217,7 @@ Every screen explains itself in plain words, so keep it that way when you add a 
 
 - One name per thing: **Save** (the button and the act), "the file you opened" (the original, which is never changed),
   "your edited copy", **Party** and **Box 1-12**, **slot** (only for a position inside a box), **Duplicate**, **Swap**,
-  **Move**, **Owned** / **Seen**. Money is shown as ¥ everywhere, including the review list.
+  **Move**, **Caught** / **Seen**. Money is shown as ¥ everywhere, including the review list.
 - Each tab opens with one line saying what it is for, so people know how to use the editor. Anything that needs more
   (the Boxes tab's dragging tips) sits in a collapsed "How ... works" section that stays open across redraws.
 - This is a save editor, not a game guide. Say how to use the editor, but don't add reference material about the game:

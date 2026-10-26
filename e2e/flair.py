@@ -189,20 +189,20 @@ with sync_playwright() as p:
     page.click('.opt-row:has(.opt-label:text-is("Text speed")) label:has-text("Medium")')
     page.click('.opt-row:has(.opt-label:text-is("Battle style")) label:has-text("Shift")')
 
-    # the dex totals are the game's SEEN / OWN window and follow the tiles
+    # the dex totals are the game's SEEN / OWN window (labelled Caught) and follow the tiles
     page.click('button.tab:has-text("Pokédex")')
     totals = page.locator('.dex-summary')
-    assert totals.locator('dt').all_inner_texts() == ['SEEN', 'OWN']
+    assert totals.locator('dt').all_inner_texts() == ['SEEN', 'CAUGHT']
     seen0, own0 = [int(x.split('/')[0]) for x in totals.locator('dd').all_inner_texts()]
-    assert totals.get_attribute('aria-label') == f'Seen {seen0} of 151, owned {own0} of 151'
-    tile = page.locator('.dex-tile:not(.seen):not(.owned)').first       # a Pokémon the sample hasn't seen
+    assert totals.get_attribute('aria-label') == f'Seen {seen0} of 151, caught {own0} of 151'
+    tile = page.locator('.dex-tile:not(.seen):not(.caught)').first       # a Pokémon the sample hasn't seen
     tile.click()
     seen1, own1 = [int(x.split('/')[0]) for x in totals.locator('dd').all_inner_texts()]
     assert (seen1, own1) == (seen0 + 1, own0), ((seen0, own0), (seen1, own1))
     page.screenshot(path=f'{SP}/flair-dex.png')
-    page.locator('.dex-tile.seen:not(.owned)').first.click()             # seen -> owned
+    page.locator('.dex-tile.seen:not(.caught)').first.click()             # seen -> caught
     assert [int(x.split('/')[0]) for x in totals.locator('dd').all_inner_texts()] == [seen0 + 1, own0 + 1]
-    page.locator('.dex-tile.owned').first.click()                        # owned -> not seen (the first owned tile; totals drop by one each)
+    page.locator('.dex-tile.caught').first.click()                        # caught -> not seen (the first caught tile; totals drop by one each)
     seen2, own2 = [int(x.split('/')[0]) for x in totals.locator('dd').all_inner_texts()]
     assert (seen2, own2) == (seen0, own0), ((seen0, own0), (seen2, own2))
 
@@ -221,7 +221,7 @@ with sync_playwright() as p:
     page.click('dialog.review-dialog button:has-text("Keep editing")'); page.wait_for_selector('dialog.review-dialog', state='detached')
     field(page, 'Trainer name').fill('RED'); field(page, 'Hours').fill('20'); field(page, 'Hours').dispatch_event('change')
     page.click('button:has-text("All badges")')
-    page.click('button.tab:has-text("Pokédex")'); page.click('button:has-text("Own all 151")')
+    page.click('button.tab:has-text("Pokédex")'); page.click('button:has-text("Mark all caught")')
     page.click('.save-btn'); page.wait_for_selector('dialog.review-dialog[open]')
     assert page.locator('dialog.review-dialog dl.save-window dd').all_inner_texts() == ['RED', '8', '151', '20:34'], \
         page.locator('dialog.review-dialog dl.save-window dd').all_inner_texts()
@@ -267,7 +267,7 @@ with sync_playwright() as p:
     page.click('dialog.mon-dialog button.primary'); page.wait_for_selector('dialog.mon-dialog', state='detached')
     page.click('button.tab:has-text("Pokédex")'); page.wait_for_selector('.dex-summary')
     pixel_only(page, '.lcd.dex-summary', 'dex summary')
-    page.click('button:has-text("Own all 151")')
+    page.click('button:has-text("Mark all caught")')
     page.click('.save-btn'); page.wait_for_selector('dialog.review-dialog[open]')
     pixel_only(page, 'dialog.review-dialog .lcd.save-window', 'save window'); pixel_only(page, 'dialog.review-dialog .lcd.review-list', 'review list')
     ctx.close()

@@ -566,9 +566,9 @@ img[hidden] { display: none !important; }
 .dex-tile.unseen .mon-icon { filter: brightness(0); opacity: 0.2; }
 .dex-tile.unseen .dex-name { color: var(--muted); }
 .dex-tile.seen { border-color: var(--lcd-edge); }
-.dex-tile.owned { background: var(--lcd); color: var(--lcd-ink); border-color: var(--lcd-edge); }
-.dex-tile.owned .dex-no { color: var(--lcd-dim); }
-.dex-tile.owned .dex-ball { display: block; }
+.dex-tile.caught { background: var(--lcd); color: var(--lcd-ink); border-color: var(--lcd-edge); }
+.dex-tile.caught .dex-no { color: var(--lcd-dim); }
+.dex-tile.caught .dex-ball { display: block; }
 
 /* the legal line gets a row to itself */
 .site-foot .legal { flex-basis: 100%; margin: 0; }

@@ -68,7 +68,7 @@ function dexLines(b: Gen1Save, a: Gen1Save): string[] {
   const out: string[] = [];
   const bo = count(b, b.isOwned), ao = count(a, a.isOwned);
   const bs = count(b, b.isSeen), as = count(a, a.isSeen);
-  if (bo !== ao) out.push(`Owned: ${bo} → ${ao}`);
+  if (bo !== ao) out.push(`Caught: ${bo} → ${ao}`);
   if (bs !== as) out.push(`Seen: ${bs} → ${as}`);
   const same = (x: Uint8Array, y: Uint8Array) => x.length === y.length && x.every((v, i) => v === y[i]);
   if (bo === ao && bs === as && (!same(b.dexOwned, a.dexOwned) || !same(b.dexSeen, a.dexSeen))) out.push('Some entries changed');
