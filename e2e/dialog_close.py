@@ -23,7 +23,8 @@ def check(p, name, size):
     page.goto(BASE)
     page.click('.sample-row button'); page.wait_for_selector('.tabs')
 
-    # the guidance line under the tabs is as wide as the content under it (it used to stop at about 690px)
+    # the guidance line under the tabs (only the Pokédex has one) is as wide as the content under it (it used to stop at about 690px)
+    page.click('button.tab:has-text("Pokédex")')
     intro = page.locator('.tab-intro').first.bounding_box()
     holder = page.locator('.tab-intro').first.locator('xpath=..').bounding_box()
     assert abs(intro['width'] - holder['width']) < 1, (name, intro, holder)

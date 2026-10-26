@@ -31,6 +31,15 @@ with sync_playwright() as p:
     assert page.inner_text('.file-line').startswith('sample-crystal.sav')
     assert page.input_value('label.field:has-text("Trainer name") input') == 'KRIS'
 
+    # --- the trainer card's figures don't run into each other (POKÉDEX is the longest label), and the egg in the party
+    # strip says Egg once, with its picture in line with the others
+    gaps = page.evaluate("() => { const d = [...document.querySelectorAll('.tcard-stats dt')].map(e => { const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect(); }); return d.slice(1).map((r, i) => r.left - d[i].right); }")
+    assert min(gaps) >= 8, f'trainer card labels too close: {gaps}'
+    egg = page.locator('.party-slot').nth(5)
+    assert egg.locator('.slot-name').inner_text() == 'Egg' and egg.locator('.lv-tag').count() == 0
+    tops = page.evaluate("() => [...document.querySelectorAll('.party-slot')].map(s => Math.round(s.querySelector('.slot-name').getBoundingClientRect().top - s.getBoundingClientRect().top))")
+    assert max(tops) - min(tops) <= 5, f'party pictures out of line: {tops}'   # names (right under the pictures) sit at one height
+
     # --- trainer: play as the boy instead
     row = page.locator('.player-gender .opt-row')
     assert row.locator('input[value="girl"]').is_checked()

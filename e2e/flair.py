@@ -66,7 +66,7 @@ with sync_playwright() as p:
     btns = page.locator('.badge-btn')
     assert btns.count() == 8
     for i, n in enumerate(names):
-        assert btns.nth(i).get_attribute('title') == n and btns.nth(i).evaluate('e => e.textContent.trim()') == n
+        assert btns.nth(i).get_attribute('title') == f'{n} Badge' and btns.nth(i).evaluate('e => e.textContent.trim()') == n
         assert btns.nth(i).locator('.badge-name').evaluate('e => e.getBoundingClientRect().width') <= 1.5, 'the name is drawn on a phone'
     assert caption.inner_text() == 'Earned: ' + ', '.join(n for n, on in zip(names, original) if on) + '.' if any(original) else caption.inner_text() == 'No badges earned yet.'
     page.click('button:has-text("Clear badges")'); check_slots(0)

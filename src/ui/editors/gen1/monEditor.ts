@@ -19,7 +19,7 @@ const SPECIES_OPTIONS = DEX_NAMES.map((name, i) => ({
   label: `#${String(i + 1).padStart(3, '0')} ${name}`,
 }));
 const MOVE_OPTIONS = MOVE_NAMES.map((name, i) => ({ value: i, label: i === 0 ? '— (none)' : name }));
-const STAT_LABELS = { hp: 'HP', atk: 'Atk', def: 'Def', spe: 'Spd', spc: 'Spc' } as const;
+const STAT_LABELS = { hp: 'HP', atk: 'Atk', def: 'Def', spe: 'Spe', spc: 'Spc' } as const;
 const STATUS_OPTIONS = [
   { value: 0, label: 'Healthy' }, { value: 4, label: 'Asleep' }, { value: 8, label: 'Poisoned' },
   { value: 16, label: 'Burned' }, { value: 32, label: 'Frozen' }, { value: 64, label: 'Paralyzed' },
@@ -149,7 +149,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
       h('dl', { class: 'lcd stats', 'aria-label': party ? 'Current stats' : 'Calculated stats' },
         (['hp', 'atk', 'def', 'spe', 'spc'] as const).map((k) =>
           h('div', {}, h('dt', {}, STAT_LABELS[k]), h('dd', {}, String(shown[k]))))),
-      party ? null : h('p', { class: 'muted stats-note' }, 'Box Pokémon don’t store stats, so these are calculated from level, DVs and EVs.'),
+      party ? null : h('p', { class: 'muted stats-note' }, 'Box Pokémon don’t store stats, so these are calculated from level, DVs and stat experience.'),
       h('div', { class: 'grid' },
         field('Species', selectInput(SPECIES_OPTIONS, mon.species, (v) => {
           const hadDefaultName = !mon.nickname || mon.nickname === defaultNickname(mon.species);
@@ -159,24 +159,23 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
           touched();
           refresh();
         }), base ? undefined : 'Unknown species'),
-        nameField('Nickname', mon.nickname, (v) => { mon.nickname = v; }, 'Up to 10 characters.'),
+        nameField('Nickname', mon.nickname, (v) => { mon.nickname = v; }),
         field('Level', numberInput(mon.level, 1, 100, (v) => {
           mon.level = v;
           mon.exp = expAt(v);
           touched();
           refresh();
         }), 'Changing the level also sets experience to match.'),
-        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; }), 'Total experience points.'),
+        field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; })),
         field('Status', selectInput(STATUS_OPTIONS, STATUS_OPTIONS.some((s) => s.value === mon.status) ? mon.status : 0,
           (v) => { mon.status = Number(v); })),
-        nameField('Original trainer', mon.otName, (v) => { mon.otName = v; }, 'The name of whoever caught it.'),
+        nameField('Original trainer', mon.otName, (v) => { mon.otName = v; }),
         field('Original trainer ID', numberInput(mon.otId, 0, 65535, (v) => { mon.otId = v; }),
           'If this isn’t your Trainer ID, the game counts this Pokémon as traded.'),
         field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; refresh(); })),
       ),
 
       h('h3', {}, 'Moves'),
-      h('p', { class: 'muted section-note' }, 'Each PP Up (0 to 3) raises a move’s max PP and its current PP. A newly picked move starts with full PP.'),
       h('div', { class: 'moves' }, [0, 1, 2, 3].map(moveRow)),
 
       h('h3', {}, 'DVs (hidden genes)'),
@@ -189,7 +188,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
       party
         ? h('div', {},
           h('h3', {}, 'Battle stats'),
-          h('p', { class: 'muted section-note' }, 'Saved with the Pokémon. They update when you change level, DVs or EVs, and you can also type your own.'),
+          h('p', { class: 'muted section-note' }, 'Saved with the Pokémon. They update when you change level, DVs or stat experience, and you can also type your own.'),
           h('div', { class: 'grid compact cols5' },
             field('Max HP', numberInput(mon.maxHp, 1, 999, (v) => { mon.maxHp = v; })),
             field('Attack', numberInput(mon.atk, 1, 999, (v) => { mon.atk = v; })),
@@ -198,21 +197,18 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
             field('Special', numberInput(mon.spc, 1, 999, (v) => { mon.spc = v; })),
           ),
           calc ? h('p', { class: 'muted' },
-            `For this level, DVs and EVs the game works out: HP ${calc.hp}, Atk ${calc.atk}, Def ${calc.def}, Spd ${calc.spe}, Spc ${calc.spc}.`) : null,
+            `For this level, DVs and stat experience the game works out: HP ${calc.hp}, Atk ${calc.atk}, Def ${calc.def}, Spe ${calc.spe}, Spc ${calc.spc}.`) : null,
         )
         : null,
 
       h('h3', {}, 'Shortcuts'),
       h('div', { class: 'button-row' },
         h('button', { onclick: () => { mon.dvs = { atk: 15, def: 15, spe: 15, spc: 15 }; touched(); refresh(); } }, 'Max DVs'),
-        h('button', { onclick: () => { mon.evs = { hp: 65535, atk: 65535, def: 65535, spe: 65535, spc: 65535 }; touched(); refresh(); } }, 'Max EVs'),
+        h('button', { onclick: () => { mon.evs = { hp: 65535, atk: 65535, def: 65535, spe: 65535, spc: 65535 }; touched(); refresh(); } }, 'Max stat experience'),
         h('button', { onclick: () => { mon.exp = expAt(mon.level); refresh(); } }, 'Match exp to level'),
         h('button', { onclick: () => { mon.pp = mon.moves.map((m, i) => maxPp(m, mon.ppUps[i])) as typeof mon.pp; refresh(); } }, 'Restore PP'),
         party ? h('button', { onclick: () => { recalcPartyStats(mon, true); refresh(); } }, 'Heal and recalculate stats') : null,
       ),
-      h('p', { class: 'muted section-note' },
-        party ? 'Match exp to level sets experience to the lowest amount for the current level. Heal and recalculate stats refills HP and rebuilds the battle stats.'
-          : 'Match exp to level sets experience to the lowest amount for the current level.'),
       h('div', { class: 'dialog-foot' },
         h('span', { class: 'muted' }, 'Done keeps your changes and the ✕ at the top throws them away. The file is only written when you tap Save on the main page.'),
         h('button', { class: 'primary', onclick: () => { dialog.close(); } }, 'Done'),

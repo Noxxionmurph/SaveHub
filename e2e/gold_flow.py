@@ -36,7 +36,7 @@ with sync_playwright() as p:
     page.screenshot(path=f'{SP}/g1-trainer.png', full_page=True)
 
     # --- trainer: badges and options
-    page.click('button:has-text("All Johto")')
+    page.click('.subgroup:has(h4:text-is("Johto badges")) button:has-text("All badges")')
     assert page.locator('.tcard-badges').first.locator('.badge-slot.earned').count() == 8
     page.click('.opt-row:has(.opt-label:text-is("Text speed")) label:has-text("Fast")')
     page.click('.opt-row:has(.opt-label:text-is("Sound")) label:has-text("Stereo")')
@@ -71,6 +71,8 @@ with sync_playwright() as p:
     page.locator('.mon-main').nth(3).click()                                          # Gligar
     page.wait_for_selector('dialog.mon-dialog[open]')
     assert page.locator('dialog .stats.six dt').count() == 6
+    # checkboxes in the window are checkbox-sized, not the 36px of its text fields (which left a stray strip above them)
+    assert page.evaluate("() => [...document.querySelectorAll('dialog[open] input[type=checkbox]')].every(e => e.getBoundingClientRect().height <= 22)")
     page.click('dialog .shiny-toggle input')
     assert page.locator('dialog h2 .shiny-star').count() == 1
     page.select_option('dialog label.field:has-text("Gender") select', 'female')

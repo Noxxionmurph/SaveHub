@@ -178,10 +178,11 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
     if (names.length > 1) {
       picker.append(
         h('span', { class: 'muted' }, chosen ? 'Version:' : 'Which game is this save from?'),
-        ...names.map((n) => h('button', {
+        // The buttons wrap as one group, so on a phone they share a line instead of leaving one alone.
+        h('span', { class: 'version-buttons' }, names.map((n) => h('button', {
           class: n === chosen ? 'chip-btn on' : 'chip-btn', 'aria-pressed': String(n === chosen),
           onclick: () => { chosen = n; drawName(); },
-        }, n.startsWith(`${game.family} `) ? n.slice(game.family.length + 1) : n)),
+        }, n.startsWith(`${game.family} `) ? n.slice(game.family.length + 1) : n))),
       );
     }
   };
@@ -302,7 +303,9 @@ function renderWelcome(): void {
               const tile = h('li', { class: 'tile' },
                 h('span', { class: 'tile-label', 'aria-hidden': 'true' }),
                 h('span', { class: 'tile-name' }, name),
-                h('span', { class: 'muted tile-platform' }, g.platform),
+                // "Game Boy Color · English": each part stays whole, so a narrow tile breaks between them, never inside one.
+                h('span', { class: 'muted tile-platform' }, g.platform.split(' · ').flatMap((part, i) =>
+                  [i ? h('span', { class: 'tile-sep' }, ' · ') : null, h('span', { class: 'tile-part' }, part)])),
                 picture ? pictureIcon(picture, 68, 56, 'tile-icon') : null);
               const color = g.colors?.[name];
               if (color) tile.style.setProperty('--label', color);

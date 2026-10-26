@@ -51,7 +51,6 @@ function pickers(set: ItemSet) {
 const RARE_CANDY = 0x20;
 const ULTRA_BALL = 0x02;
 
-const intro = (...children: (Node | string)[]) => h('p', { class: 'tab-intro' }, ...children);
 const popcount = (n: number) => { let c = 0; for (let v = n & 0xff; v; v &= v - 1) c++; return c; };
 
 export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
@@ -130,7 +129,8 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
           onclick: () => openMonEditor({ mon, party: true, game: s.game, onDone: (changed) => { if (changed) edited(); paintParty(); } }),
         }, monIcon(mon),
         h('span', { class: 'slot-name' }, monLabel(mon)),
-        h('span', { class: 'lv-tag' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`),
+        // An egg's name already says Egg, so it gets no level line
+        mon.isEgg ? null : h('span', { class: 'lv-tag' }, `Lv ${mon.level}`),
         monHpBar(mon, true, 'small'));
       }));
     };
@@ -152,8 +152,8 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
     const caption = h('p', { class: 'muted badge-caption', 'aria-live': 'polite' });
     const paintCaption = () => {
       const earned = names.filter((_, i) => (get() >> i) & 1);
-      caption.textContent = earned.length === 0 ? 'None earned yet.'
-        : earned.length === names.length ? 'All eight earned.' : `Earned: ${earned.join(', ')}.`;
+      caption.textContent = earned.length === 0 ? `No ${title} earned yet.`
+        : earned.length === names.length ? `All eight ${title} earned.` : `Earned: ${earned.join(', ')}.`;
     };
     paintCaption();
     const buttons = names.map((name, i) => {
@@ -178,17 +178,17 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       h('div', { class: 'badge-grid' }, buttons),
       caption,
       h('div', { class: 'button-row' },
-        h('button', { onclick: () => setAll(0xff) }, `All ${title.split(' ')[0]}`),
-        h('button', { onclick: () => setAll(0) }, 'Clear')));
+        // the same words as Gen 1's; the heading above already says which region
+        h('button', { onclick: () => setAll(0xff) }, 'All badges'),
+        h('button', { onclick: () => setAll(0) }, 'Clear badges')));
   }
 
   function trainerTab(): Node {
     return h('div', { class: 'stack' },
-      intro('Your trainer card, money, badges and game settings. Edit any field. Nothing is written to a file until you tap Save.'),
       overview(),
       h('section', { class: 'card' },
         h('h3', {}, 'Trainer'),
-        h('p', { class: 'muted card-note' }, 'Names hold up to 7 characters, as on the naming screen. Type {PK} or {MN} for the PK and MN symbols.'),
+        h('p', { class: 'muted card-note' }, 'Type {PK} or {MN} for the PK and MN symbols.'),
         h('div', { class: 'grid pair' },
           nameField('Trainer name', s.trainerName, (v) => { s.trainerName = v; edited(); }, undefined, PLAYER_NAME_MAX),
           nameField('Rival name', s.rivalName, (v) => { s.rivalName = v; markDirty(); }, undefined, PLAYER_NAME_MAX),
@@ -197,15 +197,15 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
           choiceRow('Player', [{ value: 'boy', label: 'Boy' }, { value: 'girl', label: 'Girl' }], s.playerGender,
             (v) => { s.playerGender = v === 'girl' ? 'girl' : 'boy'; markDirty(); })) : null,
         s.playerGender ? h('p', { class: 'muted section-note' },
-          'Crystal asks “Are you a boy? Or are you a girl?” at the start. It changes how you look in the game, and Pokémon you catch from now on remember it.') : null,
+          'Pokémon you catch from now on remember which you played as.') : null,
         h('div', { class: 'grid one' },
           field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; edited(); }),
-            'Pokémon you caught remember this number. If you change it, they count as traded: they earn extra experience, but may ignore your orders without enough badges.'),
+            'Change it and the Pokémon you caught count as traded: more experience, but they may disobey without enough badges.'),
         ),
         h('div', { class: 'grid trio money' },
-          field('Money (¥)', numberInput(s.money, 0, MONEY_MAX, (v) => { s.money = v; edited(); }), 'Up to ¥999,999.'),
-          field('Mom’s savings (¥)', numberInput(s.momsMoney, 0, MONEY_MAX, (v) => { s.momsMoney = v; markDirty(); }), 'What Mom is keeping for you. Up to ¥999,999.'),
-          field('Game Corner coins', numberInput(s.coins, 0, COINS_MAX, (v) => { s.coins = v; markDirty(); }), 'Up to 9,999. Needs the Coin Case to see.'),
+          field('Money (¥)', numberInput(s.money, 0, MONEY_MAX, (v) => { s.money = v; edited(); })),
+          field('Mom’s savings (¥)', numberInput(s.momsMoney, 0, MONEY_MAX, (v) => { s.momsMoney = v; markDirty(); })),
+          field('Game Corner coins', numberInput(s.coins, 0, COINS_MAX, (v) => { s.coins = v; markDirty(); })),
         ),
         h('div', { class: 'button-row' },
           h('button', { onclick: () => { s.money = MONEY_MAX; s.momsMoney = MONEY_MAX; s.coins = COINS_MAX; markDirty(); render(); } }, 'Max money & coins'),
@@ -219,7 +219,6 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
           ))),
       h('section', { class: 'card' },
         h('h3', {}, 'Badges'),
-        h('p', { class: 'muted card-note' }, 'Tap a badge to earn it or take it away. Badges decide which HMs work outside battle and how high a level traded Pokémon obey.'),
         badgeCard('Johto badges', JOHTO_BADGES, 'johto', () => s.johtoBadges, (v) => { s.johtoBadges = v; }),
         badgeCard('Kanto badges', KANTO_BADGES, 'kanto', () => s.kantoBadges, (v) => { s.kantoBadges = v; })),
       optionsCard(),
@@ -234,14 +233,13 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
     const onOff = (on: boolean) => (on ? 'on' : 'off');
     return h('section', { class: 'card' },
       h('h3', {}, 'Game options'),
-      h('p', { class: 'muted card-note' }, 'The same settings as OPTION in the game’s start menu.'),
       h('div', { class: 'lcd options-window' },
         choiceRow('Text speed', keep(TEXT_SPEEDS, o.textSpeed).map((t) => ({ value: String(t.value), label: t.label })), String(o.textSpeed),
-          (v) => { o.textSpeed = Number(v); edited(); }, 'How fast text appears.'),
+          (v) => { o.textSpeed = Number(v); edited(); }),
         choiceRow('Battle scene', [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }], onOff(!o.battleSceneOff),
-          (v) => { o.battleSceneOff = v === 'off'; edited(); }, 'Off skips move animations.'),
+          (v) => { o.battleSceneOff = v === 'off'; edited(); }),
         choiceRow('Battle style', [{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }], o.battleStyleSet ? 'set' : 'shift',
-          (v) => { o.battleStyleSet = v === 'set'; edited(); }, 'Shift offers a switch after you knock a Pokémon out; Set doesn’t.'),
+          (v) => { o.battleStyleSet = v === 'set'; edited(); }),
         choiceRow('Sound', [{ value: 'mono', label: 'Mono' }, { value: 'stereo', label: 'Stereo' }], o.stereo ? 'stereo' : 'mono',
           (v) => { o.stereo = v === 'stereo'; edited(); }),
         stepRow('Print', keep(PRINT_SHADES, o.printShade).map((t) => ({ value: String(t.value), label: t.label })), String(o.printShade),
@@ -249,7 +247,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
         choiceRow('Menu account', [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }], onOff(o.menuAccount),
           (v) => { o.menuAccount = v === 'on'; edited(); }, 'On shows a line explaining each start-menu choice.'),
         stepRow('Frame', Array.from({ length: 8 }, (_, i) => ({ value: String(i), label: `Type ${i + 1}` })), String(o.frame),
-          (v) => { o.frame = Number(v); edited(); }, 'The border drawn around text boxes.'),
+          (v) => { o.frame = Number(v); edited(); }),
       ));
   }
 
@@ -291,7 +289,6 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       const list = s.keyItems;
       wrap.append(
         h('h3', {}, 'Key Items pocket', h('span', { class: 'muted count' }, `${list.length}/${max}`)),
-        h('p', { class: 'muted card-note' }, 'Things you only ever have one of, like the Bicycle and the fishing rods.'),
         ...list.map((id, i) => {
           const icon = itemIcon(itemSpritePath(id));
           return h('div', { class: 'item-row no-count' },
@@ -343,7 +340,6 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
     paint();
     wrap.append(
       h('h3', {}, 'TM/HM pocket', counter),
-      h('p', { class: 'muted card-note' }, 'How many of each you carry. In these games a TM is used up when taught, so you can carry up to 99; HMs are 0 or 1.'),
       h('div', { class: 'button-row' },
         h('button', { onclick: () => fill(99, 1) }, 'All TMs ×99 and HMs'),
         h('button', { onclick: () => fill(null, 1) }, 'All HMs'),
@@ -354,12 +350,11 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
   }
 
   const bagTab = () => h('div', { class: 'stack' },
-    intro('Pick an item, set how many (1 to 99), or tap ✕ to remove it. Each pocket only offers items the game files there.'),
     h('div', { class: 'two-col' },
-      itemList('Items pocket', 'Medicine, held items, berries and the rest. Up to 20 different items.', s.items, BAG_MAX.items, ITEM_OPTIONS, () => RARE_CANDY),
-      itemList('Balls pocket', 'Poké Balls, including the Apricorn balls Kurt makes. Up to 12 kinds.', s.balls, BAG_MAX.balls, BALL_OPTIONS, () => ULTRA_BALL),
+      itemList('Items pocket', '', s.items, BAG_MAX.items, ITEM_OPTIONS, () => RARE_CANDY),
+      itemList('Balls pocket', '', s.balls, BAG_MAX.balls, BALL_OPTIONS, () => ULTRA_BALL),
       keyList(),
-      itemList('PC item storage', 'Items stored in your PC. Up to 50 different items (TMs and HMs can’t go in).', s.pcItems, BAG_MAX.pcItems, PC_OPTIONS, () => RARE_CANDY),
+      itemList('PC item storage', '', s.pcItems, BAG_MAX.pcItems, PC_OPTIONS, () => RARE_CANDY),
     ),
     tmhmCard());
 
@@ -442,7 +437,6 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
     };
     draw();
     return h('div', { class: 'stack' },
-      intro('Up to 6 Pokémon. The first one that isn’t an egg battles first, so use the arrows to change the order. Tap a Pokémon to edit it, or ⋯ to move, duplicate or remove it.'),
       wrap);
   }
 
@@ -512,7 +506,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
         markDirty();
         const opt = picker.options[shownBox];
         if (opt) opt.textContent = `${boxLabel(shownBox)}${shownBox === s.currentBoxIndex ? ' (current)' : ''} · ${listAt(s, shownBox).length}/${BOX_MAX}`;
-      }, 'Up to 8 characters.', BOX_NAME_LEN - 1);
+      }, undefined, BOX_NAME_LEN - 1);
       rename.classList.add('box-name');
 
       body.append(
@@ -529,7 +523,6 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       );
     };
     holder.append(
-      intro('Your party and the 14 PC boxes. Tap a Pokémon to edit, move, duplicate or remove it, or drag one onto another to swap them.'),
       h('details', { class: 'tips' },
         h('summary', {}, 'How dragging works'),
         h('ul', {},
