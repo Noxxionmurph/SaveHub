@@ -8,7 +8,7 @@ import {
 import type { Gen2Save } from '../../../core/gen2/save.ts';
 import { askConfirm, clear, h, toast } from '../../dom.ts';
 import { typeChips } from '../../typeChip.ts';
-import { monIcon, monLabel } from './monBits.ts';
+import { monIcon, monLabel, shinyMark } from './monBits.ts';
 
 export interface MonMenuOptions {
   save: Gen2Save;
@@ -40,7 +40,7 @@ export function openMonMenu({ save, where, index, onEdit, onChange }: MonMenuOpt
   const header = () => h('div', { class: 'sheet-head' },
     monIcon(mon, 'big'),
     h('div', {},
-      h('h2', {}, name),
+      h('h2', {}, name, shinyMark(mon)),
       h('p', { class: 'muted' }, `${species}${mon.isEgg ? '' : ` · Lv ${mon.level}`} · ${placeName(where)}${where === PARTY ? ` ${index + 1}` : `, slot ${index + 1}`}`),
       mon.isEgg ? null : typeChips(baseStatsFor(mon.species))));
 

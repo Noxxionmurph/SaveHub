@@ -39,6 +39,15 @@ with sync_playwright() as p:
     assert egg.locator('.slot-name').inner_text() == 'Egg' and egg.locator('.lv-tag').count() == 0
     tops = page.evaluate("() => [...document.querySelectorAll('.party-slot')].map(s => Math.round(s.querySelector('.slot-name').getBoundingClientRect().top - s.getBoundingClientRect().top))")
     assert max(tops) - min(tops) <= 5, f'party pictures out of line: {tops}'   # names (right under the pictures) sit at one height
+    # the shiny Gyarados (party 2) carries the shiny mark wherever it is previewed
+    assert [page.locator('.party-slot').nth(i).locator('.shiny-star').count() for i in range(6)] == [0, 1, 0, 0, 0, 0]
+    page.click('button.tab:has-text("Boxes")')
+    page.locator('.box-cell').nth(1).click()
+    assert page.locator('dialog .sheet-head h2 .shiny-star').count() == 1
+    page.keyboard.press('Escape')
+    page.locator('.box-cell').nth(0).click()
+    assert page.locator('dialog .sheet-head h2 .shiny-star').count() == 0
+    page.keyboard.press('Escape')
 
     # --- party cards: types are the in-game labels, and a held item sits on the picture, named when hovered
     page.click('button.tab:has-text("Party")')
