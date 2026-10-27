@@ -1,11 +1,8 @@
 """Every picture looks like part of one set: on every page (the landing page, each game's tabs and Pokémon windows) and at
 every screen scaling, the pixel art (Pokémon, items, badges, Pikachu) is drawn at a whole number of screen pixels per art
 pixel with hard edges, and each kind of picture is one size everywhere: every Pokémon in a list, tile, cell or the
-Pokédex the same, every item the same, the Pokémon window and landing page pictures the same, every type icon 24px and
-every shiny mark one letter high and every ♂/♀ three quarters of one. On a phone the list Pokémon are the items' size and the big pictures twice that;
-from 900px wide the list Pokémon are 1.5x (plain 1.5px per art pixel on 100-110% screens, where whole pixels would mean
-1x or 2x) and the items stay put. A shiny mark in a tile's corner is on top, and clear
-of the Pokémon's art from 390px wide. The badges size themselves to their row (e2e/crisp.py checks that), so
+Pokédex the same, every item the same, the Pokémon window and landing page pictures the same (twice the list size),
+every type icon 24px and every shiny mark 16px. The badges size themselves to their row (e2e/crisp.py checks that), so
 here they only have to be whole multiples. A new game's pages are covered by adding it to GAMES; a new kind of picture
 by adding it to KINDS (and to the "one scale for every picture" block in styles.css)."""
 import sys
@@ -15,15 +12,14 @@ SP = sys.argv[1]
 errors = []
 
 # kind -> (CSS selector, pixel art?, the size it must be: 'list' / 'big' (whole multiples of one shared scale), a fixed
-# CSS size, '<n>em' (that many letters high), or None for "whole multiple, any size")
+# CSS size, or None for "whole multiple, any size")
 KINDS = {
     'Pokémon (lists)': ('img.mon-icon:not(.big)', True, 'list'),
     'Pokémon (window, landing)': ('img.mon-icon.big, img.tile-icon', True, 'big'),
-    'item': ('img.item-icon', True, 'item'),
+    'item': ('img.item-icon', True, 'list'),
     'badge': ('img.badge-icon', True, None),
     'type icon': ('img.type-icon', False, 24),
-    'shiny mark': ('img.shiny-icon', False, '1em'),
-    '♂/♀': ('svg.gender-icon', False, '0.75em'),
+    'shiny mark': ('img.shiny-icon', False, 16),
 }
 
 SCAN = """async (kinds) => {
@@ -33,24 +29,12 @@ SCAN = """async (kinds) => {
   const shown = (e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
   const out = {};
   for (const [kind, [sel]] of Object.entries(kinds)) {
-    out[kind] = [...document.querySelectorAll(sel)].filter((i) => shown(i) && (i.naturalWidth > 0 || i.tagName === 'svg')).map((i) => {
+    out[kind] = [...document.querySelectorAll(sel)].filter((i) => shown(i) && i.naturalWidth > 0).map((i) => {
       const r = i.getBoundingClientRect();
-      return { src: (i.getAttribute('src') || i.getAttribute('class')).replace(/^.*sprites\\//, ''), w: r.width, h: r.height, nw: i.naturalWidth, nh: i.naturalHeight,
-               pixelated: getComputedStyle(i).imageRendering === 'pixelated', em: parseFloat(getComputedStyle(i.parentElement).fontSize) };
+      return { src: i.getAttribute('src').replace(/^.*sprites\\//, ''), w: r.width, h: r.height, nw: i.naturalWidth, nh: i.naturalHeight,
+               pixelated: getComputedStyle(i).imageRendering === 'pixelated' };
     });
   }
-  // a shiny mark in a tile's corner: on top, and clear of the art (at most 35x30 art pixels, centred in the icon)
-  out.marks = [...document.querySelectorAll('.box-cell .shiny-icon, .party-slot .shiny-icon')].filter(shown).map((m) => {
-    const r = m.getBoundingClientRect();
-    const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    const pic = m.closest('.box-cell, .party-slot').querySelector('.mon-icon');
-    // the icon is shifted (sprites.ts centre()) so that its art's middle lands where the untransformed canvas's middle is
-    const p = pic.getBoundingClientRect(); const art = p.width / 68;
-    const t = new DOMMatrix(getComputedStyle(pic).transform);
-    const cx = p.left + p.width / 2 - t.m41, cy = p.top + p.height / 2 - t.m42;
-    const clear = r.right <= cx - 17.5 * art || r.left >= cx + 17.5 * art || r.bottom <= cy - 15 * art || r.top >= cy + 15 * art;
-    return { onTop: top === m || m.contains(top), clear };
-  });
   // Pikachu's reactions are background pictures: 40px frames
   out.pikachu = [...document.querySelectorAll('.pika-frame')].filter(shown).map((e) => ({ w: e.getBoundingClientRect().width, pixelated: getComputedStyle(e).imageRendering === 'pixelated' }));
   // a picture's empty edges may run past its tile, but never off the side of the screen
@@ -64,44 +48,29 @@ def whole(v):
     return round(v) >= 1 and abs(v - round(v)) < 0.02
 
 
-def check(where, out, dpr, width):
+def check(where, out, dpr):
     bad = []
     scale = {}
-    wide = width >= 900
     for kind, (_, pixel_art, size) in KINDS.items():
         for x in out[kind]:
-            if isinstance(size, str) and size[0].isdigit():
-                want_px = float(size[:-2]) * x['em']
-                if abs(x['w'] - want_px) > 0.05 or abs(x['h'] - want_px) > 0.05:
-                    bad.append(f"{kind} is {x['w']:.2f}x{x['h']:.2f}, not {size} ({want_px}px)")
-                continue
             sx, sy = x['w'] * dpr / x['nw'], x['h'] * dpr / x['nh']
             if pixel_art:
-                # 100-110% screens can't draw the wide-screen 1.5x in whole pixels, so there it is plain 1.5px
-                plain = size == 'list' and wide and dpr < 1.2 and abs(x['w'] / x['nw'] - 1.5) < 0.02
-                if not plain and not (whole(sx) and whole(sy) and abs(sx - sy) < 0.02):
+                if not (whole(sx) and whole(sy) and abs(sx - sy) < 0.02):
                     bad.append(f"{kind} {x['src']} is drawn at {sx:.3f}x{sy:.3f} screen pixels per art pixel, not a whole number")
                 if not x['pixelated']:
                     bad.append(f"{kind} {x['src']} is smoothed (no image-rendering: pixelated)")
-                if size in ('list', 'big', 'item'):
+                if size in ('list', 'big'):
                     scale.setdefault(size, set()).add(round(sx, 2))
             elif abs(x['w'] - size) > 0.05 or abs(x['h'] - size) > 0.05:
                 bad.append(f"{kind} {x['src']} is {x['w']:.2f}x{x['h']:.2f}, not {size}px")
-    # one scale each for list Pokémon, items and the big pictures, and the right sizes relative to each other
+    # one scale for lists (Pokémon and items alike) and one for the big pictures, which is about twice it
     for size, seen in scale.items():
         if len(seen) > 1:
             bad.append(f"{size} pictures are drawn at more than one scale: {sorted(seen)}")
-    one = {k: next(iter(v)) / dpr for k, v in scale.items() if len(v) == 1}
-    want = {('big', 'list'): (0.95, 1.55) if wide else (1.4, 2.6), ('list', 'item'): (1.3, 2.05) if wide else (0.95, 1.05),
-            ('big', 'item'): (1.4, 2.6)}
-    for (x, y), (lo, hi) in want.items():
-        if x in one and y in one and not lo <= one[x] / one[y] <= hi:
-            bad.append(f"{x} pictures ({one[x]:.2f}px per art pixel) are {one[x] / one[y]:.2f}x the {y} ones, not {lo}-{hi}x")
-    for m in out['marks']:
-        if not m['onTop']:
-            bad.append('a shiny mark is covered by something')
-        if not m['clear'] and width >= 390:   # the smallest phones' cells are barely wider than the art
-            bad.append("a shiny mark overlaps the Pokémon's art")
+    if 'list' in scale and 'big' in scale and len(scale['list']) == 1 and len(scale['big']) == 1:
+        lst, big = next(iter(scale['list'])) / dpr, next(iter(scale['big'])) / dpr
+        if not 1.4 <= big / lst <= 2.6:
+            bad.append(f"big pictures ({big:.2f}px per art pixel) are not about twice the list ones ({lst:.2f})")
     for x in out['pikachu']:
         if not whole(x['w'] * dpr / 40) or not x['pixelated']:
             bad.append(f"Pikachu is drawn at {x['w'] * dpr / 40:.3f} screen pixels per art pixel (pixelated: {x['pixelated']})")
@@ -142,7 +111,7 @@ with sync_playwright() as p:
             for k, v in out.items():
                 if isinstance(v, list) and k != 'unclassed':
                     counts[k] = counts.get(k, 0) + len(v)
-            errors.extend(check(f'{tag} {where}', out, dpr, width))
+            errors.extend(check(f'{tag} {where}', out, dpr))
 
         page.goto(BASE); page.wait_for_selector('.slot')
         scan('landing page')
@@ -161,7 +130,7 @@ with sync_playwright() as p:
     b.close()
 
 # make sure the sweep really saw each kind of picture (a renamed class would otherwise pass by checking nothing)
-missing = [k for k in [*KINDS, 'pikachu', 'marks'] if not counts.get(k)]
+missing = [k for k in [*KINDS, 'pikachu'] if not counts.get(k)]
 assert not missing, f'never saw: {missing}'
 assert not errors, '\n'.join(dict.fromkeys(errors))
 print('assets: ok', counts)
