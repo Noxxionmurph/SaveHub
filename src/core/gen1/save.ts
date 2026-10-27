@@ -66,18 +66,17 @@ export interface Gen1Options {
   battleStyleSet: boolean;
   /** Battle animation: true = off, false = on. */
   battleAnimationsOff: boolean;
+  /** Bits 4-5: Yellow's SOUND setting, 0 = Mono, 1-3 = Earphone 1-3 (pokeyellow: OptionsMenu_SpeakerSettings). Red and Blue have no such option and leave them at 0. */
+  sound: number;
 }
 
 export function readOptions(byte: number): Gen1Options {
-  return { textSpeed: byte & 0x0f, battleStyleSet: !!(byte & 0x40), battleAnimationsOff: !!(byte & 0x80) };
+  return { textSpeed: byte & 0x0f, battleStyleSet: !!(byte & 0x40), battleAnimationsOff: !!(byte & 0x80), sound: (byte >> 4) & 3 };
 }
 
-/** Bits 4-5 aren't text speed: Yellow keeps its sound setting (mono, earphone 1-3) there, and the editor leaves it alone. */
-const OPTIONS_OTHER_BITS = 0x30;
-
-/** The options byte for these settings. `original` is the byte the file had, so the bits the editor doesn't offer carry over. */
-export function writeOptions(o: Gen1Options, original = 0): number {
-  return (o.textSpeed & 0x0f) | (original & OPTIONS_OTHER_BITS) | (o.battleStyleSet ? 0x40 : 0) | (o.battleAnimationsOff ? 0x80 : 0);
+/** The options byte for these settings (every bit of it is one of them). */
+export function writeOptions(o: Gen1Options): number {
+  return (o.textSpeed & 0x0f) | ((o.sound & 3) << 4) | (o.battleStyleSet ? 0x40 : 0) | (o.battleAnimationsOff ? 0x80 : 0);
 }
 
 /** True for a Pokémon Yellow save (the Pikachu block is only ever written by Yellow). */
@@ -477,7 +476,7 @@ export class Gen1Save implements EditableSave {
     bcdEncode(d, OFF.money, 3, this.money);
     bcdEncode(d, OFF.coins, 2, this.coins);
     d[OFF.badges] = this.badges & 0xff;
-    d[OFF.options] = writeOptions(this.options, d[OFF.options]);
+    d[OFF.options] = writeOptions(this.options);
     if (this.isYellow) {
       d[OFF.pikachuFriendship] = this.pikachuFriendship & 0xff;
       d[OFF.pikachuMood] = this.pikachuMood & 0xff;

@@ -1,7 +1,7 @@
 // Gen 1 (Red / Blue / Yellow) editor UI. Loaded lazily by the shell via the game module.
 
 import {
-  BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, TEXT_SPEEDS, baseStatsFor, itemName, speciesName, tmhmMoveName,
+  BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, SOUND_OPTIONS, TEXT_SPEEDS, baseStatsFor, itemName, speciesName, tmhmMoveName,
 } from '../../../core/gen1/data.ts';
 import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, dropMon, listAt, placeName, shiftMon } from '../../../core/gen1/roster.ts';
 import { newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
@@ -11,7 +11,7 @@ import { enableDrag } from '../../drag.ts';
 import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
 import { dexTab as sharedDexTab } from '../../dexTab.ts';
-import { choiceRow } from '../../gameChoice.ts';
+import { choiceRow, stepRow } from '../../gameChoice.ts';
 import { monHpBar } from './hpBar.ts';
 import { openMonEditor } from './monEditor.ts';
 import { openMonMenu } from './monMenu.ts';
@@ -151,8 +151,8 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
         h('h3', {}, 'Trainer'),
         h('p', { class: 'muted card-note' }, 'Type {PK} or {MN} for the PK and MN symbols.'),
         h('div', { class: 'grid pair' },
-          nameField('Trainer name', s.trainerName, (v) => { s.trainerName = v; edited(); }),
-          nameField('Rival name', s.rivalName, (v) => { s.rivalName = v; markDirty(); }),
+          nameField('Trainer name', s.trainerName, (v) => { s.trainerName = v; edited(); }, undefined, undefined, true),
+          nameField('Rival name', s.rivalName, (v) => { s.rivalName = v; markDirty(); }, undefined, undefined, true),
         ),
         h('div', { class: 'grid one' },
           field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; edited(); }),
@@ -191,7 +191,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     return pikachuCard(s, { markDirty, onRefresh, monLabel });
   }
 
-  /** The three settings from the in-game OPTION menu. */
+  /** The settings from the in-game OPTION menu (Yellow adds Sound). */
   function optionsCard(): Node {
     const speeds = TEXT_SPEEDS.map((t) => ({ value: t.value, label: t.label }));
     // A value the menu can't produce (rare) stays selectable so it isn't silently changed.
@@ -205,6 +205,8 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
           s.options.battleAnimationsOff ? 'off' : 'on', (v) => { s.options.battleAnimationsOff = v === 'off'; edited(); }),
         choiceRow('Battle style', [{ value: 'shift', label: 'Shift' }, { value: 'set', label: 'Set' }],
           s.options.battleStyleSet ? 'set' : 'shift', (v) => { s.options.battleStyleSet = v === 'set'; edited(); }),
+        s.isYellow ? stepRow('Sound', SOUND_OPTIONS.map((label, i) => ({ value: String(i), label })), String(s.options.sound),
+          (v) => { s.options.sound = Number(v); edited(); }) : null,
       ));
   }
 
@@ -268,9 +270,9 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
   }
 
   /** Open the editor for a Pokémon, then redraw whatever list it is in. */
-  function editMon(where: number, index: number, redraw: () => void): void {
+  function editMon(where: number, index: number, redraw: () => void, onDiscard?: () => void): void {
     const mon = listAt(s, where)[index];
-    if (mon) openMonEditor({ mon, party: where === PARTY, onDone: (changed) => { if (changed) markDirty(); redraw(); } });
+    if (mon) openMonEditor({ mon, party: where === PARTY, onDiscard, onDone: (changed) => { if (changed) markDirty(); redraw(); } });
   }
 
   function menuFor(where: number, index: number, redraw: () => void): void {
@@ -288,6 +290,12 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     mon.otId = s.trainerId;
     if (party) recalcPartyStats(mon, true);
     return mon;
+  }
+
+  /** Take a just-added Pokémon back out of its list. */
+  function takeBack<T>(list: T[], mon: T): void {
+    const i = list.indexOf(mon);
+    if (i >= 0) list.splice(i, 1);
   }
 
   function partyTab(): Node {
@@ -315,9 +323,11 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       wrap.append(h('button', {
         disabled: s.party.length >= PARTY_MAX,
         onclick: () => {
-          s.party.push(freshMon(true));
+          const mon = freshMon(true);
+          s.party.push(mon);
           markDirty();
-          editMon(PARTY, s.party.length - 1, draw);
+          // closing the new Pokémon's window with ✕ means "never mind": it goes again
+          editMon(PARTY, s.party.length - 1, draw, () => takeBack(s.party, mon));
           draw();
         },
       }, s.party.length >= PARTY_MAX ? `Party full (${PARTY_MAX} of ${PARTY_MAX})` : `+ Add Pokémon (${s.party.length}/${PARTY_MAX})`));
@@ -378,7 +388,7 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
       if (where !== PARTY && i === list.length) {
         return h('button', {
           class: 'box-cell add', 'aria-label': `Add a Pokémon to Box ${where + 1}`, dataset: { slot: key },
-          onclick: () => { list.push(freshMon(false)); markDirty(); editMon(where, list.length - 1, draw); draw(); },
+          onclick: () => { const mon = freshMon(false); list.push(mon); markDirty(); editMon(where, list.length - 1, draw, () => takeBack(list, mon)); draw(); },
         }, h('span', { class: 'plus', 'aria-hidden': 'true' }, '+'));
       }
       return h('span', { class: 'box-cell empty', 'aria-hidden': 'true', dataset: { slot: key } });

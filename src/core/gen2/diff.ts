@@ -6,7 +6,8 @@ import {
   DEX_COUNT, JOHTO_BADGES, KANTO_BADGES, MOVE_NAMES, PRINT_SHADES, TEXT_SPEEDS, TMHM_LABELS, TMHM_MOVES, genderOf, isShiny, itemName as nameOf,
   speciesName, UNOWN, unownLetter, type ItemSet,
 } from './data.ts';
-import type { BagItem, Gen2Mon, Gen2Save } from './save.ts';
+import { BOX_NAME_LEN, PLAYER_NAME_MAX, type BagItem, type Gen2Mon, type Gen2Save } from './save.ts';
+import { asSaved } from './text.ts';
 
 const CAP = 12;
 
@@ -17,6 +18,9 @@ function group(title: string, lines: string[], cap = CAP): ChangeGroup | null {
 
 const money = (n: number) => `¥${n.toLocaleString('en-US')}`;
 const clock = (s: Gen2Save) => `${s.playHours}:${String(s.playMinutes).padStart(2, '0')}:${String(s.playSeconds).padStart(2, '0')}`;
+/** Names as the file will hold them ("?" for what the game can't show, cut to the field's length), not as typed. */
+const nm = (text: string, max = 10) => asSaved(text, max);
+const pn = (text: string) => asSaved(text, PLAYER_NAME_MAX);
 const textSpeedName = (v: number) => TEXT_SPEEDS.find((t) => t.value === v)?.label ?? `Custom (${v})`;
 const shadeName = (v: number) => PRINT_SHADES.find((t) => t.value === v)?.label ?? `Custom (${v})`;
 
@@ -33,10 +37,11 @@ function badgeLines(names: readonly string[], b: number, a: number): string[] {
 
 function trainerLines(b: Gen2Save, a: Gen2Save): string[] {
   const out: string[] = [];
-  if (b.trainerName !== a.trainerName) out.push(`Name: ${b.trainerName} → ${a.trainerName}`);
+  if (pn(b.trainerName) !== pn(a.trainerName)) out.push(`Name: ${pn(b.trainerName)} → ${pn(a.trainerName)}`);
+  if (!a.trainerName.trim()) out.push('Warning: your name is blank, so the game will show nothing where it should be.');
   if (b.playerGender !== a.playerGender) out.push(`Plays as: ${b.playerGender === 'girl' ? 'girl' : 'boy'} → ${a.playerGender === 'girl' ? 'girl' : 'boy'}`);
-  if (b.rivalName !== a.rivalName) out.push(`Rival: ${b.rivalName} → ${a.rivalName}`);
-  if (b.momName !== a.momName) out.push(`Mom: ${b.momName} → ${a.momName}`);
+  if (pn(b.rivalName) !== pn(a.rivalName)) out.push(`Rival: ${pn(b.rivalName)} → ${pn(a.rivalName)}`);
+  if (nm(b.momName) !== nm(a.momName)) out.push(`Mom: ${nm(b.momName)} → ${nm(a.momName)}`);
   if (b.trainerId !== a.trainerId) {
     out.push(`Trainer ID: ${String(b.trainerId).padStart(5, '0')} → ${String(a.trainerId).padStart(5, '0')}`);
     // The game decides "traded" by comparing a Pokémon's original trainer ID with the player's.
@@ -117,7 +122,8 @@ function optionLines(b: Gen2Save, a: Gen2Save): string[] {
 }
 
 function boxNameLines(b: Gen2Save, a: Gen2Save): string[] {
-  return a.boxNames.flatMap((name, i) => (name === b.boxNames[i] ? [] : [`Box ${i + 1} name: ${b.boxNames[i]} → ${name}`]));
+  const box = (name: string) => nm(name, BOX_NAME_LEN - 1);
+  return a.boxNames.flatMap((name, i) => (box(name) === box(b.boxNames[i]) ? [] : [`Box ${i + 1} name: ${box(b.boxNames[i])} → ${box(name)}`]));
 }
 
 // ---------- Pokémon ----------
@@ -131,7 +137,8 @@ const containerName = (box: number) => (box < 0 ? 'Party' : `Box ${box + 1}`);
 function label(m: Gen2Mon): string {
   if (m.isEgg) return `Egg (${speciesName(m.species)})`;
   const species = speciesName(m.species);
-  return m.nickname && m.nickname.toUpperCase() !== species.toUpperCase() ? `${species} “${m.nickname}”` : species;
+  const nick = nm(m.nickname);
+  return nick && nick.toUpperCase() !== species.toUpperCase() ? `${species} “${nick}”` : species;
 }
 
 /** Everything that identifies one Pokémon wherever it is. Party-only numbers are left out, since a move to a box drops them. */
@@ -181,16 +188,22 @@ const moveList = (m: Gen2Mon) => m.moves.filter(Boolean).map((id) => MOVE_NAMES[
 const same4 = (x: readonly number[], y: readonly number[]) => x.every((v, i) => v === y[i]);
 const sameDvs = (x: Gen2Mon['dvs'], y: Gen2Mon['dvs']) => x.atk === y.atk && x.def === y.def && x.spe === y.spe && x.spc === y.spc;
 
-function monChanges(b: Gen2Mon, a: Gen2Mon, set: ItemSet): string[] {
+function monChanges(b: Gen2Mon, a: Gen2Mon, set: ItemSet, party: boolean): string[] {
   const itemName = (id: number) => nameOf(id, set);
   const out: string[] = [];
   if (b.isEgg !== a.isEgg) out.push(a.isEgg ? 'made an egg' : 'hatched');
   if (b.species !== a.species) out.push(`species ${speciesName(b.species)} → ${speciesName(a.species)}`);
-  if (b.nickname !== a.nickname) out.push(`nickname ${b.nickname || '(none)'} → ${a.nickname || '(none)'}`);
+  if (nm(b.nickname) !== nm(a.nickname)) out.push(`nickname ${nm(b.nickname) || '(none)'} → ${nm(a.nickname) || '(none)'}`);
   if (b.level !== a.level) out.push(`level ${b.level} → ${a.level}`);
   else if (b.exp !== a.exp) out.push('experience changed');
   if (b.item !== a.item) out.push(a.item ? `holds ${itemName(a.item)}${b.item ? ` (was ${itemName(b.item)})` : ''}` : `no longer holds ${itemName(b.item)}`);
   if (b.hp !== a.hp) out.push(`HP ${b.hp} → ${a.hp}`);
+  if (party && !a.isEgg) {
+    // Party Pokémon store their stats, which change with level, DVs and stat experience
+    const stats = ([['Max HP', 'maxHp'], ['Atk', 'atk'], ['Def', 'def'], ['SpA', 'spa'], ['SpD', 'spd'], ['Spe', 'spe']] as const)
+      .filter(([, k]) => b[k] !== a[k]).map(([name, k]) => `${name} ${b[k]} → ${a[k]}`);
+    if (stats.length) out.push(`stats ${stats.join(', ')}`);
+  }
   if (b.status !== a.status) out.push(a.status === 0 ? 'status cleared' : 'status changed');
   if (!same4(b.moves, a.moves)) out.push(`moves ${moveList(b)} → ${moveList(a)}`);
   else if (!same4(b.pp, a.pp) || !same4(b.ppUps, a.ppUps)) out.push('PP changed');
@@ -205,7 +218,7 @@ function monChanges(b: Gen2Mon, a: Gen2Mon, set: ItemSet): string[] {
   if (JSON.stringify(b.evs) !== JSON.stringify(a.evs)) out.push('stat experience changed');
   if (b.friendship !== a.friendship) out.push(a.isEgg ? `steps to hatch changed` : `friendship ${b.friendship} → ${a.friendship}`);
   if (b.pokerus !== a.pokerus) out.push(a.pokerus ? 'Pokérus changed' : 'Pokérus removed');
-  if (b.otName !== a.otName) out.push(`OT ${b.otName || '(none)'} → ${a.otName || '(none)'}`);
+  if (pn(b.otName) !== pn(a.otName)) out.push(`OT ${pn(b.otName) || '(none)'} → ${pn(a.otName) || '(none)'}`);
   if (b.otId !== a.otId) out.push('OT ID changed');
   if (b.caught[0] !== a.caught[0] || b.caught[1] !== a.caught[1]) out.push('where it was caught changed');
   return out;
@@ -218,7 +231,7 @@ function pokemonLines(b: Gen2Save, a: Gen2Save): string[] {
   for (const { b: sb, a: sa } of [...pairs].sort((p, q) => order(p.a, q.a))) {
     const crossed = sb.box !== sa.box;
     // Moving between the party and a box heals the Pokémon or refills its PP, as the game does; that isn't an edit.
-    const edits = monChanges(sb.mon, sa.mon, a.game).filter((e) => !crossed || !/^(HP |status |PP changed)/.test(e));
+    const edits = monChanges(sb.mon, sa.mon, a.game, sb.box < 0 && sa.box < 0).filter((e) => !crossed || !/^(HP |status |PP changed)/.test(e));
     if (!crossed && !edits.length) continue;
     lines.push(crossed
       ? `${label(sa.mon)}: ${[`${place(sb)} → ${place(sa)}`, ...edits].join(', ')}`

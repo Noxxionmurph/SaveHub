@@ -237,6 +237,24 @@ test('the review lists Gen 2 changes in words', () => {
   assert.deepEqual(new Gen2Save(buildSampleSave('gs')).describeChanges(before), []);
 });
 
+test('the Gen 2 review shows recalculated party stats and names as saved', () => {
+  const before = new Gen2Save(buildSampleSave('gs'));
+  const after = new Gen2Save(buildSampleSave('gs'));
+  const mon = after.party[0];
+  const s = calcStats(mon.species, 60, mon.dvs, mon.evs)!;
+  mon.level = 60; mon.maxHp = s.hp; mon.atk = s.atk;
+  mon.nickname = 'ABCDEFGHIJKLMNOP';
+  after.trainerName = 'LONGERNAME';
+  const text = after.describeChanges(before).flatMap((g) => g.lines).join('\n');
+  assert.match(text, /stats Max HP \d+ → \d+, Atk \d+ → \d+/);
+  assert.match(text, /nickname \S+ → ABCDEFGHIJ,/);
+  assert.match(text, /Name: \S+ → LONGERN$/m, 'the player name keeps 7 characters');
+  // and the file really does keep 7
+  assert.equal(new Gen2Save(after.serialize()).trainerName, 'LONGERN');
+  after.trainerName = ' ';
+  assert.match(after.describeChanges(before).flatMap((g) => g.lines).join('\n'), /Warning: your name is blank/);
+});
+
 // ---------- a real save, if you have one ----------
 // Set GEN2_SAV=/path/to/your.sav to check it round-trips. Nothing from it is printed or stored.
 

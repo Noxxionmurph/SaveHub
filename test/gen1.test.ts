@@ -209,7 +209,7 @@ test('in-game options read and write the right bits and nothing else', () => {
   raw[0x2601] = 0b1100_0011; // medium text, Set battle style, animations off
   raw[0x3523] = checksum8(raw, 0x2598, 0x3523);
   const s = new Gen1Save(raw);
-  assert.deepEqual(s.options, { textSpeed: 3, battleStyleSet: true, battleAnimationsOff: true });
+  assert.deepEqual(s.options, { textSpeed: 3, battleStyleSet: true, battleAnimationsOff: true, sound: 0 });
   assert.deepEqual(s.serialize(), raw); // untouched => byte-identical
 
   s.options.textSpeed = 1;
@@ -218,7 +218,7 @@ test('in-game options read and write the right bits and nothing else', () => {
   assert.equal(out[0x2601], 0b0100_0001);
   assert.ok(Gen1Save.checksumValid(out));
   const back = new Gen1Save(out);
-  assert.deepEqual(back.options, { textSpeed: 1, battleStyleSet: true, battleAnimationsOff: false });
+  assert.deepEqual(back.options, { textSpeed: 1, battleStyleSet: true, battleAnimationsOff: false, sound: 0 });
   // Only the options byte (and the checksum) differ from the original.
   const diff = [...out.keys()].filter((i) => out[i] !== raw[i]);
   assert.deepEqual(diff, [0x2601, 0x3523]);
@@ -229,7 +229,7 @@ test('in-game options read and write the right bits and nothing else', () => {
   assert.equal(new Gen1Save(raw).serialize()[0x2601], 7);
 });
 
-test('Yellow\'s sound setting (bits 4-5 of the options byte) is not text speed and survives edits', () => {
+test('Yellow\'s sound setting (bits 4-5 of the options byte) is not text speed, survives edits and can be changed', () => {
   const raw = blankSave();
   raw[0x2601] = 0b0010_0011; // medium text, sound set to the third earphone option
   raw[0x3523] = checksum8(raw, 0x2598, 0x3523);
@@ -239,6 +239,9 @@ test('Yellow\'s sound setting (bits 4-5 of the options byte) is not text speed a
   s.options.textSpeed = 5;
   s.options.battleStyleSet = true;
   assert.equal(s.serialize()[0x2601], 0b0110_0101);
+  assert.equal(s.options.sound, 2, 'third option: Earphone 2');
+  s.options.sound = 0;
+  assert.equal(s.serialize()[0x2601], 0b0100_0101);
 });
 
 test('nameProblems and nameWarning say what the game would change in a typed name', () => {

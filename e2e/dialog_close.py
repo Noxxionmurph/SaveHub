@@ -1,6 +1,7 @@
 """The Pokémon window has a close button (X) that stays at its top right while the form scrolls and doesn't sit on the
 level badge or the scrollbar. Done and Escape keep the edits made in the window; the X throws them away (after asking, if
-anything was changed) and puts the Pokémon back exactly as it was. Only edits that are kept mark the save as changed. Also:
+anything was changed) and puts the Pokémon back exactly as it was; on a Pokémon that was only just added, the X takes it
+back out. Only edits that are kept mark the save as changed. Current HP stops at Max HP. Also:
 the one-line guidance under each tab runs the full width, not a capped width that breaks the line early. Checked at
 desktop and phone width."""
 import sys
@@ -43,7 +44,7 @@ def check(p, name, size):
     xb, db, bb = place()
     assert xb['width'] >= 38 and xb['height'] >= 38, xb                      # a fingertip-sized target
     assert xb['y'] - db['y'] < 24 and (db['x'] + db['width']) - (xb['x'] + xb['width']) < 24, (xb, db)   # top right corner
-    assert not overlap(xb, dlg.locator('.mon-head .lv').bounding_box()), 'the X sits on the level badge'
+    assert not overlap(xb, dlg.locator('.mon-head .lv:visible').bounding_box()), 'the X sits on the level badge'
     page.screenshot(path=f'{SP}/x-{name}-1-top.png')
 
     # scroll the form to the very bottom: the X has to stay in view, in the same corner
@@ -104,6 +105,37 @@ def check(p, name, size):
     lvl = dlg.locator('label.field:has-text("Level") input'); lvl.fill('30'); lvl.dispatch_event('change')
     page.keyboard.press('Escape'); page.wait_for_selector('dialog.mon-dialog', state='detached')
     assert level() == 'Lv 30', level()
+
+    # Current HP can't go above Max HP: typing more stops at the maximum
+    dlg = open_first()
+    hp = dlg.locator('label.field:has-text("Current HP") input')
+    top = int(hp.get_attribute('max'))
+    hp.fill('999'); hp.dispatch_event('change')
+    assert hp.input_value() == str(top), (hp.input_value(), top)
+    dlg.locator('button.dialog-x').click()
+    if page.locator('dialog.confirm-dialog[open]').count(): page.click('dialog.confirm-dialog button:has-text("Discard")')
+    page.wait_for_selector('dialog.mon-dialog', state='detached')
+
+    # "+ Add Pokémon" opens the new one; closing it with the X takes it back out, Done keeps it. The sample's party is
+    # full, so first move the last one into a box.
+    page.locator('.mon').last.locator('button[aria-label^="Actions for"]').click(); page.wait_for_selector('dialog.sheet-dialog[open]')
+    page.click('dialog.sheet-dialog button:has-text("Move to")'); page.wait_for_timeout(100)
+    page.click('dialog.sheet-dialog .dest:has-text("Box 3")'); page.wait_for_selector('dialog.sheet-dialog', state='detached')
+    cards = page.locator('.mon-main').count()
+    add = page.locator('button:has-text("+ Add Pokémon")')
+    assert add.count() == 1
+    add.click(); page.wait_for_selector('dialog.mon-dialog[open]')
+    page.locator('dialog.mon-dialog button.dialog-x').click(); page.wait_for_selector('dialog.mon-dialog', state='detached')
+    assert page.locator('.mon-main').count() == cards, (name, 'the X kept the new Pokémon')
+    add.click(); page.wait_for_selector('dialog.mon-dialog[open]')
+    page.locator('dialog.mon-dialog button.primary').click(); page.wait_for_selector('dialog.mon-dialog', state='detached')
+    assert page.locator('.mon-main').count() == cards + 1, (name, 'Done should keep the new Pokémon')
+    # the same for "+" in a box
+    page.click('button.tab:has-text("Boxes")')
+    filled = page.locator('.box-grid .box-cell[data-pick]').count()
+    page.locator('.box-cell.add').click(); page.wait_for_selector('dialog.mon-dialog[open]')
+    page.locator('dialog.mon-dialog button.dialog-x').click(); page.wait_for_selector('dialog.mon-dialog', state='detached')
+    assert page.locator('.box-grid .box-cell[data-pick]').count() == filled, (name, 'the X kept the new boxed Pokémon')
     ctx.close(); b.close()
 
 
