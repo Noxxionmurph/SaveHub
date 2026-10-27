@@ -41,12 +41,16 @@ with sync_playwright() as p:
     assert max(tops) - min(tops) <= 5, f'party pictures out of line: {tops}'   # names (right under the pictures) sit at one height
     # the shiny Gyarados (party 2) carries the shiny mark wherever it is previewed
     assert [page.locator('.party-slot').nth(i).locator('.shiny-star').count() for i in range(6)] == [0, 1, 0, 0, 0, 0]
+    # ... and its picture is the shiny icon (the red Gyarados), while the others stay plain
+    srcs = page.evaluate("() => [...document.querySelectorAll('.party-slot .mon-pic img.mon-icon')].map(e => e.getAttribute('src'))")
+    assert [('/shiny/' in s) for s in srcs] == [False, True, False, False, False, False], srcs
     # held items show on the pictures here too (BLAZE holds Charcoal)
     assert page.locator('.party-slot').nth(0).locator('.mon-pic .held').get_attribute('data-name') == 'Charcoal'
     page.click('button.tab:has-text("Boxes")')
     assert page.locator('.box-cell').nth(0).locator('.mon-pic .held').get_attribute('data-name') == 'Charcoal'
     page.locator('.box-cell').nth(1).click()
     assert page.locator('dialog .sheet-head h2 .shiny-star').count() == 1
+    assert '/shiny/' in page.locator('dialog .sheet-head img.mon-icon').get_attribute('src')
     page.keyboard.press('Escape')
     page.locator('.box-cell').nth(0).click()
     assert page.locator('dialog .sheet-head h2 .shiny-star').count() == 0
