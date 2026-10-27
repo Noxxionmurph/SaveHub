@@ -893,7 +893,13 @@ button.danger { color: var(--danger); }
 .mon-pic > .held::after {
   content: attr(data-name); position: absolute; left: 50%; bottom: calc(100% + 4px); transform: translateX(-50%);
   padding: 2px 8px; border-radius: 4px; background: var(--text, #0f2427); color: var(--bg, #fff);
-  font-size: 0.75rem; font-weight: 600; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.1s;
+  font-size: 0.75rem; font-weight: 600; white-space: nowrap; pointer-events: none; display: none;
   z-index: 2;
 }
-@media (hover: hover) { .mon-pic > .held:hover::after { opacity: 1; } }
+/* only there while hovered: a hidden bubble would still widen a narrow tile (and cut it off) */
+@media (hover: hover) { .mon-pic > .held:hover::after { display: block; } }
+/* the same picture-with-item on Trainer tab tiles and box cells, where the picture fills the tile's width */
+.party-slot > .mon-pic, .box-cell > .mon-pic { position: relative; display: block; width: 100%; max-width: 68px; }
+.party-slot > .mon-pic > .mon-icon, .box-cell > .mon-pic > .mon-icon { display: block; }
+.party-slot > .mon-pic > .held, .box-cell > .mon-pic > .held { right: 0; bottom: 0; width: 35%; }
+.party-slot > .mon-pic > .held .item-icon, .box-cell > .mon-pic > .held .item-icon { width: 100%; height: auto; }

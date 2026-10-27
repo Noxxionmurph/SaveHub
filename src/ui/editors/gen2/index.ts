@@ -20,7 +20,7 @@ import { badgeIcon, itemIcon, itemIconUrl, setIconSrc } from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
 import { discPath, itemSpritePath } from './itemSprites.ts';
-import { genderMark, monIcon, monLabel, shinyMark } from './monBits.ts';
+import { genderMark, monLabel, monPic, shinyMark } from './monBits.ts';
 import { openMonEditor } from './monEditor.ts';
 import { openMonMenu } from './monMenu.ts';
 import { nameField } from './nameField.ts';
@@ -125,9 +125,9 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
         const mon = s.party[i];
         if (!mon) return h('span', { class: 'party-slot empty', 'aria-hidden': 'true' });
         return h('button', {
-          class: 'party-slot', 'aria-label': `${monLabel(mon)}${mon.isEgg ? '' : `, level ${mon.level}`}${shinyMark(mon) ? ', shiny' : ''}. Edit`,
+          class: 'party-slot', 'aria-label': `${monLabel(mon)}${mon.isEgg ? '' : `, level ${mon.level}`}${shinyMark(mon) ? ', shiny' : ''}${mon.item ? `, holding ${nameOf(mon.item)}` : ''}. Edit`,
           onclick: () => openMonEditor({ mon, party: true, game: s.game, onDone: (changed) => { if (changed) edited(); paintParty(); } }),
-        }, monIcon(mon),
+        }, monPic(mon, nameOf),
         h('span', { class: 'slot-name' }, monLabel(mon)),
         shinyMark(mon),
         // An egg's name already says Egg, so it gets no level line
@@ -367,10 +367,8 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
     return h('div', { class: 'mon' },
       ...before,
       h('button', { class: 'mon-main', onclick: onOpen },
-        // A held item sits on the corner of the Pokémon's picture, as on the games' party screens, away from the types
-        h('span', { class: 'mon-pic' }, monIcon(mon),
-          // hovering shows the item's name in a bubble (styles.css); screen readers get the same words
-          mon.item ? h('span', { class: 'held', dataset: { name: nameOf(mon.item) } }, itemIcon(itemSpritePath(mon.item)), h('span', { class: 'sr-only' }, `Holding ${nameOf(mon.item)}`)) : null),
+        // the held item sits on the picture, away from the types
+        monPic(mon, nameOf),
         h('span', { class: 'mon-title' },
           mon.isEgg ? null : h('span', { class: 'mon-dex' }, `#${String(mon.species).padStart(3, '0')}`),
           h('span', { class: 'mon-name' }, label, ' '),
@@ -477,10 +475,10 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       if (mon) {
         return h('button', {
           class: drag.lifted() === key ? 'box-cell lifted' : 'box-cell',
-          'aria-label': `${monLabel(mon)}${mon.isEgg ? '' : `, level ${mon.level}`}, ${shinyMark(mon) ? ', shiny' : ''}, ${placeName(where)}${where === PARTY ? ' ' : ', slot '}${i + 1}. Actions`,
+          'aria-label': `${monLabel(mon)}${mon.isEgg ? '' : `, level ${mon.level}`}, ${shinyMark(mon) ? ', shiny' : ''}${mon.item ? `, holding ${nameOf(mon.item)}` : ''}, ${placeName(where)}${where === PARTY ? ' ' : ', slot '}${i + 1}. Actions`,
           dataset: { slot: key, pick: '' },
           onclick: () => menuFor(where, i, draw),
-        }, monIcon(mon),
+        }, monPic(mon, nameOf),
         h('span', { class: 'lv-tag' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`),
         shinyMark(mon),
         where === PARTY ? monHpBar(mon, true, 'small') : null);

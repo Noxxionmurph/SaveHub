@@ -41,7 +41,10 @@ with sync_playwright() as p:
     assert max(tops) - min(tops) <= 5, f'party pictures out of line: {tops}'   # names (right under the pictures) sit at one height
     # the shiny Gyarados (party 2) carries the shiny mark wherever it is previewed
     assert [page.locator('.party-slot').nth(i).locator('.shiny-star').count() for i in range(6)] == [0, 1, 0, 0, 0, 0]
+    # held items show on the pictures here too (BLAZE holds Charcoal)
+    assert page.locator('.party-slot').nth(0).locator('.mon-pic .held').get_attribute('data-name') == 'Charcoal'
     page.click('button.tab:has-text("Boxes")')
+    assert page.locator('.box-cell').nth(0).locator('.mon-pic .held').get_attribute('data-name') == 'Charcoal'
     page.locator('.box-cell').nth(1).click()
     assert page.locator('dialog .sheet-head h2 .shiny-star').count() == 1
     page.keyboard.press('Escape')
@@ -56,7 +59,7 @@ with sync_playwright() as p:
     assert first.locator('.mon-meta .held').count() == 0 and first.locator('.mon-pic .held').get_attribute('data-name') == 'Charcoal'
     first.locator('.mon-pic .held').hover()
     page.wait_for_timeout(200)
-    assert page.evaluate("() => getComputedStyle(document.querySelector('.mon-pic .held'), '::after').opacity") == '1'
+    assert page.evaluate("() => getComputedStyle(document.querySelector('.mon-pic .held'), '::after').display") == 'block'
     page.click('button.tab:has-text("Trainer")')
 
     # --- trainer: play as the boy instead
