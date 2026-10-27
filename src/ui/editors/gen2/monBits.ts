@@ -4,13 +4,22 @@
 import { UNOWN, isShiny, speciesName, unownLetter, type Gender } from '../../../core/gen2/data.ts';
 import type { Gen2Mon } from '../../../core/gen2/save.ts';
 import { h } from '../../dom.ts';
-import { eggIcon, pokemonIcon, shinyIcon } from '../../sprites.ts';
+import { eggIcon, itemIcon, pokemonIcon, shinyIcon } from '../../sprites.ts';
+import { itemSpritePath } from './itemSprites.ts';
 
 /** The box icon: an egg for an egg, Unown in its letter, otherwise the species. */
 export function monIcon(mon: Gen2Mon, cls = ''): HTMLElement {
   if (mon.isEgg) return eggIcon(cls);
   const form = mon.species === UNOWN ? unownLetter(mon.dvs).toLowerCase() : '';
   return pokemonIcon(mon.species <= 251 ? mon.species : 0, cls, form === 'a' ? '' : form);
+}
+
+/** The picture with any held item on its corner, as on the games' party screens. Hovering the item shows its name in a
+ * bubble (styles.css); screen readers get the same words. */
+export function monPic(mon: Gen2Mon, itemName: (id: number) => string): HTMLElement {
+  return h('span', { class: 'mon-pic' }, monIcon(mon),
+    mon.item ? h('span', { class: 'held', dataset: { name: itemName(mon.item) } }, itemIcon(itemSpritePath(mon.item)),
+      h('span', { class: 'sr-only' }, `Holding ${itemName(mon.item)}`)) : null);
 }
 
 /** ♂ or ♀ in the game's colours, or nothing for a genderless Pokémon. */
