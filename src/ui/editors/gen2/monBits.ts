@@ -25,8 +25,25 @@ export function monPic(mon: Gen2Mon, itemName: (id: number) => string): HTMLElem
 /** ♂ or ♀ in the game's colours, or nothing for a genderless Pokémon. */
 export function genderMark(g: Gender): HTMLElement | null {
   if (g === 'none') return null;
-  return h('span', { class: `gender ${g}`, title: g === 'male' ? 'Male' : 'Female' }, g === 'male' ? '♂' : '♀',
+  return h('span', { class: `gender ${g}`, title: g === 'male' ? 'Male' : 'Female' }, genderIcon(g),
     h('span', { class: 'sr-only' }, g === 'male' ? 'Male' : 'Female'));
+}
+
+/** ♂ / ♀ drawn as lines: the bundled fonts don't have them, and each system's fallback font draws them differently. */
+function genderIcon(g: 'male' | 'female'): SVGSVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 16 16');
+  svg.setAttribute('class', 'gender-icon');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS(ns, 'path');
+  path.setAttribute('d', g === 'male' ? 'M6.5 5.5a4.5 4.5 0 1 0 .01 0ZM9.7 6.8 14.5 2M10 1.5h4.5V6' : 'M8 1.5a4.5 4.5 0 1 0 .01 0ZM8 10.5v5M5 13h6');
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', 'currentColor');
+  path.setAttribute('stroke-width', '2');
+  path.setAttribute('stroke-linecap', 'square');
+  svg.append(path);
+  return svg;
 }
 
 /** The shiny sparkles, labelled for screen readers. */
