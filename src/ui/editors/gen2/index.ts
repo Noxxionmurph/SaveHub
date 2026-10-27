@@ -125,10 +125,11 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
         const mon = s.party[i];
         if (!mon) return h('span', { class: 'party-slot empty', 'aria-hidden': 'true' });
         return h('button', {
-          class: 'party-slot', 'aria-label': `${monLabel(mon)}${mon.isEgg ? '' : `, level ${mon.level}`}. Edit`,
+          class: 'party-slot', 'aria-label': `${monLabel(mon)}${mon.isEgg ? '' : `, level ${mon.level}`}${shinyMark(mon) ? ', shiny' : ''}. Edit`,
           onclick: () => openMonEditor({ mon, party: true, game: s.game, onDone: (changed) => { if (changed) edited(); paintParty(); } }),
         }, monIcon(mon),
         h('span', { class: 'slot-name' }, monLabel(mon)),
+        shinyMark(mon),
         // An egg's name already says Egg, so it gets no level line
         mon.isEgg ? null : h('span', { class: 'lv-tag' }, `Lv ${mon.level}`),
         monHpBar(mon, true, 'small'));
@@ -476,7 +477,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
       if (mon) {
         return h('button', {
           class: drag.lifted() === key ? 'box-cell lifted' : 'box-cell',
-          'aria-label': `${monLabel(mon)}${mon.isEgg ? '' : `, level ${mon.level}`}, ${placeName(where)}${where === PARTY ? ' ' : ', slot '}${i + 1}. Actions`,
+          'aria-label': `${monLabel(mon)}${mon.isEgg ? '' : `, level ${mon.level}`}, ${shinyMark(mon) ? ', shiny' : ''}, ${placeName(where)}${where === PARTY ? ' ' : ', slot '}${i + 1}. Actions`,
           dataset: { slot: key, pick: '' },
           onclick: () => menuFor(where, i, draw),
         }, monIcon(mon),
