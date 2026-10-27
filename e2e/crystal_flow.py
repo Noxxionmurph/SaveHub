@@ -56,10 +56,10 @@ with sync_playwright() as p:
     assert page.locator('dialog .sheet-head h2 .shiny-star').count() == 0
     page.keyboard.press('Escape')
 
-    # --- party cards: types are the in-game labels, and a held item sits on the picture, named when hovered
+    # --- party cards: types are icons, and a held item sits on the picture, named when hovered
     page.click('button.tab:has-text("Party")')
     first = page.locator('.mon').nth(0)
-    assert first.locator('.mon-types img.type-label').evaluate_all('es => es.map(e => e.alt)') == ['Fire']
+    assert first.locator('.mon-types img.type-icon').evaluate_all('es => es.map(e => e.alt)') == ['Fire']
     assert first.locator('.mon-meta .held').count() == 0 and first.locator('.mon-pic .held').get_attribute('data-name') == 'Charcoal'
     first.locator('.mon-pic .held').hover()
     page.wait_for_timeout(200)

@@ -66,9 +66,9 @@ test('all eight Kanto and eight Johto badges have a sprite', art, () => {
   for (let n = 1; n <= 8; n++) assert.ok(has(`badges/johto/${n}.png`), `missing badges/johto/${n}.png`);
 });
 
-test('all 17 Gen 2 types, and Curse\'s ???, have an in-game type label', art, () => {
+test('all 17 Gen 2 types, and Curse\'s ???, have a type icon', art, () => {
   const types = ['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'unknown'];
-  for (const t of types) assert.ok(has(`type-labels/${t}.png`), `missing type-labels/${t}.png`);
+  for (const t of types) assert.ok(has(`types/${t}.png`), `missing types/${t}.png`);
 });
 
 test('the shiny mark exists', art, () => {
