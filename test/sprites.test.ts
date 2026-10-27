@@ -18,6 +18,11 @@ test('every Pokédex entry 1-251 has an icon, plus Unown B to Z and an egg', art
   assert.ok(has('pokemon/egg.png'));
 });
 
+test('every Gen 2 icon has a shiny version', art, () => {
+  for (let dex = 1; dex <= 251; dex++) assert.ok(has(`pokemon/shiny/${dex}.png`), `missing pokemon/shiny/${dex}.png`);
+  for (const l of 'bcdefghijklmnopqrstuvwxyz') assert.ok(has(`pokemon/shiny/201-${l}.png`), `missing pokemon/shiny/201-${l}.png`);
+});
+
 test('every selectable Gen 1 item resolves to an icon file that exists', art, () => {
   for (const { id, name } of ITEM_CHOICES) {
     const path = itemSpritePath(id);

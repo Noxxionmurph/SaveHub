@@ -7,6 +7,7 @@
 //
 // Pokémon box icons for dex #1-251 -> assets/sprites/pokemon/<dex>.png (68x56)
 // Unown's other 25 letters        -> assets/sprites/pokemon/201-<letter>.png (A is 201.png)
+// The shiny versions of both      -> assets/sprites/pokemon/shiny/<dex>.png, shiny/201-<letter>.png
 // An egg                          -> assets/sprites/pokemon/egg.png
 // Item icons used by Gen 1 and 2  -> assets/sprites/items/<category>/<name>.png (32x32)
 // Type icons for the 17 Gen 2 types -> assets/sprites/types/<type>.png (128x128, shown small)
@@ -30,13 +31,16 @@ await rm(join(out, 'types'), { recursive: true, force: true });
 
 const missing = [];
 const pokemon = JSON.parse(await readFile(join(src, 'data', 'pokemon.json'), 'utf8'));
-await mkdir(join(out, 'pokemon'), { recursive: true });
+await mkdir(join(out, 'pokemon', 'shiny'), { recursive: true });
 let nMon = 0;
 for (let dex = 1; dex <= 251; dex++) {
   const slug = pokemon[String(dex).padStart(3, '0')]?.slug?.eng;
   const from = join(src, 'pokemon-gen7x', 'regular', `${slug}.png`);
   if (slug && existsSync(from)) { await copyFile(from, join(out, 'pokemon', `${dex}.png`)); nMon++; }
   else missing.push(`pokemon #${dex} (${slug})`);
+  const shiny = join(src, 'pokemon-gen7x', 'shiny', `${slug}.png`);
+  if (slug && existsSync(shiny)) { await copyFile(shiny, join(out, 'pokemon', 'shiny', `${dex}.png`)); nMon++; }
+  else missing.push(`shiny pokemon #${dex} (${slug})`);
 }
 {
   // An egg, in the same box-icon size.
@@ -49,6 +53,9 @@ for (const letter of 'bcdefghijklmnopqrstuvwxyz') {
   const from = join(src, 'pokemon-gen7x', 'regular', `unown-${letter}.png`);
   if (existsSync(from)) { await copyFile(from, join(out, 'pokemon', `201-${letter}.png`)); nMon++; }
   else missing.push(`unown ${letter}`);
+  const shiny = join(src, 'pokemon-gen7x', 'shiny', `unown-${letter}.png`);
+  if (existsSync(shiny)) { await copyFile(shiny, join(out, 'pokemon', 'shiny', `201-${letter}.png`)); nMon++; }
+  else missing.push(`shiny unown ${letter}`);
 }
 
 let nItem = 0;

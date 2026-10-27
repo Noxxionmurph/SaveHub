@@ -8,7 +8,8 @@ import { ICON_OFFSETS, ICON_SIZE } from './spriteOffsets.ts';
 const BASE = artUrl('sprites');
 
 /** `form` picks one of a species' other looks; only Unown has any in Gen 2 ('b' to 'z'; A is the plain icon). */
-export const pokemonIconUrl = (dex: number, form = '') => `${BASE}/pokemon/${dex}${form ? `-${form}` : ''}.png`;
+export const pokemonIconUrl = (dex: number, form = '', shiny = false) =>
+  `${BASE}/pokemon/${shiny ? 'shiny/' : ''}${dex}${form ? `-${form}` : ''}.png`;
 export const itemIconUrl = (path: string) => `${BASE}/items/${path}.png`;
 export const badgeIconUrl = (n: number, region: 'kanto' | 'johto' = 'kanto') => `${BASE}/badges/${region === 'johto' ? 'johto/' : ''}${n}.png`;
 /** The in-game type label for a type name ("Fire"); Gen 2's ??? type (Curse) has its own. */
@@ -34,10 +35,16 @@ function centre(img: HTMLImageElement, dex: number): HTMLImageElement {
   return img;
 }
 
-/** Pokémon box icon (68x56) by National Dex number, optionally in another form. Dex 0 (glitch species) gets an empty spacer. */
-export function pokemonIcon(dex: number, cls = '', form = ''): HTMLElement {
+/**
+ * Pokémon box icon (68x56) by National Dex number, optionally in another form or in its shiny colours (same shape, so
+ * the same centring). Dex 0 (glitch species) gets an empty spacer.
+ */
+export function pokemonIcon(dex: number, cls = '', form = '', shiny = false): HTMLElement {
   if (!dex) return h('span', { class: `sprite mon-icon empty ${cls}`.trim(), 'aria-hidden': 'true' });
-  return centre(icon(pokemonIconUrl(dex, form), ICON_SIZE[0], ICON_SIZE[1], `mon-icon ${cls}`.trim()), dex);
+  const img = icon(pokemonIconUrl(dex, form, shiny), ICON_SIZE[0], ICON_SIZE[1], `mon-icon ${cls}`.trim());
+  // Without a shiny icon, show the plain one rather than nothing.
+  if (shiny) img.addEventListener('error', () => setIconSrc(img, pokemonIconUrl(dex, form)), { once: true });
+  return centre(img, dex);
 }
 
 /** An egg, the same size as a Pokémon box icon. */

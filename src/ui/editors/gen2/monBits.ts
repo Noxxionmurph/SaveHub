@@ -7,11 +7,11 @@ import { h } from '../../dom.ts';
 import { eggIcon, itemIcon, pokemonIcon, shinyIcon } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
 
-/** The box icon: an egg for an egg, Unown in its letter, otherwise the species. */
+/** The box icon: an egg for an egg, Unown in its letter, otherwise the species, in its shiny colours if it's shiny. */
 export function monIcon(mon: Gen2Mon, cls = ''): HTMLElement {
   if (mon.isEgg) return eggIcon(cls);
   const form = mon.species === UNOWN ? unownLetter(mon.dvs).toLowerCase() : '';
-  return pokemonIcon(mon.species <= 251 ? mon.species : 0, cls, form === 'a' ? '' : form);
+  return pokemonIcon(mon.species <= 251 ? mon.species : 0, cls, form === 'a' ? '' : form, isShiny(mon.dvs));
 }
 
 /** The picture with any held item on its corner, as on the games' party screens. Hovering the item shows its name in a
