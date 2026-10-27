@@ -4,7 +4,8 @@ import { field, h, textInput } from './dom.ts';
 export type NameCheck = (text: string, max: number) => { unsupported: string[]; extra: number };
 
 /** One line the field shows while the typed text can't be saved as typed; empty when it can. */
-export function nameWarning(check: NameCheck, text: string, max: number): string {
+export function nameWarning(check: NameCheck, text: string, max: number, required = false): string {
+  if (required && !text.trim()) return 'A blank name shows as nothing in the game. Type a name.';
   const { unsupported, extra } = check(text, max);
   const parts: string[] = [];
   if (unsupported.length) {
@@ -18,12 +19,12 @@ export function nameWarning(check: NameCheck, text: string, max: number): string
 /**
  * A text field for a name stored in the save, using one game's text rules (`check`). It keeps whatever is typed, and
  * shows a warning under the field when the game would change it on the way in (an unsupported character becomes "?",
- * extra characters are dropped). The PK and MN symbols are typed as {PK} and {MN}.
+ * extra characters are dropped), or when a `required` name is left blank. The PK and MN symbols are typed as {PK} and {MN}.
  */
 export function makeNameField(check: NameCheck, defaultMax: number) {
-  return (label: string, value: string, onChange: (v: string) => void, hint?: string, max = defaultMax): HTMLLabelElement => {
+  return (label: string, value: string, onChange: (v: string) => void, hint?: string, max = defaultMax, required = false): HTMLLabelElement => {
     const warn = h('span', { class: 'field-hint warn', role: 'status' });
-    const paint = (text: string) => { warn.textContent = nameWarning(check, text, max); warn.hidden = !warn.textContent; };
+    const paint = (text: string) => { warn.textContent = nameWarning(check, text, max, required); warn.hidden = !warn.textContent; };
     // No maxlength: {PK} is one character in the game but four to type, so the limit is checked in the game's units.
     const input = textInput(value, 4 * max, (v) => { paint(v); onChange(v); });
     paint(value);

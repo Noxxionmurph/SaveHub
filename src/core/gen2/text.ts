@@ -46,15 +46,20 @@ export function nameProblems(text: string, max: number): { unsupported: string[]
   return { unsupported: [...new Set(u.filter((ch) => !ENCODE.has(ch)))], extra: Math.max(0, u.length - max) };
 }
 
+/** A name as the game will hold it: at most `max` characters, and "?" for each one it can't show. */
+export function asSaved(text: string, max: number): string {
+  return units(text).slice(0, max).map((ch) => (ENCODE.has(ch) ? ch : '?')).join('');
+}
+
 /**
  * Encode `text` into a `length`-byte field: the characters, the terminator, then `pad` (the game pads nicknames with
- * more terminators, and trainer and box names with zeros). If `original` still decodes to `text`, its exact bytes
- * are kept, so an untouched name is never changed.
+ * more terminators, and trainer and box names with zeros), keeping at most `max` characters. If `original` still decodes
+ * to `text`, its exact bytes are kept, so an untouched name is never changed.
  */
-export function encodeText(text: string, length: number, original?: Uint8Array, pad = TERMINATOR): Uint8Array {
+export function encodeText(text: string, length: number, original?: Uint8Array, pad = TERMINATOR, max = length - 1): Uint8Array {
   if (original && original.length === length && decodeText(original) === text) return original.slice();
   const out = new Uint8Array(length).fill(pad);
-  const chars = units(text).slice(0, length - 1);
+  const chars = units(text).slice(0, Math.min(max, length - 1));
   chars.forEach((ch, i) => { out[i] = ENCODE.get(ch) ?? ENCODE.get('?')!; });
   out[chars.length] = TERMINATOR;
   return out;

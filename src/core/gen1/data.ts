@@ -388,6 +388,9 @@ export function guessGrowth(level: number, exp: number): Growth {
 /** Kanto gym badges in the order the game stores them (bit 0 = Boulder ... bit 7 = Earth). */
 export const BADGE_NAMES = ['Boulder', 'Cascade', 'Thunder', 'Rainbow', 'Soul', 'Marsh', 'Volcano', 'Earth'] as const;
 
+/** Yellow's SOUND option, by the value in bits 4-5 of the options byte (pokeyellow: OptionsMenu_SpeakerSettings). */
+export const SOUND_OPTIONS = ['Mono', 'Earphone 1', 'Earphone 2', 'Earphone 3'] as const;
+
 /** Text speed as the game stores it in the low bits of the options byte (pokered: TEXT_DELAY_*). */
 export const TEXT_SPEEDS = [
   { value: 1, label: 'Fast' },

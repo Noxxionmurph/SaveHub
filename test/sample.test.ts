@@ -27,7 +27,7 @@ test('the sample has something on every tab', () => {
   const s = new Gen1Save(buildSampleSave());
   assert.equal(s.trainerName, 'ASH');
   assert.equal(s.badges, 7);
-  assert.deepEqual(s.options, { textSpeed: 3, battleStyleSet: false, battleAnimationsOff: false });
+  assert.deepEqual(s.options, { textSpeed: 3, battleStyleSet: false, battleAnimationsOff: false, sound: 0 });
   assert.deepEqual(s.party.map((m) => speciesName(m.species)), ['Pikachu', 'Charmeleon', 'Pidgeotto', 'Geodude', 'Squirtle', 'Magikarp']);
   assert.equal(s.party[0].nickname, 'SPARKY');
   assert.equal(s.boxes[0].length, 5);

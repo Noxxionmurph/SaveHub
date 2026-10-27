@@ -30,12 +30,14 @@ export interface MonEditorOptions {
   party: boolean;
   /** Called once the window has closed. `changed` is whether the Pokémon now differs from how it was when the window opened. */
   onDone: (changed: boolean) => void;
+  /** Called just before onDone when the ✕ closes the window, so a Pokémon that was only just added can be taken back out. */
+  onDiscard?: () => void;
 }
 
 /** A comparable picture of a Pokémon (raw name bytes included), to tell whether anything was edited. */
 const fingerprint = (mon: Gen1Mon): string => JSON.stringify(mon, (_key, v) => (v instanceof Uint8Array ? Array.from(v) : v));
 
-export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
+export function openMonEditor({ mon, party, onDone, onDiscard }: MonEditorOptions): void {
   /** The experience a Pokémon of this species has at a level. The curve is fixed by the species; a glitch species is guessed once, on opening. */
   const guessed = guessGrowth(mon.level, mon.exp);
   const expAt = (level: number) => expForLevel(growthOf(mon.species, guessed), level);
@@ -48,6 +50,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
   const original = structuredClone(mon);
   const originalPrint = fingerprint(mon);
   const changed = () => fingerprint(mon) !== originalPrint;
+  let discarded = false;
   const discardAndClose = async () => {
     if (changed()) {
       const label = original.nickname || speciesName(original.species);
@@ -56,6 +59,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
       for (const key of Object.keys(target)) if (!(key in original)) delete target[key];
       Object.assign(mon, structuredClone(original));
     }
+    discarded = true;
     dialog.close();
   };
   // Stays at the top right while the form scrolls, so leaving doesn't mean scrolling down to Done.
@@ -76,6 +80,9 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
   function render(): (Node | null)[] {
     const base = baseStatsFor(mon.species);
     const calc = calcStats(mon.species, mon.level, mon.dvs, mon.evs);
+    /** Current HP can't be more than the most the Pokémon has: its stored Max HP, or for a box Pokémon the one it will get. */
+    const hpCap = party ? mon.maxHp : calc?.hp ?? 999;
+    if (mon.hp > hpCap) mon.hp = hpCap;
 
     /**
      * One move: type icon and name on the first line; below, on one line, the current PP (read-only) with the
@@ -143,7 +150,8 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
           h('div', {},
             h('h2', {}, mon.nickname || speciesName(mon.species)),
             h('p', { class: 'muted' }, dex ? `#${String(dex).padStart(3, '0')} ${speciesName(mon.species)}` : speciesName(mon.species)),
-            typeChips(base),
+            // on a narrow phone the level moves down beside the types (styles.css), so the name keeps its room
+            h('div', { class: 'mon-head-meta' }, h('span', { class: 'lcd lv lv-inline' }, `Lv ${mon.level}`), typeChips(base)),
             (() => { const bar = monHpBar(mon, party, '', true); return bar ? h('div', { class: 'hp-row' }, h('span', { class: 'hp-label', 'aria-hidden': 'true' }, 'HP'), bar) : null; })())),
         h('span', { class: 'lcd lv' }, `Lv ${mon.level}`)),
       h('dl', { class: 'lcd stats', 'aria-label': party ? 'Current stats' : 'Calculated stats' },
@@ -172,7 +180,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
         nameField('Original trainer', mon.otName, (v) => { mon.otName = v; }),
         field('Original trainer ID', numberInput(mon.otId, 0, 65535, (v) => { mon.otId = v; }),
           'If this isn’t your Trainer ID, the game counts this Pokémon as traded.'),
-        field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; refresh(); })),
+        field('Current HP', numberInput(Math.min(mon.hp, hpCap), 0, hpCap, (v) => { mon.hp = v; refresh(); })),
       ),
 
       h('h3', {}, 'Moves'),
@@ -190,7 +198,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
           h('h3', {}, 'Battle stats'),
           h('p', { class: 'muted section-note' }, 'Saved with the Pokémon. They update when you change level, DVs or stat experience, and you can also type your own.'),
           h('div', { class: 'grid compact cols5' },
-            field('Max HP', numberInput(mon.maxHp, 1, 999, (v) => { mon.maxHp = v; })),
+            field('Max HP', numberInput(mon.maxHp, 1, 999, (v) => { mon.maxHp = v; mon.hp = Math.min(mon.hp, v); refresh(); })),
             field('Attack', numberInput(mon.atk, 1, 999, (v) => { mon.atk = v; })),
             field('Defense', numberInput(mon.def, 1, 999, (v) => { mon.def = v; })),
             field('Speed', numberInput(mon.spe, 1, 999, (v) => { mon.spe = v; })),
@@ -216,7 +224,7 @@ export function openMonEditor({ mon, party, onDone }: MonEditorOptions): void {
     ];
   }
 
-  dialog.addEventListener('close', () => { dialog.remove(); onDone(changed()); });
+  dialog.addEventListener('close', () => { dialog.remove(); if (discarded) onDiscard?.(); onDone(changed()); });
   document.body.append(dialog);
   refresh();
   dialog.showModal();

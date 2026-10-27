@@ -913,3 +913,29 @@ button.danger { color: var(--danger); }
 /* in tiles and cells the picture gets 4 art pixels of room above and below, so the art never crowds the edge or the Lv */
 .box-cell > .mon-icon, .party-slot > .mon-icon { margin-block: calc(-8 * var(--art)); }
 .box-cell > .mon-pic, .party-slot > .mon-pic { margin-block: calc(4 * var(--px1)); }
+/* On wide screens (desktop, and a phone in desktop mode) there is room, so every Pokémon in a list, tile, cell or the
+   Pokédex is drawn at --px2, the same as the Pokémon window; items stay at --px1. */
+@media (min-width: 900px) {
+  .mon-icon { --art: var(--px2); }
+  .sprite.empty { width: calc(40 * var(--px2)); height: calc(32 * var(--px2)); }
+  .dex-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
+}
+/* The shiny mark sits in the tile's corner, above the picture, so the art never covers it */
+.box-cell .shiny-star, .party-slot .shiny-star { z-index: 1; top: 3px; right: 3px; line-height: 0; }
+/* The level badge in the Pokémon window header never breaks onto two lines, however long the subtitle */
+.lv { white-space: nowrap; }
+.mon-head > .lv { flex: none; }
+.mon-head > .mon-id { flex: 1 1 auto; }
+/* room above the picture for the shiny mark: on a phone these cells are barely wider than the art */
+.party-cells .box-cell { padding-top: 14px; }
+/* ...and on a narrow phone it moves down beside the type icons, as on the party cards, so the name keeps the width */
+.mon-head .mon-id > div { min-width: 0; }
+.mon-head h2 { overflow-wrap: anywhere; }
+.mon-head-meta { display: flex; align-items: center; gap: 4px; }
+.mon-head-meta .mon-types { display: contents; }
+.lv-inline { display: none; }
+@media (max-width: 420px) {
+  .mon-head > .lv { display: none; }
+  .mon-head-meta .lv-inline { display: inline-block; padding-inline: 6px; font-size: 0.875rem; }
+}
+.nowrap { white-space: nowrap; }

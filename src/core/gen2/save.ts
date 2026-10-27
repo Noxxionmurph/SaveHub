@@ -353,7 +353,7 @@ function writeMonList(d: Uint8Array, base: number, mons: Gen2Mon[], party: boole
     d[base + 1 + i] = mon.isEgg ? EGG_SPECIES : mon.species;
     writeMon(d, monsAt + i * size, mon, party);
     // Original trainer names are padded with zeros after the end marker, nicknames with more end markers (as the game does).
-    d.set(encodeText(mon.otName, NAME_LEN, mon.otRaw, 0), otAt + i * NAME_LEN);
+    d.set(encodeText(mon.otName, NAME_LEN, mon.otRaw, 0, PLAYER_NAME_MAX), otAt + i * NAME_LEN);
     d.set(encodeText(mon.nickname, NAME_LEN, mon.nickRaw), nickAt + i * NAME_LEN);
   });
   d[base + 1 + list.length] = 0xff;
@@ -522,9 +522,9 @@ export class Gen2Save implements EditableSave {
     d[L.options2] = (d[L.options2] & ~1) | (this.options.menuAccount ? 1 : 0);
 
     setU16(d, L.playerId, this.trainerId & 0xffff);
-    d.set(encodeText(this.trainerName, NAME_LEN, this.raw.name, 0), L.playerName);
+    d.set(encodeText(this.trainerName, NAME_LEN, this.raw.name, 0, PLAYER_NAME_MAX), L.playerName);
     d.set(encodeText(this.momName, NAME_LEN, this.raw.mom, 0), L.momName);
-    d.set(encodeText(this.rivalName, NAME_LEN, this.raw.rival, 0), L.rivalName);
+    d.set(encodeText(this.rivalName, NAME_LEN, this.raw.rival, 0, PLAYER_NAME_MAX), L.rivalName);
     const hours = clamp(this.playHours, 0, 999);
     if (hours !== u16(this.original, L.playHours) || this.playMinutes !== this.original[L.playMinutes]) {
       // A clock that was stopped at 999:59:59 starts again once it is below that.

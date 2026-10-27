@@ -47,6 +47,11 @@ export function nameProblems(text: string, max: number): { unsupported: string[]
   return { unsupported: [...new Set(u.filter((ch) => !ENCODE.has(ch)))], extra: Math.max(0, u.length - max) };
 }
 
+/** A name as the game will hold it: at most `max` characters, and "?" for each one it can't show. */
+export function asSaved(text: string, max: number): string {
+  return units(text).slice(0, max).map((ch) => (ENCODE.has(ch) ? ch : '?')).join('');
+}
+
 /**
  * Encode `text` into a `length`-byte field (terminator + 0x00 padding).
  * If `original` still decodes to `text`, its exact bytes are kept so unrecognised

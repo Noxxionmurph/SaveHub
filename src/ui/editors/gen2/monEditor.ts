@@ -59,12 +59,14 @@ export interface MonEditorOptions {
   game?: Gen2Game;
   /** Called once the window has closed. `changed` is whether the Pokémon now differs from how it was when the window opened. */
   onDone: (changed: boolean) => void;
+  /** Called just before onDone when the ✕ closes the window, so a Pokémon that was only just added can be taken back out. */
+  onDiscard?: () => void;
 }
 
 /** A comparable picture of a Pokémon (raw name and mail bytes included), to tell whether anything was edited. */
 const fingerprint = (mon: Gen2Mon): string => JSON.stringify(mon, (_key, v) => (v instanceof Uint8Array ? Array.from(v) : v));
 
-export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOptions): void {
+export function openMonEditor({ mon, party, game = 'gs', onDone, onDiscard }: MonEditorOptions): void {
   const guessed = guessGrowth(mon.level, mon.exp);
   const expAt = (level: number) => expForLevel(growthOf(mon.species, guessed), level);
   const dialog = h('dialog', { class: 'mon-dialog' });
@@ -75,6 +77,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
   const original = structuredClone(mon);
   const originalPrint = fingerprint(mon);
   const changed = () => fingerprint(mon) !== originalPrint;
+  let discarded = false;
   const discardAndClose = async () => {
     if (changed()) {
       const label = original.nickname || speciesName(original.species);
@@ -83,6 +86,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
       for (const key of Object.keys(target)) if (!(key in original)) delete target[key];
       Object.assign(mon, structuredClone(original));
     }
+    discarded = true;
     dialog.close();
   };
   const closeBar = h('div', { class: 'dialog-x-bar' },
@@ -206,8 +210,10 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
           monIcon(mon, 'big'),
           h('div', {},
             h('h2', {}, title, ' ', mon.isEgg ? null : genderMark(gender), shiny && !mon.isEgg ? shinyBadge() : null),
-            h('p', { class: 'muted' }, mon.isEgg ? `Will hatch into ${speciesName(mon.species)}` : `#${String(mon.species).padStart(3, '0')} ${speciesName(mon.species)}${mon.species === UNOWN ? ` · letter ${unownLetter(mon.dvs)}` : ''}`),
-            typeChips(base),
+            h('p', { class: 'muted' }, mon.isEgg ? `Will hatch into ${speciesName(mon.species)}` : `#${String(mon.species).padStart(3, '0')} ${speciesName(mon.species)}`,
+              mon.species === UNOWN && !mon.isEgg ? [' · ', h('span', { class: 'nowrap' }, `letter ${unownLetter(mon.dvs)}`)] : null),
+            // on a narrow phone the level moves down beside the types (styles.css), so the name keeps its room
+            h('div', { class: 'mon-head-meta' }, h('span', { class: 'lcd lv lv-inline' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`), typeChips(base)),
             (() => { const bar = monHpBar(mon, party, '', true); return bar ? h('div', { class: 'hp-row' }, h('span', { class: 'hp-label', 'aria-hidden': 'true' }, 'HP'), bar) : null; })())),
         h('span', { class: 'lcd lv' }, mon.isEgg ? 'Egg' : `Lv ${mon.level}`)),
       h('dl', { class: 'lcd stats six', 'aria-label': party ? 'Current stats' : 'Calculated stats' },
@@ -233,7 +239,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
         }), mon.isEgg ? 'Eggs hatch at level 5.' : 'Changing the level also sets experience to match.'),
         field('Experience', numberInput(mon.exp, 0, 0xffffff, (v) => { mon.exp = v; })),
         party && !mon.isEgg ? field('Status', selectInput(statusOptions(mon.status), mon.status, (v) => { mon.status = Number(v); })) : null,
-        party && !mon.isEgg ? field('Current HP', numberInput(mon.hp, 0, 999, (v) => { mon.hp = v; refresh(); })) : null,
+        party && !mon.isEgg ? field('Current HP', numberInput(mon.hp, 0, mon.maxHp, (v) => { mon.hp = v; refresh(); })) : null,
         mon.isEgg
           ? field('Egg cycles left', numberInput(mon.friendship, 0, 255, (v) => { mon.friendship = v; }),
             'Each cycle is 256 steps. At 0 it hatches on your next step.')
@@ -284,7 +290,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
           h('h3', {}, 'Battle stats'),
           h('p', { class: 'muted section-note' }, 'Saved with the Pokémon. They update when you change level, DVs or stat experience, and you can also type your own.'),
           h('div', { class: 'grid compact cols6' },
-            field('Max HP', numberInput(mon.maxHp, 1, 999, (v) => { mon.maxHp = v; })),
+            field('Max HP', numberInput(mon.maxHp, 1, 999, (v) => { mon.maxHp = v; mon.hp = Math.min(mon.hp, v); refresh(); })),
             field('Attack', numberInput(mon.atk, 1, 999, (v) => { mon.atk = v; })),
             field('Defense', numberInput(mon.def, 1, 999, (v) => { mon.def = v; })),
             field('Sp. Atk', numberInput(mon.spa, 1, 999, (v) => { mon.spa = v; })),
@@ -330,7 +336,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
     ];
   }
 
-  dialog.addEventListener('close', () => { dialog.remove(); onDone(changed()); });
+  dialog.addEventListener('close', () => { dialog.remove(); if (discarded) onDiscard?.(); onDone(changed()); });
   document.body.append(dialog);
   refresh();
   dialog.showModal();

@@ -65,6 +65,30 @@ test('Pokémon edits are one line each, with the before and after', () => {
   ]);
 });
 
+test('the review lists the stats a party Pokémon recalculated, and names as they will be saved', () => {
+  const f = fixture();
+  const pikachu = f.after.party[0];
+  const was = { maxHp: pikachu.maxHp, atk: pikachu.atk };
+  pikachu.level = 60;
+  recalcPartyStats(pikachu);
+  pikachu.nickname = 'ABCDEFGHIJKLMNOP';
+  const [line] = lines(f, 'Pokémon');
+  assert.match(line, /nickname PIKACHU → ABCDEFGHIJ,/, 'only the 10 letters the game keeps');
+  assert.ok(!line.includes('KLMNOP'), line);
+  assert.ok(line.includes(`stats Max HP ${was.maxHp} → ${pikachu.maxHp}, Atk ${was.atk} → ${pikachu.atk}`), line);
+  // a box Pokémon has no stored stats, so nothing to list
+  f.after.boxes[0][0].level = 30;
+  assert.ok(!lines(f, 'Pokémon').some((l) => l.startsWith('Magikarp') && l.includes('stats')));
+});
+
+test('a blank trainer name is warned about, and a too-long one is shown cut', () => {
+  const f = fixture();
+  f.after.trainerName = '';
+  assert.ok(lines(f, 'Trainer').some((l) => l.startsWith('Warning: your name is blank')));
+  f.after.trainerName = 'ABCDEFGHIJKLM';
+  assert.deepEqual(lines(f, 'Trainer'), ['Name: RED → ABCDEFGHIJ']);
+});
+
 test('moving, duplicating, adding and removing are told apart', () => {
   const f = fixture();
   const { after } = f;
