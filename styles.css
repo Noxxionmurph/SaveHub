@@ -816,6 +816,7 @@ button.danger { color: var(--danger); }
 .gender.male { color: var(--male); }
 .gender.female { color: var(--female); }
 .shiny-star { color: var(--shiny); margin-left: 4px; font-weight: 700; }
+.shiny-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em; }
 .box-cell .shiny-star { position: absolute; top: 2px; right: 4px; margin: 0; font-size: 0.875rem; }
 .box-cell { position: relative; }
 /* On the screen-coloured tiles the theme's own ink reads better than the page colours. */

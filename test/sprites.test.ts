@@ -66,6 +66,10 @@ test('all 17 Gen 2 types, and Curse\'s ???, have an in-game type label', art, ()
   for (const t of types) assert.ok(has(`type-labels/${t}.png`), `missing type-labels/${t}.png`);
 });
 
+test('the shiny mark exists', art, () => {
+  assert.ok(has('marks/shiny.svg'));
+});
+
 test('icon offsets match the sprite files (rerun scripts/measure-icons.mjs after refreshing sprites)', art, async () => {
   const { readFile } = await import('node:fs/promises');
   const { centreOffset } = await import('../scripts/lib/png-alpha.mjs');

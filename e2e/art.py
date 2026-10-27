@@ -9,7 +9,7 @@ errors = []
 def art_ok(route):
     rel = route.request.url[len(ART):].split('?')[0]
     f = ROOT / rel
-    if f.is_file(): route.fulfill(status=200, content_type='image/png', body=f.read_bytes())
+    if f.is_file(): route.fulfill(status=200, content_type='image/svg+xml' if f.suffix == '.svg' else 'image/png', body=f.read_bytes())
     else: route.fulfill(status=404, body='no such file')
 
 def art_gone(route):

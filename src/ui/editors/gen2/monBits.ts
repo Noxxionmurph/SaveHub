@@ -4,7 +4,7 @@
 import { UNOWN, isShiny, speciesName, unownLetter, type Gender } from '../../../core/gen2/data.ts';
 import type { Gen2Mon } from '../../../core/gen2/save.ts';
 import { h } from '../../dom.ts';
-import { eggIcon, pokemonIcon } from '../../sprites.ts';
+import { eggIcon, pokemonIcon, shinyIcon } from '../../sprites.ts';
 
 /** The box icon: an egg for an egg, Unown in its letter, otherwise the species. */
 export function monIcon(mon: Gen2Mon, cls = ''): HTMLElement {
@@ -20,9 +20,11 @@ export function genderMark(g: Gender): HTMLElement | null {
     h('span', { class: 'sr-only' }, g === 'male' ? 'Male' : 'Female'));
 }
 
-/** A small ★ for a shiny Pokémon (eggs don't show it until they hatch). */
-export const shinyMark = (mon: Gen2Mon): HTMLElement | null => (!mon.isEgg && isShiny(mon.dvs)
-  ? h('span', { class: 'shiny-star', title: 'Shiny' }, '★', h('span', { class: 'sr-only' }, 'Shiny')) : null);
+/** The shiny sparkles, labelled for screen readers. */
+export const shinyBadge = (): HTMLElement => h('span', { class: 'shiny-star', title: 'Shiny' }, shinyIcon(), h('span', { class: 'sr-only' }, 'Shiny'));
+
+/** The shiny sparkles for a shiny Pokémon (eggs don't show them until they hatch). */
+export const shinyMark = (mon: Gen2Mon): HTMLElement | null => (!mon.isEgg && isShiny(mon.dvs) ? shinyBadge() : null);
 
 /** The name a list shows: the nickname when it differs from the species name, "Egg" for an egg. */
 export function monLabel(mon: Gen2Mon): string {
