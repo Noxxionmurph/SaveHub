@@ -33,9 +33,20 @@ SCAN = """async () => {
   }
   // text cut off (an ellipsis) or spilling out of its box
   const texts = [...scope.querySelectorAll('button, label, .tab, h2, h3, h4, .field-label, .opt-label, .dex-name, .slot-name, .mon-name, .tile-name, .tm-label, .lv-tag')];
+  const textSpills = (e) => {
+    const box = e.getBoundingClientRect();
+    const walk = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
+    for (let t = walk.nextNode(); t; t = walk.nextNode()) {
+      if (!t.nodeValue.trim() || t.parentElement.closest('.sr-only')) continue;
+      const range = document.createRange(); range.selectNodeContents(t);
+      if ([...range.getClientRects()].some((r) => r.left < box.left - 1 || r.right > box.right + 1)) return true;
+    }
+    return false;
+  };
   texts.filter(shown).forEach((e) => {
     if (e.closest('.sr-only') || e.clientWidth === 0) return;
-    if (e.scrollWidth > e.clientWidth + 1) bad.push(`cut off: ${e.tagName.toLowerCase()}.${e.className} "${e.textContent.trim().slice(0, 30)}"`);
+    // a Pokémon picture's empty edges may run past a tile (styles.css, "one scale for every picture"); only text counts
+    if (e.scrollWidth > e.clientWidth + 1 && !(e.querySelector('img') && !textSpills(e))) bad.push(`cut off: ${e.tagName.toLowerCase()}.${e.className} "${e.textContent.trim().slice(0, 30)}"`);
   });
   // a value that never got filled in: Element.append() writes null as the text "null"
   const walker = document.createTreeWalker(scope === document ? document.body : scope, NodeFilter.SHOW_TEXT);
