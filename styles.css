@@ -804,11 +804,10 @@ button.danger { color: var(--danger); }
 .mon-dialog .cols6 .field-label { font-size: 0.75rem; }
 .mon-dialog .cols6 input { padding-inline: 3px; text-align: center; }
 .gender { font-weight: 700; margin-left: 4px; }
-.gender-icon { display: inline-block; width: 0.75em; height: 0.75em; vertical-align: -0.05em; }
 .gender.male { color: var(--male); }
 .gender.female { color: var(--female); }
 .shiny-star { color: var(--shiny); margin-left: 4px; font-weight: 700; }
-.shiny-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em; }
+.shiny-icon { display: inline-block; width: 16px; height: 16px; vertical-align: -0.125em; }
 .box-cell .shiny-star { position: absolute; top: 2px; right: 4px; margin: 0; font-size: 0.875rem; }
 .box-cell { position: relative; }
 /* in the corner of a Trainer tab party tile, like a box cell, so it never squeezes the name */
@@ -914,24 +913,10 @@ button.danger { color: var(--danger); }
 /* in tiles and cells the picture gets 4 art pixels of room above and below, so the art never crowds the edge or the Lv */
 .box-cell > .mon-icon, .party-slot > .mon-icon { margin-block: calc(-8 * var(--art)); }
 .box-cell > .mon-pic, .party-slot > .mon-pic { margin-block: calc(4 * var(--px1)); }
-/* From 900px wide the list Pokémon are 1.5x: exactly that, in whole screen pixels, on 2x and sharper screens, 1.5x the items
-   rounded to whole screen pixels on 125-150% screens, and plain 1.5px (a few pixel columns a screen pixel wider than
-   the rest) on 100-110% screens, where 1x looks too small and 2x too blocky */
-:root { --px15: 1.5px; }
-@supports (width: round(10px, 3px)) { @media (min-resolution: 1.2dppx) { :root { --px15: round(calc(1.5 * var(--px1)), var(--dpx)); } } }
-@media (min-width: 900px) {
-  .mon-icon { --art: var(--px15); }
-  .sprite.empty { width: calc(40 * var(--px15)); height: calc(32 * var(--px15)); }
-  .dex-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); }
-}
-/* The shiny mark sits in the tile's corner, above the picture, so the art never covers it */
-.box-cell .shiny-star, .party-slot .shiny-star { z-index: 1; }
 /* The level badge in the Pokémon window header never breaks onto two lines, however long the subtitle */
 .lv { white-space: nowrap; }
 .mon-head > .lv { flex: none; }
 .mon-head > .mon-id { flex: 1 1 auto; }
-/* room above the picture for the shiny mark: on a phone these cells are barely wider than the art */
-.party-cells .box-cell { padding-top: 14px; }
 /* ...and on a narrow phone it moves down beside the type icons, as on the party cards, so the name keeps the width */
 .mon-head .mon-id > div { min-width: 0; }
 .mon-head h2 { overflow-wrap: anywhere; }
