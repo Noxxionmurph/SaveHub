@@ -10,11 +10,11 @@ import {
 import { CAUGHT_LEVEL_MAX, LOCATION_CHOICES, decodeCaught, encodeCaught, locationName, type CaughtData } from '../../../core/gen2/caught.ts';
 import { calcStats, defaultNickname, recalcPartyStats, type Gen2Game, type Gen2Mon } from '../../../core/gen2/save.ts';
 import { askConfirm, clear, field, h, lazySelect, numberInput, selectInput } from '../../dom.ts';
-import { itemIcon, itemIconUrl, setIconSrc, typeLabel } from '../../sprites.ts';
+import { itemIcon, itemIconUrl, setIconSrc, shinyIcon, typeLabel } from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
 import { itemSpritePath } from './itemSprites.ts';
-import { monIcon, genderMark } from './monBits.ts';
+import { monIcon, genderMark, shinyBadge } from './monBits.ts';
 import { nameField } from './nameField.ts';
 
 const SPECIES_OPTIONS = DEX_NAMES.map((name, i) => ({ value: i + 1, label: `#${String(i + 1).padStart(3, '0')} ${name}` }));
@@ -205,7 +205,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
         h('div', { class: 'mon-id' },
           monIcon(mon, 'big'),
           h('div', {},
-            h('h2', {}, title, ' ', mon.isEgg ? null : genderMark(gender), shiny && !mon.isEgg ? h('span', { class: 'shiny-star', title: 'Shiny' }, '★', h('span', { class: 'sr-only' }, 'Shiny')) : null),
+            h('h2', {}, title, ' ', mon.isEgg ? null : genderMark(gender), shiny && !mon.isEgg ? shinyBadge() : null),
             h('p', { class: 'muted' }, mon.isEgg ? `Will hatch into ${speciesName(mon.species)}` : `#${String(mon.species).padStart(3, '0')} ${speciesName(mon.species)}${mon.species === UNOWN ? ` · letter ${unownLetter(mon.dvs)}` : ''}`),
             typeChips(base),
             (() => { const bar = monHpBar(mon, party, '', true); return bar ? h('div', { class: 'hp-row' }, h('span', { class: 'hp-label', 'aria-hidden': 'true' }, 'HP'), bar) : null; })())),
@@ -264,7 +264,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
           h('span', { class: 'field-label' }, 'Shiny'),
           h('label', { class: 'check-row shiny-toggle' },
             h('input', { type: 'checkbox', checked: shiny, onchange: () => setDvs(shiny ? { ...mon.dvs, spc: 11 } : shinyDvs(mon.dvs)) }),
-            h('span', {}, '★ Shiny')),
+            h('span', {}, shinyIcon(), ' Shiny')),
           h('span', { class: 'field-hint' }, 'Needs Defense, Speed and Special DVs of 10, so a shiny Pokémon can’t have top DVs.')),
         mon.species === UNOWN
           ? field('Unown letter', selectInput([...UNOWN_LETTERS].map((l) => ({ value: l, label: l })), unownLetter(mon.dvs),

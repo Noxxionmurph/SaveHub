@@ -62,6 +62,13 @@ export function badgeIcon(n: number, cls = '', region: 'kanto' | 'johto' = 'kant
  * A type as the games label it: the name in a coloured box (32x16, from Emerald's summary screen; Gen 1 and Gen 2 have
  * no coloured labels of their own). The name is the picture's alt text, and without the artwork the name shows as text.
  */
+/** The shiny mark the games have used since Sword and Shield (two sparkles), or a ★ if the artwork is missing. */
+export function shinyIcon(): HTMLElement {
+  const img = icon(`${BASE}/marks/shiny.svg`, 24, 24, 'shiny-icon');
+  img.addEventListener('error', () => img.replaceWith('★'));
+  return img;
+}
+
 export function typeLabel(type: string, cls = ''): HTMLElement {
   const img = icon(typeLabelUrl(type), 32, 16, `type-label ${cls}`.trim());
   img.alt = type;
