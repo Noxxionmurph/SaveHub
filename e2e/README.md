@@ -2,7 +2,7 @@
 
 End-to-end checks that drive the built site in a real Chromium (through Playwright): open a save, edit it, look at
 the review list, download the result and compare its bytes, plus layout checks at phone width, the Pikachu card, the
-Pokémon window's close button, HP bars and the save window, sharp pixel art at every screen scaling, nothing running off the edge of a 320px screen, a layout sweep over every game, tab and Pokémon window at 320, 375 and 1280px (no sideways scrolling, no cards touching, no text cut off, no missing pictures), drag and drop, the hosted-download path, the fonts (the pixel face's 5 and ligatures, and that every retro window is set in it), the artwork (with and without the pictures reachable), and the version stamp on the deployed build's scripts and stylesheets.
+Pokémon window's close button, HP bars and the save window, sharp pixel art at every screen scaling, every picture the same size as the rest of its kind on every page (`assets`), nothing running off the edge of a 320px screen, a layout sweep over every game, tab and Pokémon window at 320, 375 and 1280px (no sideways scrolling, no cards touching, no text cut off, no missing pictures), drag and drop, the hosted-download path, the fonts (the pixel face's 5 and ligatures, and that every retro window is set in it), the artwork (with and without the pictures reachable), and the version stamp on the deployed build's scripts and stylesheets.
 
 ```
 pip install playwright && playwright install chromium     # once

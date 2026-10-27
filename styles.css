@@ -535,9 +535,6 @@ button.dialog-x {
 .sprite { display: block; flex: none; max-width: none; }
 /* a picture that failed to load hides itself (sprites.ts); the display rules above and below would otherwise beat the browser's [hidden] */
 img[hidden] { display: none !important; }
-.sprite.empty { width: 68px; height: 56px; }
-.mon-icon.big { width: 88px; height: auto; }
-.item-icon { width: 32px; height: 32px; }
 
 /* ---- trainer card + party strip ---- */
 .overview { display: grid; gap: 12px; }
@@ -553,7 +550,6 @@ img[hidden] { display: none !important; }
   display: grid; justify-items: center; align-content: center; gap: 0; min-width: 0; padding: 2px 0 4px; min-height: 0;
   border: 1px solid var(--line); border-bottom-width: 3px; border-radius: 8px; background: var(--surface-2);
 }
-.party-slot .mon-icon { width: 100%; max-width: 68px; height: auto; }
 .party-slot.empty { border-style: dashed; background: none; min-height: 64px; }
 .lv-tag { font: 600 0.75rem var(--font-display); color: var(--muted); }
 
@@ -571,8 +567,7 @@ img[hidden] { display: none !important; }
 }
 .dex-tile .dex-no { font: 500 0.6875rem/1.2 var(--font-display); color: var(--muted); }
 .dex-tile .dex-name { font-size: 0.6875rem; letter-spacing: -0.03em; line-height: 1.25; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.dex-tile .mon-icon { width: 100%; max-width: 48px; height: auto; }
-.dex-tile .dex-ball { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; display: none; }
+.dex-tile .dex-ball { position: absolute; top: 2px; right: 2px; display: none; }
 .dex-tile.unseen .mon-icon { filter: brightness(0); opacity: 0.2; }
 .dex-tile.unseen .dex-name { color: var(--muted); }
 .dex-tile.caught { background: var(--caught); color: var(--caught-ink); border-color: var(--caught-edge); }
@@ -599,7 +594,7 @@ img[hidden] { display: none !important; }
 html[data-art='off'] .pika-screen { display: none; }
 
 .mon-main { grid-template-columns: auto 1fr; align-items: center; gap: 2px 8px; }
-.mon-main > .mon-icon { grid-row: 1 / span 3; margin-left: -4px; }
+.mon-main > .mon-icon { grid-row: 1 / span 3; }
 .mon-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .mon-meta .mon-types { display: contents; }
 .mon-meta .lv { align-self: auto; }
@@ -609,12 +604,10 @@ html[data-art='off'] .pika-screen { display: none; }
 .tcard-stats dd { font-size: 0.875rem; }
 .party-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 @media (min-width: 620px) { .party-strip { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-.party-slot .mon-icon { width: 68px; max-width: 100%; }
 .slot-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; font-weight: 600; }
 .party-slot { padding: 4px 4px 6px; }
 .party-slot.empty { min-height: 96px; }
 
-.tile-icon { width: 84px; height: auto; }
 
 .badge-icon { image-rendering: pixelated; }
 .tcard-badges { display: grid; grid-template-columns: repeat(8, minmax(0, 48px)); justify-content: space-between; gap: 3px; margin-top: 10px; }
@@ -660,7 +653,6 @@ html[data-art='off'] .pika-screen { display: none; }
   padding: 4px 2px 3px; border-radius: 8px; border: 1px solid var(--lcd-edge); border-bottom-width: 3px;
   background: var(--lcd); color: var(--lcd-ink);
 }
-.box-cell .mon-icon { width: 100%; max-width: 68px; height: auto; }
 .box-cell .lv-tag { color: var(--lcd-dim); }
 .box-cell.add, .box-cell.empty { background: transparent; border: 1px dashed var(--line-strong); color: var(--muted); }
 .box-cell.empty { opacity: 0.55; }
@@ -725,7 +717,6 @@ button.danger { color: var(--danger); }
 /* tall enough for the icon, so the card looks the same if the icon can't load */
 .card-title { display: flex; align-items: center; gap: 8px; min-height: 40px; }
 .card-title h3 { margin: 0; }
-.card-icon { width: 48px; height: auto; }
 .friend { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 14px; padding: 6px 14px; }
 .friend-head { grid-column: 2; grid-row: 1; align-self: end; font-size: 0.8125rem; text-transform: uppercase; color: var(--lcd-dim); }
 .friend-value { grid-column: 1; grid-row: 1 / span 2; font: 700 2rem/1 var(--font-display); }
@@ -816,7 +807,7 @@ button.danger { color: var(--danger); }
 .gender.male { color: var(--male); }
 .gender.female { color: var(--female); }
 .shiny-star { color: var(--shiny); margin-left: 4px; font-weight: 700; }
-.shiny-icon { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em; }
+.shiny-icon { display: inline-block; width: 16px; height: 16px; vertical-align: -0.125em; }
 .box-cell .shiny-star { position: absolute; top: 2px; right: 4px; margin: 0; font-size: 0.875rem; }
 .box-cell { position: relative; }
 /* in the corner of a Trainer tab party tile, like a box cell, so it never squeezes the name */
@@ -825,7 +816,6 @@ button.danger { color: var(--danger); }
 /* On the screen-coloured tiles the theme's own ink reads better than the page colours. */
 .box-cell .shiny-star { color: var(--lcd-ink); }
 .held { display: inline-flex; }
-.held .item-icon { width: 24px; height: 24px; }
 .check-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; font-weight: 600; }
 .check-row input { width: 20px; height: 20px; margin: 0; }
 .check-row .muted { font-weight: 400; font-size: 0.875rem; }
@@ -878,11 +868,11 @@ button.danger { color: var(--danger); }
 .move-type.type-icon { width: var(--type-size); height: var(--type-size); }
 .move-type.type-text { width: auto; }
 /* a held item sits on the bottom corner of the Pokémon's picture */
-.mon-main > .mon-pic { grid-row: 1 / span 3; margin-left: -4px; position: relative; display: block; }
+.mon-main > .mon-pic { grid-row: 1 / span 3; }
 .mon-pic > .mon-icon { display: block; }
-.mon-pic > .held { position: absolute; right: 8px; bottom: -2px; }
-/* room for Lv and two type labels on one line on a phone: the picture's transparent sides may overlap the gap */
-.mon-main > .mon-pic, .mon-main > .mon-icon { margin-right: -8px; }
+.mon-pic { position: relative; display: block; }
+/* in the bottom corner of the box round the art: it never covers the level under the picture or pokes out of a narrow cell */
+.mon-pic > .held { position: absolute; right: calc(-2 * var(--px1)); bottom: 0; }
 .mon-meta { gap: 4px; }
 .mon-meta .lv { padding-inline: 6px; font-size: 0.875rem; }
 /* hovering a held item names it in a small bubble above the picture */
@@ -894,8 +884,29 @@ button.danger { color: var(--danger); }
 }
 /* only there while hovered: a hidden bubble would still widen a narrow tile (and cut it off) */
 @media (hover: hover) { .mon-pic > .held:hover::after { display: block; } }
-/* the same picture-with-item on Trainer tab tiles and box cells, where the picture fills the tile's width */
-.party-slot > .mon-pic, .box-cell > .mon-pic { position: relative; display: block; width: 100%; max-width: 68px; }
-.party-slot > .mon-pic > .mon-icon, .box-cell > .mon-pic > .mon-icon { display: block; }
-.party-slot > .mon-pic > .held, .box-cell > .mon-pic > .held { right: 0; bottom: 0; width: 35%; }
-.party-slot > .mon-pic > .held .item-icon, .box-cell > .mon-pic > .held .item-icon { width: 100%; height: auto; }
+
+/* ---- one scale for every picture ----
+   Pixel art (Pokémon, items, badges, Pikachu) is only sharp, and only looks like one set, when every art pixel is drawn
+   as the same whole number of screen pixels. --px1 is the whole number of screen pixels nearest one CSS pixel (1 on a
+   plain desktop, 3 on a 2.625 phone), --px2 the nearest to two. Lists, tiles, cells, bag rows and held items all use
+   --px1, so a Pokémon or an item is the same size everywhere; the Pokémon window and the landing page use --px2.
+   The Pokémon icons are 68x56 with the art (never more than 35x30) in the middle, and the item icons 32x32 with the art
+   (never more than 27x23) in the middle, so negative margins give each picture a box just round its art: the empty
+   edges overlap the neighbours instead of pushing them away. Type icons and the shiny mark are smooth artwork, not
+   pixel art; they have one fixed size each (24px and 16px). e2e/assets.py checks all of this. */
+:root { --px1: 1px; --px2: 2px; }
+@supports (width: round(10px, 3px)) {
+  :root { --px1: max(var(--dpx), round(1px, var(--dpx))); --px2: max(var(--dpx), round(2px, var(--dpx))); }
+}
+.mon-icon, .tile-icon, .item-icon, .badge-icon, .pika-frame { image-rendering: pixelated; }
+.mon-icon, .tile-icon {
+  --art: var(--px1);
+  width: calc(68 * var(--art)); height: calc(56 * var(--art)); max-width: none;
+  margin: calc(-12 * var(--art)) calc(-14 * var(--art));
+}
+.mon-icon.big, .tile-icon { --art: var(--px2); }
+.sprite.empty { width: calc(40 * var(--px1)); height: calc(32 * var(--px1)); }
+.item-icon { --art: var(--px1); width: calc(32 * var(--art)); height: calc(32 * var(--art)); margin: calc(-2 * var(--art)); }
+.held .item-icon { margin: calc(-5 * var(--art)); }
+.dex-tile .dex-ball { margin: calc(-7 * var(--art)); }
+.pika-pic { --s: calc(40 * var(--px2)); }

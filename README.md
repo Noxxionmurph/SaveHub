@@ -52,10 +52,20 @@ the editor carries on without pictures (a picture that can't load hides itself, 
   rebuild. To refresh from a PokéSprite checkout: `node scripts/import-sprites.mjs <path>`.
 - **If the artwork has to come down**: delete the files (or the repository) in SaveHub-assets. The editor keeps working.
   To point at another place, change `ART_BASE`.
-- The 16x16 badges are drawn at a whole number of screen pixels per source pixel, whatever the screen scaling (100%,
-  125%, a 2.625 phone...); a fractional multiple is what makes pixel art look soft. `src/ui/pixels.ts` publishes the
-  scaling as `--dpr` and the stylesheet sizes the badges with `round()` (browsers without it keep the plain sizes).
-  `e2e/crisp.py` checks it at six scalings.
+- **Every picture looks like part of one set.** Pixel art (Pokémon, items, badges, Pikachu) is drawn at a whole number
+  of screen pixels per art pixel, with hard edges, whatever the screen scaling (100%, 125%, a 2.625 phone...); a
+  fractional multiple is what makes pixel art look soft and uneven. `src/ui/pixels.ts` publishes the scaling as `--dpr`
+  and the stylesheet turns it into `--px1` and `--px2`, the whole-screen-pixel sizes nearest one and two CSS pixels
+  (with `round()`; browsers without it get plain 1px and 2px). The "one scale for every picture" block at the end of
+  `styles.css` holds the rules. When adding a page or a game, keep to them:
+  - Pokémon and items in lists, tiles, cells, bag rows and on a Pokémon's corner (held items) use `--px1`, so they are
+    the same size everywhere. Never size them in plain pixels or percentages.
+  - The Pokémon window and the landing page show Pokémon at `--px2`.
+  - Badges are as large as their row allows, cut down to a whole multiple (`e2e/crisp.py`).
+  - Type icons (smooth artwork) are always 24px, as tall as the Lv box; the shiny mark is always 16px.
+  - A new kind of picture gets a rule in that block and an entry in `KINDS` in `e2e/assets.py`, which walks every page
+    of every game at seven screen scalings and fails on a picture that is blurry, smoothed or a different size from its
+    kind elsewhere.
 - The box icons are drawn with their feet on a common baseline, so the art sits low in its canvas;
   `scripts/measure-icons.mjs` measures where the visible pixels really are and writes `src/ui/spriteOffsets.ts`, and
   the UI nudges each icon by that much so Pokémon look vertically centred wherever they appear (the import script
