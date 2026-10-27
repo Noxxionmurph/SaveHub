@@ -12,8 +12,8 @@ export const pokemonIconUrl = (dex: number, form = '', shiny = false) =>
   `${BASE}/pokemon/${shiny ? 'shiny/' : ''}${dex}${form ? `-${form}` : ''}.png`;
 export const itemIconUrl = (path: string) => `${BASE}/items/${path}.png`;
 export const badgeIconUrl = (n: number, region: 'kanto' | 'johto' = 'kanto') => `${BASE}/badges/${region === 'johto' ? 'johto/' : ''}${n}.png`;
-/** The in-game type label for a type name ("Fire"); Gen 2's ??? type (Curse) has its own. */
-export const typeLabelUrl = (type: string) => `${BASE}/type-labels/${type === '???' ? 'unknown' : type.toLowerCase()}.png`;
+/** The type icon for a type name ("Fire"); Gen 2's ??? type (Curse) has its own. */
+export const typeIconUrl = (type: string) => `${BASE}/types/${type === '???' ? 'unknown' : type.toLowerCase()}.png`;
 
 function icon(src: string, w: number, h_: number, cls: string): HTMLImageElement {
   const img = h('img', { class: `sprite ${cls}`, src, alt: '', width: w, height: h_, loading: 'lazy', decoding: 'async' });
@@ -65,10 +65,6 @@ export function badgeIcon(n: number, cls = '', region: 'kanto' | 'johto' = 'kant
   return icon(badgeIconUrl(n, region), 16, 16, `badge-icon ${cls}`.trim());
 }
 
-/**
- * A type as the games label it: the name in a coloured box (32x16, from Emerald's summary screen; Gen 1 and Gen 2 have
- * no coloured labels of their own). The name is the picture's alt text, and without the artwork the name shows as text.
- */
 /** The shiny mark the games have used since Sword and Shield (two sparkles), or a ★ if the artwork is missing. */
 export function shinyIcon(): HTMLElement {
   const img = icon(`${BASE}/marks/shiny.svg`, 24, 24, 'shiny-icon');
@@ -76,8 +72,12 @@ export function shinyIcon(): HTMLElement {
   return img;
 }
 
-export function typeLabel(type: string, cls = ''): HTMLElement {
-  const img = icon(typeLabelUrl(type), 32, 16, `type-label ${cls}`.trim());
+/**
+ * A type's icon (Sword and Shield's round ones, 128x128, drawn small). The name is the picture's alt text and tooltip,
+ * and without the artwork the name shows as text.
+ */
+export function typeIcon(type: string, cls = ''): HTMLElement {
+  const img = icon(typeIconUrl(type), 128, 128, `type-icon ${cls}`.trim());
   img.alt = type;
   img.title = type;
   img.addEventListener('error', () => img.replaceWith(h('span', { class: `type-text ${cls}`.trim() }, type)));

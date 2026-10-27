@@ -10,7 +10,7 @@ import {
 import { CAUGHT_LEVEL_MAX, LOCATION_CHOICES, decodeCaught, encodeCaught, locationName, type CaughtData } from '../../../core/gen2/caught.ts';
 import { calcStats, defaultNickname, recalcPartyStats, type Gen2Game, type Gen2Mon } from '../../../core/gen2/save.ts';
 import { askConfirm, clear, field, h, lazySelect, numberInput, selectInput } from '../../dom.ts';
-import { itemIcon, itemIconUrl, setIconSrc, shinyIcon, typeLabel } from '../../sprites.ts';
+import { itemIcon, itemIconUrl, setIconSrc, shinyIcon, typeIcon } from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
 import { itemSpritePath } from './itemSprites.ts';
@@ -136,10 +136,10 @@ export function openMonEditor({ mon, party, game = 'gs', onDone }: MonEditorOpti
         const id = mon.moves[i];
         const info = moveInfo(id);
         const ups = mon.ppUps[i];
-        const iconType = info?.type;   // Curse's is "???", which has its own label
+        const iconType = info?.type;   // Curse's is "???", which has its own icon
         return h('div', { class: 'move-row' },
           h('div', { class: 'move-pick' },
-            iconType ? typeLabel(iconType, 'move-type') : h('span', { class: 'move-type blank', 'aria-hidden': 'true' }),
+            iconType ? typeIcon(iconType, 'move-type') : h('span', { class: 'move-type blank', 'aria-hidden': 'true' }),
             selectInput(MOVE_OPTIONS, id, (v) => {
               mon.moves[i] = Number(v);
               mon.pp[i] = maxPp(mon.moves[i], mon.ppUps[i]);

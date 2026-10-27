@@ -698,7 +698,7 @@ button.danger { color: var(--danger); }
 .move-pick { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .move-pick select { flex: 1; min-width: 0; }
 .move-type { flex: none; }
-.move-type.blank { display: inline-block; width: var(--type-w); }
+.move-type.blank { display: inline-block; width: var(--type-size); }
 .sheet-note { margin-top: 10px; min-height: 0; color: var(--danger); font-weight: 600; font-size: 0.875rem; }
 .sheet-note:empty { display: none; }
 /* Money is the widest figure on the trainer card; give it more room so it never runs into Coins. */
@@ -870,17 +870,13 @@ button.danger { color: var(--danger); }
 /* Party strip names on the smallest phones: a ten-letter name (Charmeleon) fits a third of a 320px screen */
 @media (max-width: 360px) { .slot-name { font-size: 0.75rem; letter-spacing: -0.03em; } }
 
-/* ---- in-game type labels (32x16), about as tall as the Lv box. Sizes step by a whole number of screen pixels per two
-   source pixels: 43px on a 3x phone (4x), 40px on a 2x screen (2.5x), 48px on a standard screen (1.5x) ---- */
-:root { --type-w: max(calc(32 * var(--dpx)), round(nearest, 43px, calc(16 * var(--dpx)))); }
-@media (max-resolution: 1.99dppx) { :root { --type-w: max(calc(32 * var(--dpx)), round(down, 48px, calc(16 * var(--dpx)))); } }
-.type-label {
-  width: var(--type-w); height: auto; flex: none;
-  image-rendering: pixelated;
-}
+/* ---- type icons (Sword and Shield's round ones), as tall as the Lv box ---- */
+:root { --type-size: 24px; }
+.type-icon { width: var(--type-size); height: var(--type-size); flex: none; }
 .mon-types { gap: 4px; align-items: center; }
 .type-text { font: 600 0.75rem var(--font-display); text-transform: uppercase; }
-.move-type.type-label, .move-type.type-text { width: var(--type-w); height: auto; }
+.move-type.type-icon { width: var(--type-size); height: var(--type-size); }
+.move-type.type-text { width: auto; }
 /* a held item sits on the bottom corner of the Pokémon's picture */
 .mon-main > .mon-pic { grid-row: 1 / span 3; margin-left: -4px; position: relative; display: block; }
 .mon-pic > .mon-icon { display: block; }
