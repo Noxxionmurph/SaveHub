@@ -8,6 +8,7 @@ import {
 } from './data.ts';
 import { BOX_NAME_LEN, FRONTIER_FACILITIES, NICKNAME_MAX, PLAYER_NAME_MAX, monAbility, type BagItem, type Gen3Mon, type Gen3Save } from './save.ts';
 import { ribbonNames } from './ribbons.ts';
+import { HOF_TIME_STAT, gameStatGroups, unpackHofTime } from './stats.ts';
 import { asSaved } from './text.ts';
 
 const CAP = 12;
@@ -255,6 +256,26 @@ function pokemonLines(b: Gen3Save, a: Gen3Save): string[] {
   return lines;
 }
 
+// ---------- game stats ----------
+
+function statLines(b: Gen3Save, a: Gen3Save): string[] {
+  const out: string[] = [];
+  const hof = (v: number) => {
+    const t = unpackHofTime(v);
+    return v ? `${t.hours}:${String(t.minutes).padStart(2, '0')}:${String(t.seconds).padStart(2, '0')}` : 'none';
+  };
+  if (b.gameStats[HOF_TIME_STAT] !== a.gameStats[HOF_TIME_STAT]) {
+    out.push(`First Hall of Fame time: ${hof(b.gameStats[HOF_TIME_STAT])} → ${hof(a.gameStats[HOF_TIME_STAT])}`);
+  }
+  for (const g of gameStatGroups(a.game)) {
+    for (const st of g.stats) {
+      const x = b.gameStats[st.index], y = a.gameStats[st.index];
+      if (x !== y) out.push(`${st.name}: ${x.toLocaleString('en-US')} → ${y.toLocaleString('en-US')}`);
+    }
+  }
+  return out;
+}
+
 export function describeGen3Changes(before: Gen3Save, after: Gen3Save): ChangeGroup[] {
   return [
     group('Trainer', trainerLines(before, after)),
@@ -267,6 +288,7 @@ export function describeGen3Changes(before: Gen3Save, after: Gen3Save): ChangeGr
     group('Pokémon', pokemonLines(before, after), 14),
     group('Box names', boxNameLines(before, after)),
     group('Pokédex', dexLines(before, after)),
+    group('Game stats', statLines(before, after)),
     group('Options', optionLines(before, after)),
   ].filter((g): g is ChangeGroup => g !== null);
 }

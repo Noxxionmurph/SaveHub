@@ -69,12 +69,21 @@ with sync_playwright() as p:
     page.click('section.card.frontier .badge-btn:has-text("Tower")')                  # then silver
     assert page.get_attribute('section.card.frontier .badge-btn:has-text("Tower")', 'data-metal') == 'silver'
     assert 'silver-1.png' in page.get_attribute('section.card.frontier .badge-btn:has-text("Tower") img', 'src')
+    stats = page.locator('section.card.game-stats')                                    # the game's counters
+    stats.locator('summary:has-text("Getting around")').click()
+    stats.locator('label.field:has-text("Steps") input').fill('4321')
+    stats.locator('label.field:has-text("Steps") input').press('Tab')
+    stats.locator('label.field:has-text("Hours") input').fill('7')
+    stats.locator('label.field:has-text("Hours") input').press('Tab')
+    assert stats.locator('label.field:has-text("Berry Crush games")').count() == 1   # Emerald only
+    page.screenshot(path=f'{SP}/e-stats.png', full_page=True)
     page.click('button.tab:has-text("Party")')
     assert page.locator('.mon').count() == 5
     page.click('.save-btn')
     page.wait_for_selector('dialog.review-dialog[open]')
     text = page.text_content('dialog.review-dialog')
     assert 'Battle Points: 0 → 500' in text and 'Battle Pyramid symbol: none → gold' in text and 'Battle Tower symbol: none → silver' in text, text
+    assert 'Steps: 0 → 4,321' in text and 'First Hall of Fame time: none → 7:00:00' in text, text
     page.keyboard.press('Escape')
 
     # --- Ruby / Sapphire: the file can't say which
@@ -84,6 +93,8 @@ with sync_playwright() as p:
     page.click('.version-pick button:has-text("Sapphire")')
     assert page.inner_text('.game-name') == 'Pokémon Sapphire'
     assert page.locator('section.card.frontier').count() == 0                          # no Battle Frontier in Ruby / Sapphire
+    assert page.locator('section.card.game-stats label.field:has-text("Pokémon caught fishing")').count() == 1
+    assert page.locator('section.card.game-stats label.field:has-text("Berry Crush games")').count() == 0
     assert page.input_value('label.field:has-text("Trainer name") input') == 'MAY'
     assert page.locator('.tcard-badges .badge-slot.earned').count() == 4
     page.screenshot(path=f'{SP}/r1-trainer.png', full_page=True)
