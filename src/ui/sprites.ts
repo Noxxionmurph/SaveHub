@@ -66,6 +66,11 @@ export function badgeIcon(n: number, cls = '', region: BadgeRegion = 'kanto'): H
   return icon(badgeIconUrl(n, region), 16, 16, `badge-icon ${cls}`.trim());
 }
 
+/** One of Emerald's seven Battle Frontier symbols (1 Tower to 7 Pyramid), in silver or gold. */
+export function frontierSymbolIcon(n: number, metal: 'silver' | 'gold', cls = ''): HTMLImageElement {
+  return icon(`${BASE}/frontier/${metal}-${n}.png`, 16, 16, `badge-icon ${cls}`.trim());
+}
+
 /** The shiny mark the games have used since Sword and Shield (two sparkles), or a ★ if the artwork is missing. */
 export function shinyIcon(): HTMLElement {
   const img = icon(`${BASE}/marks/shiny.svg`, 24, 24, 'shiny-icon');

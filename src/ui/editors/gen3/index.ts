@@ -16,7 +16,7 @@ import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '..
 import { enableDrag } from '../../drag.ts';
 import { dexTab as sharedDexTab } from '../../dexTab.ts';
 import { choiceRow, stepRow } from '../../gameChoice.ts';
-import { badgeIcon, itemIcon, itemIconUrl, setIconSrc } from '../../sprites.ts';
+import { badgeIcon, frontierSymbolIcon, itemIcon, itemIconUrl, setIconSrc } from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
 import { discPath, itemSpritePath } from './itemSprites.ts';
@@ -211,18 +211,45 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
   function frontierCard(): Node | null {
     const f = s.frontier;
     if (!f) return null;
-    const levels = [{ value: '0', label: 'None' }, { value: '1', label: 'Silver' }, { value: '2', label: 'Gold' }];
+    const metals = ['none', 'silver', 'gold'] as const;
+    const caption = h('p', { class: 'muted badge-caption', 'aria-live': 'polite' });
+    const paintCaption = () => {
+      const list = (n: number) => FRONTIER_FACILITIES.filter((_, i) => f.symbols[i] === n).map((name) => name.replace('Battle ', ''));
+      const gold = list(2), silver = list(1);
+      caption.textContent = !gold.length && !silver.length ? 'No symbols earned yet.' : gold.length === 7 ? 'All seven gold symbols.'
+        : [gold.length ? `Gold: ${gold.join(', ')}.` : '', silver.length ? `Silver: ${silver.join(', ')}.` : ''].filter(Boolean).join(' ');
+    };
+    // Tapping a symbol goes none, silver, gold and back, the order the game gives them in.
+    const buttons = FRONTIER_FACILITIES.map((name, i) => {
+      const img = frontierSymbolIcon(i + 1, f.symbols[i] === 2 ? 'gold' : 'silver');
+      const label = h('span', { class: 'badge-name' }, name.replace('Battle ', ''));
+      const btn = h('button', { class: 'badge-btn' }, h('span', { class: 'gem', 'aria-hidden': 'true' }, img), label);
+      const paint = () => {
+        const n = f.symbols[i];
+        btn.setAttribute('aria-pressed', String(n > 0));
+        btn.dataset.metal = metals[n];
+        btn.title = `${name} symbol: ${metals[n]}`;
+        img.src = img.src.replace(/(silver|gold)-(\d)\.png$/, `${n === 2 ? 'gold' : 'silver'}-$2.png`);
+      };
+      paint();
+      btn.addEventListener('click', () => { f.symbols[i] = (f.symbols[i] + 1) % 3; paint(); paintCaption(); markDirty(); });
+      return { btn, paint };
+    });
+    paintCaption();
+    const setAll = (n: number) => { f.symbols = f.symbols.map(() => n); buttons.forEach((b) => b.paint()); paintCaption(); markDirty(); };
     return h('section', { class: 'card frontier' },
       h('h3', {}, 'Battle Frontier'),
       h('div', { class: 'grid pair' },
         field('Battle Points', numberInput(f.battlePoints, 0, BATTLE_POINTS_MAX, (v) => { f.battlePoints = v; markDirty(); })),
         field('Berry Powder', numberInput(f.berryPowder, 0, BERRY_POWDER_MAX, (v) => { f.berryPowder = v; markDirty(); })),
       ),
-      h('div', { class: 'lcd options-window' },
-        FRONTIER_FACILITIES.map((name, i) => choiceRow(name.replace('Battle ', ''), levels, String(f.symbols[i]),
-          (v) => { f.symbols[i] = Number(v); markDirty(); }))),
-      h('div', { class: 'button-row' },
-        h('button', { onclick: () => { f.symbols = f.symbols.map(() => 2); markDirty(); render(); } }, 'All gold symbols')));
+      h('div', { class: 'subgroup' },
+        h('h4', {}, 'Symbols'),
+        h('div', { class: 'badge-grid seven' }, buttons.map((b) => b.btn)),
+        caption,
+        h('div', { class: 'button-row' },
+          h('button', { onclick: () => setAll(2) }, 'All gold symbols'),
+          h('button', { onclick: () => setAll(0) }, 'Clear symbols'))));
   }
 
   /** The settings from the in-game OPTION menu. */
