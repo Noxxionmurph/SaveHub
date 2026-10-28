@@ -370,6 +370,8 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .card > .grid + p { margin-top: 10px; }
 .subgroup { margin-top: 14px; }
 .subgroup h4 { margin: 0 0 6px; font-size: 0.8125rem; font-weight: 500; color: var(--muted); }
+.streak-row + .streak-row { margin-top: 12px; }
+.streak-row h5 { margin: 0 0 6px; font-size: 0.8125rem; font-weight: 600; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
 .card h3:first-child { margin-top: 0; }
 .stack > * + * { margin-top: 16px; }

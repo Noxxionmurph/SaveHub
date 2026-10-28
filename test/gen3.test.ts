@@ -264,12 +264,12 @@ test('an egg keeps full HP when its stats are worked out again, as the game make
 test("Emerald's Battle Points, Berry Powder and Frontier symbols read back as edited; Ruby and Sapphire have none", () => {
   assert.equal(new Gen3Save(buildSampleSave('rs')).frontier, null);
   const s = new Gen3Save(buildSampleSave('emerald'));
-  assert.deepEqual(s.frontier, { battlePoints: 0, berryPowder: 0, symbols: [0, 0, 0, 0, 0, 0, 0] });
+  assert.deepEqual({ ...s.frontier, streaks: undefined }, { battlePoints: 0, battlePointsWon: 0, berryPowder: 0, symbols: [0, 0, 0, 0, 0, 0, 0], streaks: undefined });
   s.frontier!.battlePoints = 1234;
   s.frontier!.berryPowder = 50000;
   s.frontier!.symbols = [2, 1, 0, 0, 0, 0, 2];
   const t = new Gen3Save(s.serialize());
-  assert.deepEqual(t.frontier, { battlePoints: 1234, berryPowder: 50000, symbols: [2, 1, 0, 0, 0, 0, 2] });
+  assert.deepEqual({ ...t.frontier, streaks: undefined }, { battlePoints: 1234, battlePointsWon: 0, berryPowder: 50000, symbols: [2, 1, 0, 0, 0, 0, 2], streaks: undefined });
   // Gold sets both of the facility's flags, as the game has them once it gives the gold symbol.
   for (const n of [0x8c4, 0x8c5, 0x8c6, 0x8d0, 0x8d1]) assert.ok(t['flag'](n), n.toString(16));
   assert.ok(!t['flag'](0x8c7));
@@ -327,4 +327,32 @@ test('game stats read back as edited, under the key in Emerald and plain in Ruby
     const lines = s.describeChanges(new Gen3Save(buildSampleSave(game))).flatMap((g) => g.lines);
     for (const want of ['Steps: 0 → 123,456', 'First Hall of Fame time: none → 12:34:56']) assert.ok(lines.includes(want), want);
   }
+});
+
+test("Emerald's Frontier streaks: current and record per mode and level, and a current streak carries on", async () => {
+  const { STREAK_ROWS, rowLabel } = await import('../src/core/gen3/frontier.ts');
+  assert.equal(STREAK_ROWS.length, 8 + 4 + 4 + 2 + 4 + 2 + 2);
+  const s = new Gen3Save(buildSampleSave('emerald'));
+  const f = s.frontier!;
+  assert.ok(f.streaks.every((x) => !x.current && !x.best && !x.active));
+  const tower = STREAK_ROWS.findIndex((r) => rowLabel(r) === 'Battle Tower Doubles, Open Level');
+  const factory = STREAK_ROWS.findIndex((r) => rowLabel(r) === 'Battle Factory Singles, Lv. 50');
+  const pike = STREAK_ROWS.findIndex((r) => rowLabel(r) === 'Battle Pike, Open Level');
+  f.streaks[tower].current = 48; f.streaks[tower].best = 70;
+  f.streaks[factory].extraBest = 12;
+  f.streaks[pike].best = 20000; // more than the game counts to
+  f.battlePointsWon = 4321;
+  const t = new Gen3Save(s.serialize());
+  const sb2 = t['sb2'] as Uint8Array;
+  const u16 = (o: number) => sb2[o] | (sb2[o + 1] << 8);
+  assert.equal(u16(0xce0 + 3 * 2), 48); // towerWinStreaks[1][1]
+  assert.equal(u16(0xcf0 + 3 * 2), 70);
+  assert.equal(u16(0xdfa), 12); // factoryRecordRentsCount[0][0]
+  assert.equal(u16(0xe08 + 2), 9999);
+  assert.equal(u16(0xeba), 4321);
+  assert.equal(sb2[0xcdc + 1], 0x80); // STREAK_TOWER_DOUBLES_OPEN, bit 15
+  assert.ok(t.frontier!.streaks[tower].active);
+  const lines = s.describeChanges(new Gen3Save(buildSampleSave('emerald'))).flatMap((g) => g.lines);
+  for (const want of ['Battle Tower Doubles, Open Level: current 0 → 48, record 0 → 70', 'Battle Factory Singles, Lv. 50: record rentals 0 → 12',
+    'Battle Points won: 0 → 4,321']) assert.ok(lines.includes(want), want);
 });

@@ -6,6 +6,7 @@ import {
   BUTTON_MODES, DEX_COUNT, DEX_NAMES, FRAME_COUNT, HM_COUNT, HOENN_BADGES, TEXT_SPEEDS, TMHM_LABELS, TMHM_MOVES, TM_COUNT,
   baseStatsFor, findPid, genderOf, itemChoices, itemName, moveInfo, speciesName, type Pocket,
 } from '../../../core/gen3/data.ts';
+import { LEVELS, STREAK_MAX, STREAK_ROWS } from '../../../core/gen3/frontier.ts';
 import { BOX_SLOTS, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, countAt, dropMon, monAt, placeName, shiftMon } from '../../../core/gen3/roster.ts';
 import {
   BATTLE_POINTS_MAX, BERRY_POWDER_MAX, BOX_NAME_LEN, COINS_MAX, FRONTIER_FACILITIES, MONEY_MAX, PLAYER_NAME_MAX, depositInBox,
@@ -241,8 +242,9 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
     const setAll = (n: number) => { f.symbols = f.symbols.map(() => n); buttons.forEach((b) => b.paint()); paintCaption(); markDirty(); };
     return h('section', { class: 'card frontier' },
       h('h3', {}, 'Battle Frontier'),
-      h('div', { class: 'grid pair' },
+      h('div', { class: 'grid trio' },
         field('Battle Points', numberInput(f.battlePoints, 0, BATTLE_POINTS_MAX, (v) => { f.battlePoints = v; markDirty(); })),
+        field('BP won', numberInput(f.battlePointsWon, 0, 0xffff, (v) => { f.battlePointsWon = v; markDirty(); })),
         field('Berry Powder', numberInput(f.berryPowder, 0, BERRY_POWDER_MAX, (v) => { f.berryPowder = v; markDirty(); })),
       ),
       h('div', { class: 'subgroup' },
@@ -251,7 +253,22 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
         caption,
         h('div', { class: 'button-row' },
           h('button', { onclick: () => setAll(2) }, 'All gold symbols'),
-          h('button', { onclick: () => setAll(0) }, 'Clear symbols'))));
+          h('button', { onclick: () => setAll(0) }, 'Clear symbols'))),
+      h('div', { class: 'subgroup' },
+        h('h4', {}, 'Streaks and records'),
+        FRONTIER_FACILITIES.map((name) => h('details', { class: 'tips' },
+          h('summary', {}, name),
+          STREAK_ROWS.map((r, i) => [r, f.streaks[i]] as const).filter(([r]) => r.facility === name).map(([r, st]) => {
+            const num = (v: number, set: (v: number) => void) => numberInput(v, 0, Math.max(STREAK_MAX, v), (n) => { set(n); markDirty(); });
+            return h('div', { class: 'streak-row' },
+              h('h5', {}, [r.mode, LEVELS[r.level]].filter(Boolean).join(' · ')),
+              h('div', { class: 'grid pair' },
+                field(r.unit, num(st.current, (n) => { st.current = n; })),
+                field('Record', num(st.best, (n) => { st.best = n; })),
+                r.extra?.current !== undefined ? field(r.extra.label, num(st.extraCurrent, (n) => { st.extraCurrent = n; })) : null,
+                r.extra ? field(r.extra.current !== undefined ? `Record ${r.extra.label.toLowerCase()}` : r.extra.label,
+                  num(st.extraBest, (n) => { st.extraBest = n; })) : null));
+          })))));
   }
 
   /** The game's own counters: steps, battles, catches and the rest. */

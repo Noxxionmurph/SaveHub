@@ -21,6 +21,7 @@ import {
   levelForExp, maxPp, natureOf, speciesOf, type Evs, type Gen3Game, type Ivs, type Pocket, type Stats,
 } from './data.ts';
 import { describeGen3Changes } from './diff.ts';
+import { CARD_BATTLE_POINTS, readStreaks, writeStreaks, type Streak } from './frontier.ts';
 import { RIBBON_MASK } from './ribbons.ts';
 import { GAME_STAT_MAX, HOF_TIME_STAT, gameStatCount } from './stats.ts';
 import { decodeText, encodeText } from './text.ts';
@@ -462,7 +463,7 @@ export class Gen3Save implements EditableSave {
   badges: number;
   nationalDex: boolean;
   /** Emerald's Battle Frontier and Berry Crush: null for Ruby and Sapphire. Symbols are 0 none, 1 silver, 2 gold. */
-  frontier: { battlePoints: number; berryPowder: number; symbols: number[] } | null;
+  frontier: { battlePoints: number; battlePointsWon: number; berryPowder: number; symbols: number[]; streaks: Streak[] } | null;
   /** The game's counters, indexed as in stats.ts (steps, battles, catches...). */
   gameStats: number[];
   pockets: Record<Exclude<Pocket, 'tmhm'>, BagItem[]> & { tmhm: BagItem[] };
@@ -525,8 +526,10 @@ export class Gen3Save implements EditableSave {
       && this.flag(L.nationalDexFlag);
     this.frontier = this.game === 'emerald' ? {
       battlePoints: u16(sb2, EM.battlePoints),
+      battlePointsWon: u16(sb2, CARD_BATTLE_POINTS),
       berryPowder: (u32(sb2, EM.berryPowder) ^ this.key) >>> 0,
       symbols: FRONTIER_FACILITIES.map((_, i) => +this.flag(EM.symbolFlag + i * 2) + +this.flag(EM.symbolFlag + i * 2 + 1)),
+      streaks: readStreaks(sb2),
     } : null;
     this.gameStats = Array.from({ length: gameStatCount(this.game) }, (_, i) => (u32(sb1, L.gameStats + i * 4) ^ this.key) >>> 0);
     this.pockets = {
@@ -646,6 +649,8 @@ export class Gen3Save implements EditableSave {
     const f = this.frontier, f0 = JSON.parse(this.loaded.frontier) as Gen3Save['frontier'];
     if (f && f0) {
       if (f.battlePoints !== f0.battlePoints) setU16(sb2, EM.battlePoints, clamp(f.battlePoints, 0, BATTLE_POINTS_MAX));
+      if (f.battlePointsWon !== f0.battlePointsWon) setU16(sb2, CARD_BATTLE_POINTS, clamp(f.battlePointsWon, 0, 0xffff));
+      writeStreaks(sb2, f.streaks, f0.streaks);
       if (f.berryPowder !== f0.berryPowder) setU32(sb2, EM.berryPowder, (clamp(f.berryPowder, 0, BERRY_POWDER_MAX) ^ this.key) >>> 0);
       f.symbols.forEach((n, i) => {
         if (n === f0.symbols[i]) return;

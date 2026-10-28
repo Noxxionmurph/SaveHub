@@ -7,6 +7,7 @@ import {
   genderOf, isShiny, itemName, natureOf, speciesName, unownForm,
 } from './data.ts';
 import { BOX_NAME_LEN, FRONTIER_FACILITIES, NICKNAME_MAX, PLAYER_NAME_MAX, monAbility, type BagItem, type Gen3Mon, type Gen3Save } from './save.ts';
+import { STREAK_ROWS, rowLabel } from './frontier.ts';
 import { ribbonNames } from './ribbons.ts';
 import { HOF_TIME_STAT, gameStatGroups, unpackHofTime } from './stats.ts';
 import { asSaved } from './text.ts';
@@ -54,6 +55,16 @@ function trainerLines(b: Gen3Save, a: Gen3Save): string[] {
     const bf = b.frontier, af = a.frontier;
     if (bf.battlePoints !== af.battlePoints) out.push(`Battle Points: ${bf.battlePoints.toLocaleString('en-US')} → ${af.battlePoints.toLocaleString('en-US')}`);
     if (bf.berryPowder !== af.berryPowder) out.push(`Berry Powder: ${bf.berryPowder.toLocaleString('en-US')} → ${af.berryPowder.toLocaleString('en-US')}`);
+    if (bf.battlePointsWon !== af.battlePointsWon) out.push(`Battle Points won: ${bf.battlePointsWon.toLocaleString('en-US')} → ${af.battlePointsWon.toLocaleString('en-US')}`);
+    STREAK_ROWS.forEach((r, i) => {
+      const x = bf.streaks[i], y = af.streaks[i], parts: string[] = [];
+      const label = r.extra?.label.toLowerCase();
+      if (x.current !== y.current) parts.push(`current ${x.current} → ${y.current}`);
+      if (x.best !== y.best) parts.push(`record ${x.best} → ${y.best}`);
+      if (x.extraCurrent !== y.extraCurrent) parts.push(`current ${label} ${x.extraCurrent} → ${y.extraCurrent}`);
+      if (x.extraBest !== y.extraBest) parts.push(`${r.extra?.current === undefined ? '' : 'record '}${label} ${x.extraBest} → ${y.extraBest}`);
+      if (parts.length) out.push(`${rowLabel(r)}: ${parts.join(', ')}`);
+    });
     const sym = ['none', 'silver', 'gold'];
     FRONTIER_FACILITIES.forEach((name, i) => {
       if (bf.symbols[i] !== af.symbols[i]) out.push(`${name} symbol: ${sym[bf.symbols[i]]} → ${sym[af.symbols[i]]}`);
