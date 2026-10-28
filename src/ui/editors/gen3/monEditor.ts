@@ -8,9 +8,13 @@ import {
   itemChoices, itemName, levelForExp, maxPp, moveInfo, natureEffect, natureOf, placeChoices, placeName, pokerusState,
   speciesName, unownForm, type Gen3Game, type Ivs, type PidWish, type StatKey,
 } from '../../../core/gen3/data.ts';
+import {
+  CONTEST_CATEGORIES, CONTEST_RANKS, GIFT_RIBBONS, SINGLE_RIBBONS, contestRank, contestRibbonId, hasRibbon, ribbonCount, setContestRank,
+  setRibbon,
+} from '../../../core/gen3/ribbons.ts';
 import { defaultNickname, recalcPartyStats, type Gen3Mon } from '../../../core/gen3/save.ts';
 import { askConfirm, clear, field, h, lazySelect, numberInput, selectInput } from '../../dom.ts';
-import { itemIcon, itemIconUrl, setIconSrc, shinyIcon, typeIcon } from '../../sprites.ts';
+import { gen3RibbonIcon, itemIcon, itemIconUrl, setIconSrc, shinyIcon, typeIcon } from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
 import { itemSpritePath } from './itemSprites.ts';
@@ -108,6 +112,51 @@ export function openMonEditor({ mon, party, game, onDone, onDiscard }: MonEditor
     refresh();
   };
 
+  /** The ribbons, as the PokéNav shows them: each contest category's four ranks in a row, then the rest. */
+  function ribbonSection(): Node {
+    const count = h('span', { class: 'muted count' });
+    const buttons: { btn: HTMLButtonElement; earned: () => boolean }[] = [];
+    const paint = () => {
+      for (const b of buttons) b.btn.setAttribute('aria-pressed', String(b.earned()));
+      count.textContent = String(ribbonCount(mon.ribbons));
+    };
+    const ribbon = (id: number, title: string, earned: () => boolean, toggle: () => void, label?: string) => {
+      const btn = h('button', { class: 'ribbon-btn', type: 'button', title, 'aria-label': title },
+        gen3RibbonIcon(id), label ? h('span', { class: 'ribbon-name' }, label) : null) as HTMLButtonElement;
+      btn.addEventListener('click', () => { toggle(); paint(); });
+      buttons.push({ btn, earned });
+      return btn;
+    };
+    // A contest rank includes the ranks below it, as in the game: tapping a rank you hold takes it (and those above) away.
+    const contestRows = CONTEST_CATEGORIES.map((cat, c) => h('div', { class: 'ribbon-row' },
+      h('span', { class: 'ribbon-cat' }, cat),
+      CONTEST_RANKS.map((rank, i) => ribbon(contestRibbonId(c, i + 1), `${cat} Ribbon, ${rank} Rank`,
+        () => contestRank(mon.ribbons, c) > i,
+        () => { mon.ribbons = setContestRank(mon.ribbons, c, contestRank(mon.ribbons, c) > i ? i : i + 1); }))));
+    const single = SINGLE_RIBBONS.map((r) => ribbon(r.id, `${r.name} Ribbon: ${r.how}`, () => hasRibbon(mon.ribbons, r.bit),
+      () => { mon.ribbons = setRibbon(mon.ribbons, r.bit, !hasRibbon(mon.ribbons, r.bit)); }, r.name));
+    // The event ribbons. Which event each stands for is kept once per save, and the PokéNav leaves its description blank
+    // for one the save hasn't been told about (pokeemerald: pokenav_ribbons_summary.c), but shows the ribbon.
+    const gifts = GIFT_RIBBONS.map((r) => ribbon(r.id, `${r.name} Ribbon (event)`, () => hasRibbon(mon.ribbons, r.bit),
+      () => { mon.ribbons = setRibbon(mon.ribbons, r.bit, !hasRibbon(mon.ribbons, r.bit)); }, r.name));
+    const setAll = (on: boolean) => {
+      let v = mon.ribbons;
+      for (let c = 0; c < 5; c++) v = setContestRank(v, c, on ? 4 : 0);
+      for (const r of SINGLE_RIBBONS) v = setRibbon(v, r.bit, on);
+      if (!on) for (const r of GIFT_RIBBONS) v = setRibbon(v, r.bit, false);
+      mon.ribbons = v;
+      paint();
+    };
+    paint();
+    return h('div', { class: 'ribbons' },
+      h('h3', {}, 'Ribbons', count),
+      h('div', { class: 'ribbon-contest' }, contestRows),
+      h('div', { class: 'ribbon-grid' }, single, gifts),
+      h('div', { class: 'button-row' },
+        h('button', { type: 'button', onclick: () => setAll(true) }, 'All ribbons'),
+        h('button', { type: 'button', onclick: () => setAll(false) }, 'Clear ribbons')));
+  }
+
   function render(): (Node | null)[] {
     const base = baseStatsFor(mon.species);
     const nature = natureOf(mon.pid);
@@ -178,6 +227,7 @@ export function openMonEditor({ mon, party, game, onDone, onDiscard }: MonEditor
 
     const places = placeChoices(game).map((p) => ({ value: p.id, label: p.name }));
     const title = mon.isEgg ? 'Egg' : mon.nickname || speciesName(mon.species);
+
     const eggRow = h('label', { class: 'check-row' },
       h('input', { type: 'checkbox', checked: mon.isEgg, onchange: (e: Event) => setEgg((e.target as HTMLInputElement).checked) }),
       h('span', {}, 'It’s an egg'),
@@ -296,6 +346,8 @@ export function openMonEditor({ mon, party, game, onDone, onDiscard }: MonEditor
       ),
 
       mon.isEgg ? null : eggRow,
+
+      mon.isEgg ? null : ribbonSection(),
 
       h('h3', {}, 'Shortcuts'),
       h('div', { class: 'button-row' },

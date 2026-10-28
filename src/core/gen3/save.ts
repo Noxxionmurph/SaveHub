@@ -21,6 +21,7 @@ import {
   levelForExp, maxPp, natureOf, speciesOf, type Evs, type Gen3Game, type Ivs, type Pocket, type Stats,
 } from './data.ts';
 import { describeGen3Changes } from './diff.ts';
+import { RIBBON_MASK } from './ribbons.ts';
 import { decodeText, encodeText } from './text.ts';
 
 export const SAVE_SIZE = 0x20000;
@@ -644,6 +645,11 @@ export class Gen3Save implements EditableSave {
         this.setFlagIn(sb1, EM.symbolFlag + i * 2 + 1, n >= 2);
       });
     }
+
+    // The PokéNav's RIBBONS menu opens once a Pokémon has a ribbon (FLAG_SYS_RIBBON_GET, which the game sets with each one).
+    const ribbonFlag = L.badgeFlag - 7 + 0x3b;
+    const anyRibbon = [...this.party, ...this.boxes.flat()].some((m) => m && !m.bad && (m.ribbons & RIBBON_MASK));
+    if (anyRibbon && !this.flag(ribbonFlag)) this.setFlagIn(sb1, ribbonFlag, true);
 
     // Pockets are rewritten only when they changed, so an unedited bag keeps its exact bytes (gaps and all).
     if (JSON.stringify(this.pockets) !== this.loaded.pockets) {

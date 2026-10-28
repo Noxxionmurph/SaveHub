@@ -128,6 +128,10 @@ with sync_playwright() as p:
     page.fill('dialog .evs label.field:has-text("Spe") input', '252')
     page.press('dialog .evs label.field:has-text("Spe") input', 'Tab')
     assert '252/510' in page.inner_text('dialog h3:has-text("EVs")')
+    page.click('dialog .ribbon-btn[title="Cool Ribbon, Super Rank"]')                # a contest rank brings the ones below it
+    page.click('dialog .ribbon-btn:has-text("Champion")')
+    assert page.inner_text('dialog .ribbons h3 .count') == '3'
+    assert page.get_attribute('dialog .ribbon-btn[title="Cool Ribbon, Normal Rank"]', 'aria-pressed') == 'true'
     page.screenshot(path=f'{SP}/r4-mon.png')
     page.click('dialog.mon-dialog button.primary')
     page.locator('.mon-main').nth(4).click()                                       # Unown
@@ -165,7 +169,7 @@ with sync_playwright() as p:
     page.click('.save-btn')
     page.wait_for_selector('dialog.review-dialog[open]')
     text = page.text_content('dialog.review-dialog')
-    for want in ['HOENN', 'Jolly']:
+    for want in ['HOENN', 'Jolly', 'ribbons added: Cool Super, Champion']:
         assert want in text, (want, text)
     page.screenshot(path=f'{SP}/r6-review.png')
     with page.expect_download() as dl:

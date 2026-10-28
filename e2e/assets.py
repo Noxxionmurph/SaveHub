@@ -20,6 +20,7 @@ KINDS = {
     'item': ('img.item-icon:not(.held > img)', True, 'list'),
     'held item': ('.held > img.item-icon', False, 24),
     'badge': ('img.badge-icon', True, None),
+    'ribbon': ('img.ribbon-icon', True, 'list'),
     'type icon': ('img.type-icon', False, 24),
     'shiny mark': ('img.shiny-icon', False, 16),
     '♂/♀': ('svg.gender-icon', False, '0.75em'),

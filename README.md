@@ -178,6 +178,9 @@ the same editor (`GEN3_LAYOUTS` in `src/core/gen3/save.ts`).
   EVs 0-255 with the 510 total, gender, shininess and Unown's 28 forms (all from the personality value, so changing one
   picks a new value that keeps the rest), Poké Ball, where and at what level it was met and in which game, its language,
   and the original trainer's name, gender, ID and secret ID.
+- Ribbons, in the game's own pictures: each contest category's rank (Normal to Master, a rank bringing the ones below
+  it), Champion, Winning, Victory, Artist, Effort and the seven event ribbons. Giving one also opens the PokéNav's
+  RIBBONS menu, as the game does.
 - Pokédex: all 386 seen / caught (the game keeps the seen flags three times over; all three are written).
 - Every Pokémon is re-encrypted and re-checksummed, and every sector of the save slot gets a fresh checksum; an unedited
   save round-trips byte for byte.

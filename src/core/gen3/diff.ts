@@ -7,6 +7,7 @@ import {
   genderOf, isShiny, itemName, natureOf, speciesName, unownForm,
 } from './data.ts';
 import { BOX_NAME_LEN, FRONTIER_FACILITIES, NICKNAME_MAX, PLAYER_NAME_MAX, monAbility, type BagItem, type Gen3Mon, type Gen3Save } from './save.ts';
+import { ribbonNames } from './ribbons.ts';
 import { asSaved } from './text.ts';
 
 const CAP = 12;
@@ -216,7 +217,14 @@ function monChanges(b: Gen3Mon, a: Gen3Mon, party: boolean): string[] {
   if (!sameStats(b.ivs, a.ivs)) out.push('IVs changed');
   if (!sameStats(b.evs, a.evs)) out.push('EVs changed');
   if (!same(b.contest, a.contest)) out.push('contest stats changed');
-  if (b.ribbons !== a.ribbons) out.push('ribbons changed');
+  if (b.ribbons !== a.ribbons) {
+    const was = ribbonNames(b.ribbons), now = ribbonNames(a.ribbons);
+    const added = now.filter((r) => !was.includes(r)), removed = was.filter((r) => !now.includes(r));
+    // A contest rank shows as its new top rank, so "Cool Super" replacing "Cool Normal" reads as one change.
+    if (added.length) out.push(`ribbons added: ${added.join(', ')}`);
+    if (removed.length) out.push(`ribbons removed: ${removed.join(', ')}`);
+    if (!added.length && !removed.length) out.push('ribbons changed');
+  }
   if (b.friendship !== a.friendship) out.push(a.isEgg ? 'steps to hatch changed' : `friendship ${b.friendship} → ${a.friendship}`);
   if (b.pokerus !== a.pokerus) out.push(a.pokerus ? 'Pokérus changed' : 'Pokérus removed');
   if (pn(b.otName) !== pn(a.otName)) out.push(`OT ${pn(b.otName) || '(none)'} → ${pn(a.otName) || '(none)'}`);

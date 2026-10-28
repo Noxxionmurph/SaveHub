@@ -71,6 +71,11 @@ export function frontierSymbolIcon(n: number, metal: 'silver' | 'gold', cls = ''
   return icon(`${BASE}/frontier/${metal}-${n}.png`, 16, 16, `badge-icon ${cls}`.trim());
 }
 
+/** A Gen 3 ribbon (32x32) by the game's ribbon id: 0 Champion, 1-20 the contest ribbons, 21-24 Winning to Effort, 25-31 the gift ribbons. */
+export function gen3RibbonIcon(id: number, cls = ''): HTMLImageElement {
+  return icon(`${BASE}/ribbons/gen3/${id}.png`, 32, 32, `ribbon-icon ${cls}`.trim());
+}
+
 /** The shiny mark the games have used since Sword and Shield (two sparkles), or a ★ if the artwork is missing. */
 export function shinyIcon(): HTMLElement {
   const img = icon(`${BASE}/marks/shiny.svg`, 24, 24, 'shiny-icon');
