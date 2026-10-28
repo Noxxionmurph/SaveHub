@@ -24,6 +24,7 @@ import { describeGen3Changes } from './diff.ts';
 import { readDecorations, writeDecorations } from './decorations.ts';
 import { CARD_BATTLE_POINTS, readStreaks, writeStreaks, type Streak } from './frontier.ts';
 import { readPokeblocks, writePokeblocks, type Pokeblock } from './pokeblocks.ts';
+import { REMATCHES_AT, REMATCH_TRAINERS, TRAINER_FLAGS_START, nextRematchTeam, rematchAvailable } from './rematches.ts';
 import { RIBBON_MASK } from './ribbons.ts';
 import { GAME_STAT_MAX, HOF_TIME_STAT, gameStatCount } from './stats.ts';
 import { decodeText, encodeText } from './text.ts';
@@ -486,6 +487,9 @@ export class Gen3Save implements EditableSave {
   /** The roaming Latios or Latias once the game has made it (after the Hall of Fame), else null. `active` is false once
    * it has been caught or knocked out. Its HP and status carry from one encounter to the next. */
   roamer: Roamer | null;
+  /** Emerald's rematches, one per trainer in rematches.ts: whether the game could ask them at all (rematchAvailable),
+   * the team they'd bring now (`next`), and `team`, the saved byte (0 = not asking for a rematch). */
+  rematches: { available: boolean; next: number; team: number }[] | null;
   /** The decorations in the PC, one id list per category (decorations.ts). */
   decorations: number[][];
   /** Decorations set out in the bedroom and the player's secret base (read only). */
@@ -511,7 +515,7 @@ export class Gen3Save implements EditableSave {
   private sb1: Uint8Array;
   private storage: Uint8Array;
   private key: number;
-  private loaded: { pockets: string; pcItems: string; boxNameRaw: Uint8Array[]; nameRaw: Uint8Array; frontier: string; gameStats: number[]; pokeblocks: string; decorations: string; roamer: string };
+  private loaded: { pockets: string; pcItems: string; boxNameRaw: Uint8Array[]; nameRaw: Uint8Array; frontier: string; gameStats: number[]; pokeblocks: string; decorations: string; roamer: string; rematches: string };
 
   constructor(data: Uint8Array, game?: Gen3Game) {
     if (data.length < SAVE_SIZE) throw new Error(`Gen 3 Pokémon saves are ${SAVE_SIZE.toLocaleString('en-US')} bytes (this file is ${data.length.toLocaleString('en-US')}).`);
@@ -562,6 +566,10 @@ export class Gen3Save implements EditableSave {
     this.gameStats = Array.from({ length: gameStatCount(this.game) }, (_, i) => (u32(sb1, L.gameStats + i * 4) ^ this.key) >>> 0);
     this.pokeblocks = readPokeblocks(sb1, L.pokeblocks);
     this.decorations = readDecorations(sb1, L.decorations);
+    this.rematches = this.game === 'emerald' ? REMATCH_TRAINERS.map(([, teams], i) => ({
+      available: rematchAvailable(i, (n) => this.flag(n)), next: nextRematchTeam(i, teams, (id) => this.flag(TRAINER_FLAGS_START + id)),
+      team: sb1[REMATCHES_AT + i],
+    })) : null;
     const ro = L.roamer, roamerSpecies = u16(sb1, ro + 8);
     this.roamer = roamerSpecies ? {
       species: dexOf(roamerSpecies), pid: u32(sb1, ro + 4), ivs: unpackIvs(u32(sb1, ro)), hp: u16(sb1, ro + 10), level: sb1[ro + 12],
@@ -594,6 +602,7 @@ export class Gen3Save implements EditableSave {
       nameRaw: sb2.slice(SB2.name, SB2.name + 8), frontier: JSON.stringify(this.frontier),
       gameStats: this.gameStats.slice(), pokeblocks: JSON.stringify(this.pokeblocks),
       decorations: JSON.stringify(this.decorations), roamer: JSON.stringify(this.roamer),
+      rematches: JSON.stringify(this.rematches),
     };
   }
 
@@ -717,6 +726,8 @@ export class Gen3Save implements EditableSave {
       writeItems(sb1, L.tmhm, this.pockets.tmhm, L.tmhmMax, key16, 99);
       writeItems(sb1, L.berries, this.pockets.berry, L.berriesMax, key16, 999);
     }
+    const rm0 = JSON.parse(this.loaded.rematches) as Gen3Save['rematches'];
+    this.rematches?.forEach((m, i) => { if (m.team !== rm0![i].team) sb1[REMATCHES_AT + i] = clamp(m.team, 0, 5); });
     const ro = this.roamer;
     if (ro && JSON.stringify(ro) !== this.loaded.roamer) {
       setU32(sb1, L.roamer, packIvs(ro.ivs));

@@ -171,6 +171,8 @@ the same editor (`GEN3_LAYOUTS` in `src/core/gen3/save.ts`).
   for each mode and level (plus Dome championships, Factory rentals and the trainer card's BP won).
 - The roaming Latios or Latias (once the game has made it): which one, level, nature, IVs, shininess and whether it still
   roams.
+- Emerald's trainer rematches: which registered trainers (and, after the Hall of Fame, gym leaders) are asking for one,
+  with the team the game would pick.
 - Decorations in the PC: each category's list (desks, chairs, plants, ornaments, mats, posters, dolls, cushions), or one
   of every decoration.
 - The Pokéblock case: up to 40 Pokéblocks, each with its colour (in the game's own pictures), five flavours and feel.

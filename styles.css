@@ -854,6 +854,7 @@ button.danger { color: var(--danger); }
 .roamer-head { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; margin-bottom: 10px; }
 .roamer h4 { margin: 0 0 6px; font-size: 0.8125rem; font-weight: 500; color: var(--muted); }
 .roamer .button-row { margin: 10px 0 4px; }
+.rematch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0 12px; }
 .decorations details > button { margin: 2px 0 10px; }
 .pokeblock-row + .pokeblock-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .pokeblock-row .item-row { grid-template-columns: 32px 1fr auto; margin-bottom: 6px; }
