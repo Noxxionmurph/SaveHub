@@ -63,13 +63,18 @@ with sync_playwright() as p:
     frontier.locator('label.field:has-text("Battle Points") input').fill('500')
     frontier.locator('label.field:has-text("Battle Points") input').press('Tab')
     frontier.locator('button:has-text("All gold symbols")').click()
-    assert page.locator('section.card.frontier .opt-choice:has(input:checked):has-text("Gold")').count() == 7
+    assert page.locator('section.card.frontier .badge-btn[data-metal="gold"]').count() == 7
+    page.click('section.card.frontier .badge-btn:has-text("Tower")')                  # gold goes back to none
+    assert page.get_attribute('section.card.frontier .badge-btn:has-text("Tower")', 'data-metal') == 'none'
+    page.click('section.card.frontier .badge-btn:has-text("Tower")')                  # then silver
+    assert page.get_attribute('section.card.frontier .badge-btn:has-text("Tower")', 'data-metal') == 'silver'
+    assert 'silver-1.png' in page.get_attribute('section.card.frontier .badge-btn:has-text("Tower") img', 'src')
     page.click('button.tab:has-text("Party")')
     assert page.locator('.mon').count() == 5
     page.click('.save-btn')
     page.wait_for_selector('dialog.review-dialog[open]')
     text = page.text_content('dialog.review-dialog')
-    assert 'Battle Points: 0 → 500' in text and 'Battle Pyramid symbol: none → gold' in text, text
+    assert 'Battle Points: 0 → 500' in text and 'Battle Pyramid symbol: none → gold' in text and 'Battle Tower symbol: none → silver' in text, text
     page.keyboard.press('Escape')
 
     # --- Ruby / Sapphire: the file can't say which

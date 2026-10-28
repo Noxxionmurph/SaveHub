@@ -444,6 +444,8 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 .badge-btn[aria-pressed="true"] { color: var(--text); font-weight: 600; }
 .badge-btn[aria-pressed="true"] .gem { border: 2px solid var(--lcd-edge); background: var(--lcd); }
 .badge-btn[aria-pressed="true"] .badge-icon { filter: none; opacity: 1; }
+/* Emerald's seven Frontier symbols, in the badges' rings */
+.badge-grid.seven { grid-template-columns: repeat(7, minmax(0, 1fr)); max-width: 700px; }
 
 /* ---- bag ---- */
 .two-col { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
