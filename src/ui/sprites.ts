@@ -71,6 +71,12 @@ export function frontierSymbolIcon(n: number, metal: 'silver' | 'gold', cls = ''
   return icon(`${BASE}/frontier/${metal}-${n}.png`, 16, 16, `badge-icon ${cls}`.trim());
 }
 
+/** A Gen 3 Pokéblock (8x8) by the colour its save stores, 1 Red ... 14 Gold. */
+export function pokeblockIcon(color: number, cls = ''): HTMLImageElement {
+  return icon(pokeblockIconUrl(color), 8, 8, `pokeblock-icon ${cls}`.trim());
+}
+export const pokeblockIconUrl = (color: number) => `${BASE}/pokeblocks/${Math.min(Math.max(color, 1), 14)}.png`;
+
 /** A Gen 3 ribbon (32x32) by the game's ribbon id: 0 Champion, 1-20 the contest ribbons, 21-24 Winning to Effort, 25-31 the gift ribbons. */
 export function gen3RibbonIcon(id: number, cls = ''): HTMLImageElement {
   return icon(`${BASE}/ribbons/gen3/${id}.png`, 32, 32, `ribbon-icon ${cls}`.trim());

@@ -131,10 +131,14 @@ export function buildSampleSave(game: Gen3Game = 'rs'): Uint8Array {
 
   s.pockets.item = [{ id: 13, count: 5 }, { id: 22, count: 3 }, { id: 68, count: 2 }, { id: 86, count: 1 }];
   s.pockets.ball = [{ id: 4, count: 10 }, { id: 3, count: 4 }];
-  s.pockets.key = [{ id: 259, count: 1 }, { id: 262, count: 1 }, { id: 268, count: 1 }];
+  s.pockets.key = [{ id: 259, count: 1 }, { id: 262, count: 1 }, { id: 268, count: 1 }, { id: 273, count: 1 }];
   s.setTmCounts([...new Array(39).fill(0), 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]);
   s.pockets.berry = [{ id: 139, count: 12 }, { id: 142, count: 3 }];
   s.pcItems = [{ id: 13, count: 1 }];
+  s.pokeblocks = [
+    { color: 1, spicy: 21, dry: 0, sweet: 0, bitter: 0, sour: 0, feel: 23 },
+    { color: 5, spicy: 0, dry: 0, sweet: 0, bitter: 0, sour: 18, feel: 20 },
+  ];
   for (let dex = 252; dex <= 300; dex++) s.setSeen(dex, true);
   for (const dex of [257, 282, 277, 263, 270, 304, 25, 184, 201, 360, 255, 256, 280, 281, 276]) s.setOwned(dex, true);
   return s.serialize();
