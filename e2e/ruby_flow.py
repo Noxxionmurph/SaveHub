@@ -69,6 +69,12 @@ with sync_playwright() as p:
     page.click('section.card.frontier .badge-btn:has-text("Tower")')                  # then silver
     assert page.get_attribute('section.card.frontier .badge-btn:has-text("Tower")', 'data-metal') == 'silver'
     assert 'silver-1.png' in page.get_attribute('section.card.frontier .badge-btn:has-text("Tower") img', 'src')
+    frontier.locator('summary:has-text("Battle Tower")').click()                     # streaks and records
+    tower = frontier.locator('details:has(summary:text-is("Battle Tower")) .streak-row:has(h5:text-is("Singles · Lv. 50"))')
+    tower.locator('label.field:has-text("Win streak") input').fill('48')
+    tower.locator('label.field:has-text("Win streak") input').press('Tab')
+    assert frontier.locator('.streak-row').count() == 26
+    page.screenshot(path=f'{SP}/e-streaks.png', full_page=True)
     stats = page.locator('section.card.game-stats')                                    # the game's counters
     stats.locator('summary:has-text("Getting around")').click()
     stats.locator('label.field:has-text("Steps") input').fill('4321')
@@ -83,6 +89,7 @@ with sync_playwright() as p:
     page.wait_for_selector('dialog.review-dialog[open]')
     text = page.text_content('dialog.review-dialog')
     assert 'Battle Points: 0 → 500' in text and 'Battle Pyramid symbol: none → gold' in text and 'Battle Tower symbol: none → silver' in text, text
+    assert 'Battle Tower Singles, Lv. 50: current 0 → 48' in text, text
     assert 'Steps: 0 → 4,321' in text and 'First Hall of Fame time: none → 7:00:00' in text, text
     page.keyboard.press('Escape')
 
