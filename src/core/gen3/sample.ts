@@ -60,6 +60,8 @@ export function blankGen3Save(game: Gen3Game = 'rs', trainer = 'MAY', female = t
     roamer.setUint16(10, 122, true); // max HP at level 40 with an HP IV of 20
     roamer.setUint8(12, 40);
     roamer.setUint8(19, 1); // active
+    // Rose, Andres and Dusty registered in the PokéNav's Match Call (FLAG_REGISTERED_ROSE ...: 0x15C + their rematch id).
+    for (const n of [0x15c, 0x15d, 0x15e]) sb1[L.flags + (n >> 3)] |= 1 << (n & 7);
   }
   const sys = L.badgeFlag - 7; // SYSTEM_FLAGS: 0x800 in Ruby/Sapphire, 0x860 in Emerald
   for (const n of [sys, sys + 1]) sb1[L.flags + (n >> 3)] |= 1 << (n & 7); // FLAG_SYS_POKEMON_GET and _POKEDEX_GET: the start menu has POKéMON and POKéDEX

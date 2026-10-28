@@ -10,6 +10,7 @@ import { BOX_NAME_LEN, FRONTIER_FACILITIES, NICKNAME_MAX, PLAYER_NAME_MAX, monAb
 import { DECOR_CATEGORIES, decorName } from './decorations.ts';
 import { STREAK_ROWS, rowLabel } from './frontier.ts';
 import { pokeblockLevel, pokeblockName, type Pokeblock } from './pokeblocks.ts';
+import { REMATCH_TRAINERS } from './rematches.ts';
 import { ribbonNames } from './ribbons.ts';
 import { HOF_TIME_STAT, gameStatGroups, unpackHofTime } from './stats.ts';
 import { asSaved } from './text.ts';
@@ -269,6 +270,19 @@ function pokemonLines(b: Gen3Save, a: Gen3Save): string[] {
   return lines;
 }
 
+// ---------- rematches ----------
+
+function rematchLines(b: Gen3Save, a: Gen3Save): string[] {
+  if (!b.rematches || !a.rematches) return [];
+  const on: string[] = [], off: string[] = [];
+  a.rematches.forEach((m, i) => {
+    const was = b.rematches![i].team > 0, now = m.team > 0;
+    if (now && !was) on.push(REMATCH_TRAINERS[i][0]);
+    if (was && !now) off.push(REMATCH_TRAINERS[i][0]);
+  });
+  return [on.length ? `Want a rematch: ${on.join(', ')}` : '', off.length ? `No longer want a rematch: ${off.join(', ')}` : ''].filter(Boolean);
+}
+
 // ---------- the roamer ----------
 
 function roamerLines(b: Gen3Save, a: Gen3Save): string[] {
@@ -354,6 +368,7 @@ export function describeGen3Changes(before: Gen3Save, after: Gen3Save): ChangeGr
     group('Berries pocket', itemLines(before.pockets.berry, after.pockets.berry)),
     group('PC items', itemLines(before.pcItems, after.pcItems)),
     group('Roaming Pokémon', roamerLines(before, after)),
+    group('Trainer rematches', rematchLines(before, after)),
     group('Decorations', decorationLines(before, after)),
     group('Pokéblock case', pokeblockLines(before.pokeblocks, after.pokeblocks)),
     group('Pokémon', pokemonLines(before, after), 14),

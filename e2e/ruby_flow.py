@@ -81,6 +81,11 @@ with sync_playwright() as p:
     roamer.locator('button:has-text("Perfect IVs")').click()
     assert roamer.locator('label.check-row:has-text("Shiny") input').is_checked()
     roamer.screenshot(path=f'{SP}/e-roamer.png')
+    rematch = page.locator('section.card.rematches')                                   # Match Call rematches
+    rematch.locator('summary').click()
+    assert rematch.locator('label.check-row').count() == 3                            # Rose, Andres, Dusty are registered
+    rematch.locator('label.check-row:has-text("Dusty") input').check()
+    assert '1/3' in rematch.locator('summary .count').inner_text()
     stats = page.locator('section.card.game-stats')                                    # the game's counters
     stats.locator('summary:has-text("Getting around")').click()
     stats.locator('label.field:has-text("Steps") input').fill('4321')
@@ -111,6 +116,7 @@ with sync_playwright() as p:
     assert 'Battle Tower Singles, Lv. 50: current 0 → 48' in text, text
     assert 'Added Lite Blue Pokéblock (Lv. 40, feel 10)' in text, text
     assert 'Latios is now shiny' in text and "Latios's IVs: 20/12/25/31/17/9 → 31/31/31/31/31/31" in text, text
+    assert 'Want a rematch: Dusty' in text, text
     assert 'Added Small Desk' in text and 'and 108 more' in text, text
     assert 'Steps: 0 → 4,321' in text and 'First Hall of Fame time: none → 7:00:00' in text, text
     page.keyboard.press('Escape')

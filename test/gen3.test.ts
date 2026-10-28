@@ -418,3 +418,23 @@ test('the roaming Latios: IVs, personality, level and roaming read back as edite
     assert.ok(lines.includes(want), want);
   }
 });
+
+test("Emerald's rematches: asking trainers get the team the game would pick; Ruby and Sapphire have none here", async () => {
+  const { REMATCH_TRAINERS, nextRematchTeam } = await import('../src/core/gen3/rematches.ts');
+  assert.equal(REMATCH_TRAINERS.length, 73);
+  assert.equal(new Gen3Save(buildSampleSave('rs')).rematches, null);
+  // Beaten teams 1 and 2 (trainer flags set) → the third team is next; all beaten → the fifth.
+  assert.equal(nextRematchTeam(0, [37, 40, 41, 42, 43], (id) => id === 37 || id === 40), 2);
+  assert.equal(nextRematchTeam(0, [37, 40, 41, 42, 43], () => true), 5);
+  assert.equal(nextRematchTeam(65, [265, 770, 771, 772, 773], (id) => id === 265), 1); // Roxanne: her second team
+  const s = new Gen3Save(buildSampleSave('emerald'));
+  const m = s.rematches!;
+  assert.deepEqual(m.slice(0, 4).map((x) => x.available), [true, true, true, false]);
+  assert.ok(!m[65].available); // gym leaders only once the game is cleared
+  m[2].team = m[2].next;
+  const t = new Gen3Save(s.serialize());
+  assert.equal((t['sb1'] as Uint8Array)[0x9ca + 2], 1);
+  assert.equal(t.rematches![2].team, 1);
+  const lines = s.describeChanges(new Gen3Save(buildSampleSave('emerald'))).flatMap((g) => g.lines);
+  assert.ok(lines.includes('Want a rematch: Dusty'), lines.join('\n'));
+});

@@ -9,6 +9,7 @@ import {
 import { DECORS_BY_CATEGORY, DECOR_CATEGORIES } from '../../../core/gen3/decorations.ts';
 import { LEVELS, STREAK_MAX, STREAK_ROWS } from '../../../core/gen3/frontier.ts';
 import { FEEL_MAX, FLAVORS, FLAVOR_MAX, POKEBLOCK_COLORS, POKEBLOCK_SLOTS } from '../../../core/gen3/pokeblocks.ts';
+import { REMATCH_TRAINERS } from '../../../core/gen3/rematches.ts';
 import { BOX_SLOTS, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, countAt, dropMon, monAt, placeName, shiftMon } from '../../../core/gen3/roster.ts';
 import {
   BATTLE_POINTS_MAX, BERRY_POWDER_MAX, BOX_NAME_LEN, COINS_MAX, FRONTIER_FACILITIES, MONEY_MAX, PLAYER_NAME_MAX, depositInBox,
@@ -210,6 +211,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
       badgeCard(),
       frontierCard(),
       roamerCard(),
+      rematchCard(),
       statsCard(),
       optionsCard(),
     );
@@ -317,6 +319,35 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           h('input', { type: 'checkbox', checked: ro.active, onchange: (e: Event) => { ro.active = (e.target as HTMLInputElement).checked; changed(); } }),
           h('span', {}, 'Still roaming'),
           h('span', { class: 'muted' }, ' Off once it has been caught or knocked out.')));
+    };
+    draw();
+    return wrap;
+  }
+
+  /** Emerald's Match Call trainers: who is asking for a rematch. */
+  function rematchCard(): Node | null {
+    const list = s.rematches;
+    if (!list) return null;
+    const wrap = h('section', { class: 'card rematches' });
+    const shown = list.map((m, i) => ({ m, name: REMATCH_TRAINERS[i][0] })).filter((x) => x.m.available && x.m.next > 0);
+    let open = false;
+    const draw = () => {
+      clear(wrap);
+      const asking = shown.filter((x) => x.m.team > 0).length;
+      const set = (m: (typeof list)[number], on: boolean) => { m.team = on ? m.next : 0; };
+      const details = h('details', { class: 'tips' },
+        h('summary', {}, 'Trainers', h('span', { class: 'muted count' }, `${asking}/${shown.length} want a rematch`)),
+        h('div', { class: 'rematch-grid' }, shown.map(({ m, name }) => h('label', { class: 'check-row' },
+          h('input', { type: 'checkbox', checked: m.team > 0, onchange: (e: Event) => { set(m, (e.target as HTMLInputElement).checked); markDirty(); draw(); } }),
+          h('span', {}, name)))));
+      details.open = open;
+      details.addEventListener('toggle', () => { open = details.open; });
+      wrap.append(
+        h('h3', {}, 'Trainer rematches'),
+        shown.length ? details : h('p', { class: 'muted' }, 'No trainers registered in the PokéNav yet.'),
+        shown.length ? h('div', { class: 'button-row' },
+          h('button', { onclick: () => { shown.forEach((x) => set(x.m, true)); markDirty(); draw(); } }, 'Everyone wants a rematch'),
+          h('button', { onclick: () => { shown.forEach((x) => set(x.m, false)); markDirty(); draw(); } }, 'No rematches')) : null);
     };
     draw();
     return wrap;
