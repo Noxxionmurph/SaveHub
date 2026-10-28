@@ -48,8 +48,8 @@ export function blankGen3Save(game: Gen3Game = 'rs', trainer = 'MAY', female = t
   }
   for (let i = 0; i < 4; i++) sb1[0x490 + i] = (key >>> (i * 8)) & 0xff; // ¥0 under the key
   for (let i = 0; i < 2; i++) sb1[0x494 + i] = (k16 >>> (i * 8)) & 0xff; // no coins
-  sb1[L.flags + (0x800 >> 3)] |= 1; // FLAG_SYS_POKEMON_GET: the start menu has POKéMON
-  sb1[L.flags + (0x801 >> 3)] |= 2; // FLAG_SYS_POKEDEX_GET: and POKéDEX
+  const sys = L.badgeFlag - 7; // SYSTEM_FLAGS: 0x800 in Ruby/Sapphire, 0x860 in Emerald
+  for (const n of [sys, sys + 1]) sb1[L.flags + (n >> 3)] |= 1 << (n & 7); // FLAG_SYS_POKEMON_GET and _POKEDEX_GET: the start menu has POKéMON and POKéDEX
   for (let i = 0; i < BOX_COUNT; i++) {
     st.set(encodeText(`BOX${i + 1}`, 9, undefined, 8), 0x8344 + i * 9);
     st[0x83c2 + i] = i % 4; // the game's starting wallpapers
@@ -107,7 +107,7 @@ export function buildSampleSave(game: Gen3Game = 'rs'): Uint8Array {
   const swellow = mon(277, 30, ['Aerial Ace', 'Quick Attack', 'Endeavor', 'Double Team'], { gender: 'female' });
   swellow.abilityBit = 0;
   const egg = mon(360, 5, ['Splash', 'Charm', 'Encore'], {}); // Wynaut
-  egg.isEgg = true; egg.nickname = 'EGG'; egg.friendship = 20; egg.metLevel = 0; egg.hp = 0;
+  egg.isEgg = true; egg.nickname = 'EGG'; egg.friendship = 20; egg.metLevel = 0;
   const unown = mon(UNOWN, 25, ['Hidden Power'], { unown: '!' });
   unown.metLocation = 0x52; // Desert Ruins
   const azumarill = mon(184, 28, ['Surf', 'Rollout', 'Defense Curl'], {});

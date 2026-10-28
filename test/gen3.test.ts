@@ -7,7 +7,7 @@ import {
 } from '../src/core/gen3/data.ts';
 import { hpBarColour, hpBarPixels } from '../src/core/gen3/hp.ts';
 import { PARTY, copyMon, dropMon, moveMon, partyLeaveRefusal } from '../src/core/gen3/roster.ts';
-import { GEN3_LAYOUTS, Gen3Save, SAVE_SIZE, detectGen3, newMon, sectorChecksum } from '../src/core/gen3/save.ts';
+import { GEN3_LAYOUTS, Gen3Save, SAVE_SIZE, detectGen3, newMon, recalcPartyStats, sectorChecksum } from '../src/core/gen3/save.ts';
 import { blankGen3Save, buildSampleSave } from '../src/core/gen3/sample.ts';
 import { decodeText, encodeText, nameProblems } from '../src/core/gen3/text.ts';
 import { openSave } from '../src/core/registry.ts';
@@ -128,6 +128,14 @@ test('blank and sample saves pass every checksum, are told apart, and round-trip
   }
 });
 
+test("the sample has the start menu's POKéMON and POKéDEX: system flags 0x800 in Ruby / Sapphire, 0x860 in Emerald", () => {
+  for (const [game, sys, other] of [['rs', 0x800, 0x860], ['emerald', 0x860, 0x800]] as const) {
+    const s = new Gen3Save(buildSampleSave(game));
+    assert.ok(s['flag'](sys) && s['flag'](sys + 1), game);
+    assert.ok(!s['flag'](other) && !s['flag'](other + 1), game);
+  }
+});
+
 test('the registry opens Ruby / Sapphire and Emerald with their own modules, and leaves Gen 2 alone', () => {
   assert.equal(openSave(buildSampleSave('rs'))?.module.id, 'pokemon-gen3');
   assert.equal(openSave(buildSampleSave('emerald'))?.module.id, 'pokemon-emerald');
@@ -145,6 +153,7 @@ test('the sample reads back as built: party, box gap, bag and Pokédex', () => {
   assert.equal(natureOf(s.party[0].pid), 3);
   assert.ok(isShiny(s.party[1].otId, s.party[1].pid));
   assert.ok(s.party[3].isEgg);
+  assert.ok(s.party[3].hp > 0 && s.party[3].hp === s.party[3].maxHp); // a 0 HP egg shows FNT on Emerald's party screen
   assert.equal(unownForm(s.party[4].pid), '!');
   assert.equal(s.boxes[0][2], null);
   assert.equal(s.boxes[0][3]?.species, 184);
@@ -243,3 +252,11 @@ for (const [env, id] of [['GEN3_SAV', 'pokemon-gen3'], ['EMERALD_SAV', 'pokemon-
     assert.deepEqual(found!.save.serialize(), raw);
   });
 }
+
+test('an egg keeps full HP when its stats are worked out again, as the game makes it', () => {
+  const egg = newMon(360, 5, { name: 'MAY', id: 1, gender: 'female' }, 'emerald', 1234, 'Wynaut');
+  egg.isEgg = true; egg.hp = 0;
+  recalcPartyStats(egg);
+  assert.ok(egg.maxHp > 0);
+  assert.equal(egg.hp, egg.maxHp);
+});
