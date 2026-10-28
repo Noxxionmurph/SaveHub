@@ -58,11 +58,13 @@ the editor carries on without pictures (a picture that can't load hides itself, 
   and the stylesheet turns it into `--px1` and `--px2`, the whole-screen-pixel sizes nearest one and two CSS pixels
   (with `round()`; browsers without it get plain 1px and 2px). The "one scale for every picture" block at the end of
   `styles.css` holds the rules. When adding a page or a game, keep to them:
-  - Pokémon and items in lists, tiles, cells, bag rows and on a Pokémon's corner (held items) use `--px1`, so they are
-    the same size everywhere. Never size them in plain pixels or percentages.
+  - Pokémon and items in lists, tiles, cells and bag rows use `--px1`, so they are the same size everywhere. Never size
+    them in plain pixels or percentages. A held item is the one exception: 0.75px per art pixel (24px), just past the
+    Pokémon's bottom-right corner, as the games' party screens show it (Kieron's call: small, never on the Pokémon).
   - The Pokémon window and the landing page show Pokémon at `--px2`.
   - Badges are as large as their row allows, cut down to a whole multiple (`e2e/crisp.py`).
-  - Type icons (smooth artwork) are always 24px, as tall as the Lv box; the shiny mark is always 16px.
+  - Type icons (smooth artwork) are always 24px, as tall as the Lv box; the shiny mark is always 16px; ♂/♀ are
+    drawn (SVG, 0.75em), since the bundled fonts lack them and system fallbacks look choppy.
   - A new kind of picture gets a rule in that block and an entry in `KINDS` in `e2e/assets.py`, which walks every page
     of every game at seven screen scalings and fails on a picture that is blurry, smoothed or a different size from its
     kind elsewhere.

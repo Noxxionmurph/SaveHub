@@ -2,7 +2,8 @@
 every screen scaling, the pixel art (Pokémon, items, badges, Pikachu) is drawn at a whole number of screen pixels per art
 pixel with hard edges, and each kind of picture is one size everywhere: every Pokémon in a list, tile, cell or the
 Pokédex the same, every item the same, the Pokémon window and landing page pictures the same (twice the list size),
-every type icon 24px and every shiny mark 16px. The badges size themselves to their row (e2e/crisp.py checks that), so
+every type icon 24px, every shiny mark 16px and every ♂/♀ three quarters of a letter high (drawn, so smooth
+everywhere). A held item is three quarters of a bag item (as the games' party screens draw it), beside the Pokémon. The badges size themselves to their row (e2e/crisp.py checks that), so
 here they only have to be whole multiples. A new game's pages are covered by adding it to GAMES; a new kind of picture
 by adding it to KINDS (and to the "one scale for every picture" block in styles.css)."""
 import sys
@@ -16,10 +17,12 @@ errors = []
 KINDS = {
     'Pokémon (lists)': ('img.mon-icon:not(.big)', True, 'list'),
     'Pokémon (window, landing)': ('img.mon-icon.big, img.tile-icon', True, 'big'),
-    'item': ('img.item-icon', True, 'list'),
+    'item': ('img.item-icon:not(.held > img)', True, 'list'),
+    'held item': ('.held > img.item-icon', False, 24),
     'badge': ('img.badge-icon', True, None),
     'type icon': ('img.type-icon', False, 24),
     'shiny mark': ('img.shiny-icon', False, 16),
+    '♂/♀': ('svg.gender-icon', False, '0.75em'),
 }
 
 SCAN = """async (kinds) => {
@@ -29,10 +32,10 @@ SCAN = """async (kinds) => {
   const shown = (e) => e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
   const out = {};
   for (const [kind, [sel]] of Object.entries(kinds)) {
-    out[kind] = [...document.querySelectorAll(sel)].filter((i) => shown(i) && i.naturalWidth > 0).map((i) => {
+    out[kind] = [...document.querySelectorAll(sel)].filter((i) => shown(i) && (i.naturalWidth > 0 || i.tagName === 'svg')).map((i) => {
       const r = i.getBoundingClientRect();
-      return { src: i.getAttribute('src').replace(/^.*sprites\\//, ''), w: r.width, h: r.height, nw: i.naturalWidth, nh: i.naturalHeight,
-               pixelated: getComputedStyle(i).imageRendering === 'pixelated' };
+      return { src: (i.getAttribute('src') || i.getAttribute('class')).replace(/^.*sprites\\//, ''), w: r.width, h: r.height, nw: i.naturalWidth, nh: i.naturalHeight,
+               pixelated: getComputedStyle(i).imageRendering === 'pixelated', em: parseFloat(getComputedStyle(i.parentElement).fontSize) };
     });
   }
   // Pikachu's reactions are background pictures: 40px frames
@@ -53,6 +56,11 @@ def check(where, out, dpr):
     scale = {}
     for kind, (_, pixel_art, size) in KINDS.items():
         for x in out[kind]:
+            if isinstance(size, str) and size.endswith('em'):
+                want_px = float(size[:-2]) * x['em']
+                if abs(x['w'] - want_px) > 0.05 or abs(x['h'] - want_px) > 0.05:
+                    bad.append(f"{kind} is {x['w']:.2f}x{x['h']:.2f}, not {size} ({want_px}px)")
+                continue
             sx, sy = x['w'] * dpr / x['nw'], x['h'] * dpr / x['nh']
             if pixel_art:
                 if not (whole(sx) and whole(sy) and abs(sx - sy) < 0.02):
