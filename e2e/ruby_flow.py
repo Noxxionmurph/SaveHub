@@ -91,6 +91,11 @@ with sync_playwright() as p:
     added.locator('select').select_option('9')
     assert added.locator('img.pokeblock-icon').get_attribute('src').endswith('pokeblocks/9.png')
     page.locator('section.pokeblocks').screenshot(path=f'{SP}/e-pokeblocks.png')
+    page.click('section.decorations button:has-text("One of every decoration")')     # decorations in the PC
+    assert page.inner_text('section.decorations h3 .count') == '120'
+    page.click('section.decorations summary:has-text("Dolls")')
+    assert page.inner_text('section.decorations summary:has-text("Dolls") .count') == '35/40'
+    page.locator('section.decorations').screenshot(path=f'{SP}/e-decorations.png')
     page.click('button.tab:has-text("Party")')
     assert page.locator('.mon').count() == 5
     page.click('.save-btn')
@@ -99,6 +104,7 @@ with sync_playwright() as p:
     assert 'Battle Points: 0 → 500' in text and 'Battle Pyramid symbol: none → gold' in text and 'Battle Tower symbol: none → silver' in text, text
     assert 'Battle Tower Singles, Lv. 50: current 0 → 48' in text, text
     assert 'Added Lite Blue Pokéblock (Lv. 40, feel 10)' in text, text
+    assert 'Added Small Desk' in text and 'and 108 more' in text, text
     assert 'Steps: 0 → 4,321' in text and 'First Hall of Fame time: none → 7:00:00' in text, text
     page.keyboard.press('Escape')
 

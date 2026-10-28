@@ -7,6 +7,7 @@ import {
   genderOf, isShiny, itemName, natureOf, speciesName, unownForm,
 } from './data.ts';
 import { BOX_NAME_LEN, FRONTIER_FACILITIES, NICKNAME_MAX, PLAYER_NAME_MAX, monAbility, type BagItem, type Gen3Mon, type Gen3Save } from './save.ts';
+import { DECOR_CATEGORIES, decorName } from './decorations.ts';
 import { STREAK_ROWS, rowLabel } from './frontier.ts';
 import { pokeblockLevel, pokeblockName, type Pokeblock } from './pokeblocks.ts';
 import { ribbonNames } from './ribbons.ts';
@@ -268,6 +269,26 @@ function pokemonLines(b: Gen3Save, a: Gen3Save): string[] {
   return lines;
 }
 
+// ---------- decorations ----------
+
+function decorationLines(b: Gen3Save, a: Gen3Save): string[] {
+  const out: string[] = [], gone: number[] = [];
+  const times = (n: number) => (n > 1 ? ` ×${n}` : '');
+  DECOR_CATEGORIES.forEach((_, c) => {
+    const count = (list: number[]) => list.reduce((m, id) => m.set(id, (m.get(id) ?? 0) + 1), new Map<number, number>());
+    const x = count(b.decorations[c]), y = count(a.decorations[c]);
+    for (const [id, n] of y) if (n > (x.get(id) ?? 0)) out.push(`Added ${decorName(id)}${times(n - (x.get(id) ?? 0))}`);
+    for (const [id, n] of x) {
+      if (n > (y.get(id) ?? 0)) { out.push(`Removed ${decorName(id)}${times(n - (y.get(id) ?? 0))}`); if (!y.has(id)) gone.push(id); }
+    }
+  });
+  const placed = gone.filter((id) => a.placedDecorations.includes(id));
+  if (placed.length) {
+    out.push(`Warning: ${placed.map(decorName).join(', ')} ${placed.length === 1 ? 'is' : 'are'} still set out in your room or secret base, so ${placed.length === 1 ? 'it stays' : 'they stay'} there although the PC no longer has ${placed.length === 1 ? 'it' : 'them'}.`);
+  }
+  return out;
+}
+
 // ---------- Pokéblocks ----------
 
 function pokeblockLines(before: Pokeblock[], after: Pokeblock[]): string[] {
@@ -313,6 +334,7 @@ export function describeGen3Changes(before: Gen3Save, after: Gen3Save): ChangeGr
     group('TMs and HMs', tmLines(before.tmCounts(), after.tmCounts())),
     group('Berries pocket', itemLines(before.pockets.berry, after.pockets.berry)),
     group('PC items', itemLines(before.pcItems, after.pcItems)),
+    group('Decorations', decorationLines(before, after)),
     group('Pokéblock case', pokeblockLines(before.pokeblocks, after.pokeblocks)),
     group('Pokémon', pokemonLines(before, after), 14),
     group('Box names', boxNameLines(before, after)),

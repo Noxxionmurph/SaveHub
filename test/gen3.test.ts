@@ -375,3 +375,25 @@ test('the Pokéblock case: 8-byte slots, filled ones listed in order, rewritten 
     assert.ok(lines.includes('Added Gold Pokéblock (Lv. 5, feel 6)'), lines.join('\n'));
   }
 });
+
+test('decorations: one list per category, packed; removing one still set out in the room warns', () => {
+  for (const [game, at] of [['rs', 0x26a0], ['emerald', 0x2734]] as const) {
+    const s = new Gen3Save(buildSampleSave(game));
+    assert.equal(s.decorations.length, 8);
+    s.decorations[0] = [3, 9]; // Heavy Desk, Hard Desk
+    s.decorations[6] = [77, 77]; // Pikachu Doll x2
+    const t = new Gen3Save(s.serialize());
+    assert.deepEqual(t.decorations[0], [3, 9]);
+    assert.deepEqual(t.decorations[6], [77, 77]);
+    const raw = t['sb1'] as Uint8Array;
+    assert.deepEqual([...raw.subarray(at, at + 3)], [3, 9, 0]);
+    assert.deepEqual([...raw.subarray(at + 10 + 10 + 10 + 30 + 30 + 10, at + 100 + 2)], [77, 77]); // dolls after posters
+    const lines = s.describeChanges(new Gen3Save(buildSampleSave(game))).flatMap((g) => g.lines);
+    for (const want of ['Added Heavy Desk', 'Added Pikachu Doll ×2']) assert.ok(lines.includes(want), want);
+    // A decoration in the bedroom is matched by id; taking the last one out of the PC leaves it standing there.
+    const u = new Gen3Save(t.serialize());
+    (u as unknown as { placedDecorations: number[] }).placedDecorations.push(3);
+    u.decorations[0] = [9];
+    assert.ok(u.describeChanges(t).flatMap((g) => g.lines).some((l) => l.startsWith('Warning: Heavy Desk is still set out')));
+  }
+});

@@ -169,6 +169,8 @@ the same editor (`GEN3_LAYOUTS` in `src/core/gen3/save.ts`).
   setting: text speed, battle scene, battle style, sound, button mode and the 20 frames. Emerald adds Battle Points,
   Berry Powder, the seven Battle Frontier symbols (none, silver or gold), and every facility's current and record streaks
   for each mode and level (plus Dome championships, Factory rentals and the trainer card's BP won).
+- Decorations in the PC: each category's list (desks, chairs, plants, ornaments, mats, posters, dolls, cushions), or one
+  of every decoration.
 - The Pokéblock case: up to 40 Pokéblocks, each with its colour (in the game's own pictures), five flavours and feel.
 - Game stats: every counter the game keeps (steps, battles, catches, eggs hatched, trades, contests, link battles and
   the rest) and the first Hall of Fame time shown on the back of the trainer card.

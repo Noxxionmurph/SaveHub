@@ -849,6 +849,8 @@ button.danger { color: var(--danger); }
 .check-row input { width: 20px; height: 20px; margin: 0; }
 .check-row .muted { font-weight: 400; font-size: 0.875rem; }
 .item-row.no-count { grid-template-columns: 32px 1fr auto; }
+.item-row.decor-row { grid-template-columns: 1fr auto; }
+.decorations details > button { margin: 2px 0 10px; }
 .pokeblock-row + .pokeblock-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .pokeblock-row .item-row { grid-template-columns: 32px 1fr auto; margin-bottom: 6px; }
 .pokeblock-row .item-row > .pokeblock-icon { justify-self: center; }

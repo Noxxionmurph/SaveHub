@@ -6,6 +6,7 @@ import {
   BUTTON_MODES, DEX_COUNT, DEX_NAMES, FRAME_COUNT, HM_COUNT, HOENN_BADGES, TEXT_SPEEDS, TMHM_LABELS, TMHM_MOVES, TM_COUNT,
   baseStatsFor, findPid, genderOf, itemChoices, itemName, moveInfo, speciesName, type Pocket,
 } from '../../../core/gen3/data.ts';
+import { DECORS_BY_CATEGORY, DECOR_CATEGORIES } from '../../../core/gen3/decorations.ts';
 import { LEVELS, STREAK_MAX, STREAK_ROWS } from '../../../core/gen3/frontier.ts';
 import { FEEL_MAX, FLAVORS, FLAVOR_MAX, POKEBLOCK_COLORS, POKEBLOCK_SLOTS } from '../../../core/gen3/pokeblocks.ts';
 import { BOX_SLOTS, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, countAt, dropMon, monAt, placeName, shiftMon } from '../../../core/gen3/roster.ts';
@@ -391,7 +392,47 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
       itemList('PC item storage', s.pcItems, SIZES.pc, OPTIONS.pc, () => RARE_CANDY),
     ),
     tmhmCard(),
-    pokeblockCard());
+    pokeblockCard(),
+    decorationCard());
+
+  /** The decorations kept in the PC, one list per category. */
+  function decorationCard(): Node {
+    const wrap = h('section', { class: 'card decorations' });
+    const draw = () => {
+      clear(wrap);
+      const total = s.decorations.reduce((n, l) => n + l.length, 0);
+      wrap.append(
+        h('h3', {}, 'Decorations', h('span', { class: 'muted count' }, String(total))),
+        ...DECOR_CATEGORIES.map((cat, c) => {
+          const list = s.decorations[c], options = DECORS_BY_CATEGORY[c].map((d) => ({ value: d.id, label: d.name }));
+          const details = h('details', { class: 'tips' },
+            h('summary', {}, cat.name, h('span', { class: 'muted count' }, `${list.length}/${cat.slots}`)),
+            list.map((id, i) => h('div', { class: 'item-row decor-row' },
+              selectInput(options, id, (v) => { list[i] = Number(v); markDirty(); }),
+              h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { list.splice(i, 1); markDirty(); draw(); } }, '✕'))),
+            h('button', {
+              disabled: list.length >= cat.slots,
+              onclick: () => { list.push((options.find((o) => !list.includes(o.value)) ?? options[0]).value); markDirty(); draw(); },
+            }, list.length >= cat.slots ? `Full (${cat.slots} of ${cat.slots})` : '+ Add'));
+          details.open = openCats.has(c);
+          details.addEventListener('toggle', () => { if (details.open) openCats.add(c); else openCats.delete(c); });
+          return details;
+        }),
+        h('div', { class: 'button-row' },
+          h('button', {
+            onclick: () => {
+              DECOR_CATEGORIES.forEach((cat, c) => {
+                const have = s.decorations[c];
+                for (const d of DECORS_BY_CATEGORY[c]) if (!have.includes(d.id) && have.length < cat.slots) have.push(d.id);
+              });
+              markDirty(); draw();
+            },
+          }, 'One of every decoration')));
+    };
+    const openCats = new Set<number>();
+    draw();
+    return wrap;
+  }
 
   /** The Pokéblock case: each block's colour, five flavours and feel. */
   function pokeblockCard(): Node {

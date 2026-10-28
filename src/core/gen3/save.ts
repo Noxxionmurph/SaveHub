@@ -21,6 +21,7 @@ import {
   levelForExp, maxPp, natureOf, speciesOf, type Evs, type Gen3Game, type Ivs, type Pocket, type Stats,
 } from './data.ts';
 import { describeGen3Changes } from './diff.ts';
+import { readDecorations, writeDecorations } from './decorations.ts';
 import { CARD_BATTLE_POINTS, readStreaks, writeStreaks, type Streak } from './frontier.ts';
 import { readPokeblocks, writePokeblocks, type Pokeblock } from './pokeblocks.ts';
 import { RIBBON_MASK } from './ribbons.ts';
@@ -53,6 +54,9 @@ interface Layout {
   gameStats: number;
   /** SaveBlock1's Pokéblock case (see pokeblocks.ts). */
   pokeblocks: number;
+  /** SaveBlock1's decoration lists (see decorations.ts), and where the bedroom's and the player's secret base's
+   * placed decorations are kept (12 and 16 ids). */
+  decorations: number; roomDecor: number; baseDecor: number;
   /** Money, coins and bag quantities are XORed with the key at SaveBlock2 0xAC. */
   encrypted: boolean;
 }
@@ -62,6 +66,7 @@ const RS: Layout = {
   items: 0x560, itemsMax: 20, keyItems: 0x5b0, keyItemsMax: 20, balls: 0x600, ballsMax: 16,
   tmhm: 0x640, tmhmMax: 64, berries: 0x740, berriesMax: 46,
   seenCopies: [0x938, 0x3a8c], flags: 0x1220, vars: 0x1340, badgeFlag: 0x807, nationalDexFlag: 0x836, gameStats: 0x1540, pokeblocks: 0x7f8,
+  decorations: 0x26a0, roomDecor: 0x2688, baseDecor: 0x1a1a,
   encrypted: false,
 };
 
@@ -70,6 +75,7 @@ const EMERALD: Layout = {
   items: 0x560, itemsMax: 30, keyItems: 0x5d8, keyItemsMax: 30, balls: 0x650, ballsMax: 16,
   tmhm: 0x690, tmhmMax: 64, berries: 0x790, berriesMax: 46,
   seenCopies: [0x988, 0x3b24], flags: 0x1270, vars: 0x139c, badgeFlag: 0x867, nationalDexFlag: 0x896, gameStats: 0x159c, pokeblocks: 0x848,
+  decorations: 0x2734, roomDecor: 0x271c, baseDecor: 0x1aae,
   encrypted: true,
 };
 
@@ -467,6 +473,10 @@ export class Gen3Save implements EditableSave {
   nationalDex: boolean;
   /** Emerald's Battle Frontier and Berry Crush: null for Ruby and Sapphire. Symbols are 0 none, 1 silver, 2 gold. */
   frontier: { battlePoints: number; battlePointsWon: number; berryPowder: number; symbols: number[]; streaks: Streak[] } | null;
+  /** The decorations in the PC, one id list per category (decorations.ts). */
+  decorations: number[][];
+  /** Decorations set out in the bedroom and the player's secret base (read only). */
+  readonly placedDecorations: number[];
   /** The Pokéblock case, filled slots only. */
   pokeblocks: Pokeblock[];
   /** The game's counters, indexed as in stats.ts (steps, battles, catches...). */
@@ -488,7 +498,7 @@ export class Gen3Save implements EditableSave {
   private sb1: Uint8Array;
   private storage: Uint8Array;
   private key: number;
-  private loaded: { pockets: string; pcItems: string; boxNameRaw: Uint8Array[]; nameRaw: Uint8Array; frontier: string; gameStats: number[]; pokeblocks: string };
+  private loaded: { pockets: string; pcItems: string; boxNameRaw: Uint8Array[]; nameRaw: Uint8Array; frontier: string; gameStats: number[]; pokeblocks: string; decorations: string };
 
   constructor(data: Uint8Array, game?: Gen3Game) {
     if (data.length < SAVE_SIZE) throw new Error(`Gen 3 Pokémon saves are ${SAVE_SIZE.toLocaleString('en-US')} bytes (this file is ${data.length.toLocaleString('en-US')}).`);
@@ -538,6 +548,9 @@ export class Gen3Save implements EditableSave {
     } : null;
     this.gameStats = Array.from({ length: gameStatCount(this.game) }, (_, i) => (u32(sb1, L.gameStats + i * 4) ^ this.key) >>> 0);
     this.pokeblocks = readPokeblocks(sb1, L.pokeblocks);
+    this.decorations = readDecorations(sb1, L.decorations);
+    this.placedDecorations = [...sb1.subarray(L.roomDecor, L.roomDecor + 12), ...sb1.subarray(L.baseDecor, L.baseDecor + 16)]
+      .filter((id) => id !== 0);
     this.pockets = {
       item: readItems(sb1, L.items, L.itemsMax, key16),
       key: readItems(sb1, L.keyItems, L.keyItemsMax, key16),
@@ -562,6 +575,7 @@ export class Gen3Save implements EditableSave {
       pockets: JSON.stringify(this.pockets), pcItems: JSON.stringify(this.pcItems), boxNameRaw,
       nameRaw: sb2.slice(SB2.name, SB2.name + 8), frontier: JSON.stringify(this.frontier),
       gameStats: this.gameStats.slice(), pokeblocks: JSON.stringify(this.pokeblocks),
+      decorations: JSON.stringify(this.decorations),
     };
   }
 
@@ -685,6 +699,7 @@ export class Gen3Save implements EditableSave {
       writeItems(sb1, L.tmhm, this.pockets.tmhm, L.tmhmMax, key16, 99);
       writeItems(sb1, L.berries, this.pockets.berry, L.berriesMax, key16, 999);
     }
+    if (JSON.stringify(this.decorations) !== this.loaded.decorations) writeDecorations(sb1, L.decorations, this.decorations);
     if (JSON.stringify(this.pokeblocks) !== this.loaded.pokeblocks) writePokeblocks(sb1, L.pokeblocks, this.pokeblocks);
     if (JSON.stringify(this.pcItems) !== this.loaded.pcItems) writeItems(sb1, SB1.pcItems, this.pcItems, PC_ITEMS_MAX, 0, 999);
 
