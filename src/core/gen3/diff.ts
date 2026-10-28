@@ -6,7 +6,7 @@ import {
   ABILITY_NAMES, BUTTON_MODES, DEX_COUNT, HOENN_BADGES, MOVE_NAMES, NATURE_NAMES, TEXT_SPEEDS, TMHM_LABELS, TMHM_MOVES, UNOWN,
   genderOf, isShiny, itemName, natureOf, speciesName, unownForm,
 } from './data.ts';
-import { BOX_NAME_LEN, NICKNAME_MAX, PLAYER_NAME_MAX, monAbility, type BagItem, type Gen3Mon, type Gen3Save } from './save.ts';
+import { BOX_NAME_LEN, FRONTIER_FACILITIES, NICKNAME_MAX, PLAYER_NAME_MAX, monAbility, type BagItem, type Gen3Mon, type Gen3Save } from './save.ts';
 import { asSaved } from './text.ts';
 
 const CAP = 12;
@@ -48,6 +48,15 @@ function trainerLines(b: Gen3Save, a: Gen3Save): string[] {
   if (gained.length) out.push(`Badges earned: ${gained.join(', ')}`);
   if (lost.length) out.push(`Badges removed: ${lost.join(', ')}`);
   if (b.nationalDex !== a.nationalDex) out.push(a.nationalDex ? 'National Pokédex unlocked' : 'National Pokédex locked again');
+  if (b.frontier && a.frontier) {
+    const bf = b.frontier, af = a.frontier;
+    if (bf.battlePoints !== af.battlePoints) out.push(`Battle Points: ${bf.battlePoints.toLocaleString('en-US')} → ${af.battlePoints.toLocaleString('en-US')}`);
+    if (bf.berryPowder !== af.berryPowder) out.push(`Berry Powder: ${bf.berryPowder.toLocaleString('en-US')} → ${af.berryPowder.toLocaleString('en-US')}`);
+    const sym = ['none', 'silver', 'gold'];
+    FRONTIER_FACILITIES.forEach((name, i) => {
+      if (bf.symbols[i] !== af.symbols[i]) out.push(`${name} symbol: ${sym[bf.symbols[i]]} → ${sym[af.symbols[i]]}`);
+    });
+  }
   return out;
 }
 

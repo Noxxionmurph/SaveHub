@@ -48,6 +48,11 @@ export function blankGen3Save(game: Gen3Game = 'rs', trainer = 'MAY', female = t
   }
   for (let i = 0; i < 4; i++) sb1[0x490 + i] = (key >>> (i * 8)) & 0xff; // ¥0 under the key
   for (let i = 0; i < 2; i++) sb1[0x494 + i] = (k16 >>> (i * 8)) & 0xff; // no coins
+  if (game === 'emerald') {
+    // Emerald also keys its Berry Powder and its 64 game stats (pokeemerald: ApplyNewEncryptionKeyToAllEncryptedData).
+    for (let i = 0; i < 4; i++) sb2[0x1f4 + i] = (key >>> (i * 8)) & 0xff;
+    for (let n = 0; n < 64; n++) for (let i = 0; i < 4; i++) sb1[0x159c + n * 4 + i] = (key >>> (i * 8)) & 0xff;
+  }
   const sys = L.badgeFlag - 7; // SYSTEM_FLAGS: 0x800 in Ruby/Sapphire, 0x860 in Emerald
   for (const n of [sys, sys + 1]) sb1[L.flags + (n >> 3)] |= 1 << (n & 7); // FLAG_SYS_POKEMON_GET and _POKEDEX_GET: the start menu has POKéMON and POKéDEX
   for (let i = 0; i < BOX_COUNT; i++) {

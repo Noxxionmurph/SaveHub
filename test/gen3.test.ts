@@ -260,3 +260,21 @@ test('an egg keeps full HP when its stats are worked out again, as the game make
   assert.ok(egg.maxHp > 0);
   assert.equal(egg.hp, egg.maxHp);
 });
+
+test("Emerald's Battle Points, Berry Powder and Frontier symbols read back as edited; Ruby and Sapphire have none", () => {
+  assert.equal(new Gen3Save(buildSampleSave('rs')).frontier, null);
+  const s = new Gen3Save(buildSampleSave('emerald'));
+  assert.deepEqual(s.frontier, { battlePoints: 0, berryPowder: 0, symbols: [0, 0, 0, 0, 0, 0, 0] });
+  s.frontier!.battlePoints = 1234;
+  s.frontier!.berryPowder = 50000;
+  s.frontier!.symbols = [2, 1, 0, 0, 0, 0, 2];
+  const t = new Gen3Save(s.serialize());
+  assert.deepEqual(t.frontier, { battlePoints: 1234, berryPowder: 50000, symbols: [2, 1, 0, 0, 0, 0, 2] });
+  // Gold sets both of the facility's flags, as the game has them once it gives the gold symbol.
+  for (const n of [0x8c4, 0x8c5, 0x8c6, 0x8d0, 0x8d1]) assert.ok(t['flag'](n), n.toString(16));
+  assert.ok(!t['flag'](0x8c7));
+  const lines = s.describeChanges(new Gen3Save(buildSampleSave('emerald'))).flatMap((g) => g.lines);
+  for (const want of ['Battle Points: 0 → 1,234', 'Berry Powder: 0 → 50,000', 'Battle Tower symbol: none → gold', 'Battle Dome symbol: none → silver']) {
+    assert.ok(lines.includes(want), want);
+  }
+});

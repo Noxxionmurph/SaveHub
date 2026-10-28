@@ -166,7 +166,8 @@ the same editor (`GEN3_LAYOUTS` in `src/core/gen3/save.ts`).
 
 - Trainer: name, boy or girl, Trainer ID and secret ID, money, Game Corner coins, play time, the eight Hoenn badges (in
   the games' own trainer card art), the National Pokédex (unlocked the way Professor Birch does it), and every OPTION
-  setting: text speed, battle scene, battle style, sound, button mode and the 20 frames.
+  setting: text speed, battle scene, battle style, sound, button mode and the 20 frames. Emerald adds Battle Points,
+  Berry Powder and the seven Battle Frontier symbols (none, silver or gold).
 - All five bag pockets (Items, Poké Balls, Key Items, TMs & HMs as a count for each of the 58, Berries) and PC item
   storage, each with the game's slot count and quantity limit.
 - Party and all 14 boxes of 30, laid out 6 x 5 like the PC. A box keeps its gaps: drop a Pokémon on an empty spot and it
@@ -298,9 +299,10 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   save back byte for byte. The Ruby and Emerald samples, edited copies of both real saves (a new name, money, a TM
   count, a nickname, nature, shininess, EVs, a box name, a Pokémon added and one moved out of a box), and edited copies
   of the samples (nature, shininess, IVs, EVs, badges, options, the National Pokédex) all load and play in the real
-  games (checked in an emulator). Offsets come from pokeruby and
-  pokeemerald. Event flags (other than badges and the National Pokédex), map position, the clock, secret bases, the
-  Day-Care, records and Battle Frontier data are left untouched. FireRed and LeafGreen aren't supported yet.
+  games (checked in an emulator), as do Emerald's edited Battle Points, Berry Powder and Frontier symbols. Offsets come
+  from pokeruby and pokeemerald. Event flags (other than badges, the National Pokédex and Emerald's Frontier symbols),
+  map position, the clock, secret bases, the Day-Care, game stats, records, Battle Frontier streaks and the rest of the
+  Battle Frontier data are left untouched. FireRed and LeafGreen aren't supported yet.
 - A Pokémon's stats can be a point behind the editor's numbers in a real save: the game only recalculates stats when a
   Pokémon levels up, so stat experience earned since then hasn't counted yet. The editor shows both and leaves the
   stored ones alone unless you change the Pokémon.
