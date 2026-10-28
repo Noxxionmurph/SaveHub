@@ -17,7 +17,7 @@ with sync_playwright() as p:
 
     # --- sample save from the landing page
     buttons = page.locator('.sample-row button')
-    assert [buttons.nth(i).inner_text() for i in range(buttons.count())] == ['Try a Yellow sample', 'Try a Crystal sample']
+    assert [buttons.nth(i).inner_text() for i in range(buttons.count())] == ['Try a Yellow sample', 'Try a Crystal sample', 'Try an Emerald sample']
     page.screenshot(path=f'{SP}/c1-welcome.png')
     # one row per generation: Gold, Silver and Crystal share a row and one "you can edit" line
     rows = page.locator('section.supported ul.tiles')

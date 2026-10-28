@@ -127,7 +127,7 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
 - Pokédex: not seen / seen / caught (caught only marks the Pokédex, it doesn't add the Pokémon), with a filter
   (All / Not seen / Seen / Caught) and a search by name or number. Gen 1 and Gen 2 share it (`src/ui/dexTab.ts`).
 - **Save** first shows a plain-language list of everything that changed (and "No changes yet" if nothing did)
-- "Try a Yellow sample" and "Try a Crystal sample" on the landing page open made-up saves, so nothing needs to be uploaded to look around
+- "Try a Yellow sample", "Try a Crystal sample" and "Try an Emerald sample" on the landing page open made-up saves, so nothing needs to be uploaded to look around
 - All checksums recalculated on export (main + box banks); an unedited save round-trips byte-for-byte
 
 ## Gen 2 features (Gold / Silver)
@@ -295,10 +295,10 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   `scripts/boot-gen2-save.py`), as does the sample. Offsets come from the pokegold disassembly's symbol file. Event
   flags, map position, the clock, the Day-Care and the Pokégear are left untouched.
 - Ruby / Sapphire / Emerald: English only. Tested against one real Ruby save and one real Emerald save: both load and
-  save back byte for byte. The Ruby sample and an edited copy of the real Ruby save (a new name, money, a Pokémon added
-  and one moved out of a box), and an edited copy of the sample (nature, shininess, IVs, EVs, badges, options, the
-  National Pokédex) all load and play in the real game (checked in an emulator). No Emerald ROM was tried, so Emerald
-  edits are checked only against the real save and the pokeemerald disassembly. Offsets come from pokeruby and
+  save back byte for byte. The Ruby and Emerald samples, edited copies of both real saves (a new name, money, a TM
+  count, a nickname, nature, shininess, EVs, a box name, a Pokémon added and one moved out of a box), and edited copies
+  of the samples (nature, shininess, IVs, EVs, badges, options, the National Pokédex) all load and play in the real
+  games (checked in an emulator). Offsets come from pokeruby and
   pokeemerald. Event flags (other than badges and the National Pokédex), map position, the clock, secret bases, the
   Day-Care, records and Battle Frontier data are left untouched. FireRed and LeafGreen aren't supported yet.
 - A Pokémon's stats can be a point behind the editor's numbers in a real save: the game only recalculates stats when a

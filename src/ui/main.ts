@@ -236,7 +236,7 @@ function sampleRow(): HTMLElement | null {
   return h('div', { class: 'sample-row' },
     h('span', { class: 'muted' }, 'No save handy?'),
     withSample.map((g) => h('button', { onclick: () => void openSample(g) },
-      withSample.length === 1 ? 'Try a sample save' : `Try a ${sampleName(g)} sample`)));
+      withSample.length === 1 ? 'Try a sample save' : `Try ${/^[AEIOU]/.test(sampleName(g)) ? 'an' : 'a'} ${sampleName(g)} sample`)));
 }
 
 function renderWelcome(): void {
