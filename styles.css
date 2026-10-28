@@ -827,10 +827,11 @@ button.danger { color: var(--danger); }
 .stats .nature-up dt { color: #d0403a; }
 .stats .nature-down dt { color: #3a68d0; }
 .card .count.warn { color: var(--danger); font-weight: 600; }
-.mon-dialog .grid.cols6 { grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); gap: 6px; }
-.mon-dialog .cols6 .field { gap: 2px; }
-.mon-dialog .cols6 .field-label { font-size: 0.75rem; }
-.mon-dialog .cols6 input { padding-inline: 3px; text-align: center; }
+:is(.mon-dialog, .roamer) .grid.cols6 { grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); gap: 6px; }
+.roamer .grid.cols6 { grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); }
+:is(.mon-dialog, .roamer) .cols6 .field { gap: 2px; }
+:is(.mon-dialog, .roamer) .cols6 .field-label { font-size: 0.75rem; }
+:is(.mon-dialog, .roamer) .cols6 input { padding-inline: 3px; text-align: center; }
 .gender { font-weight: 700; margin-left: 4px; }
 .gender-icon { display: inline-block; width: 0.75em; height: 0.75em; vertical-align: -0.05em; }
 .gender.male { color: var(--male); }
@@ -849,6 +850,11 @@ button.danger { color: var(--danger); }
 .check-row input { width: 20px; height: 20px; margin: 0; }
 .check-row .muted { font-weight: 400; font-size: 0.875rem; }
 .item-row.no-count { grid-template-columns: 32px 1fr auto; }
+.item-row.decor-row { grid-template-columns: 1fr auto; }
+.roamer-head { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; margin-bottom: 10px; }
+.roamer h4 { margin: 0 0 6px; font-size: 0.8125rem; font-weight: 500; color: var(--muted); }
+.roamer .button-row { margin: 10px 0 4px; }
+.decorations details > button { margin: 2px 0 10px; }
 .pokeblock-row + .pokeblock-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .pokeblock-row .item-row { grid-template-columns: 32px 1fr auto; margin-bottom: 6px; }
 .pokeblock-row .item-row > .pokeblock-icon { justify-self: center; }

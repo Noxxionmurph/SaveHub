@@ -21,6 +21,7 @@ import {
   levelForExp, maxPp, natureOf, speciesOf, type Evs, type Gen3Game, type Ivs, type Pocket, type Stats,
 } from './data.ts';
 import { describeGen3Changes } from './diff.ts';
+import { readDecorations, writeDecorations } from './decorations.ts';
 import { CARD_BATTLE_POINTS, readStreaks, writeStreaks, type Streak } from './frontier.ts';
 import { readPokeblocks, writePokeblocks, type Pokeblock } from './pokeblocks.ts';
 import { RIBBON_MASK } from './ribbons.ts';
@@ -53,6 +54,11 @@ interface Layout {
   gameStats: number;
   /** SaveBlock1's Pokéblock case (see pokeblocks.ts). */
   pokeblocks: number;
+  /** SaveBlock1's decoration lists (see decorations.ts), and where the bedroom's and the player's secret base's
+   * placed decorations are kept (12 and 16 ids). */
+  decorations: number; roomDecor: number; baseDecor: number;
+  /** SaveBlock1's roaming Latios or Latias (struct Roamer). */
+  roamer: number;
   /** Money, coins and bag quantities are XORed with the key at SaveBlock2 0xAC. */
   encrypted: boolean;
 }
@@ -62,6 +68,7 @@ const RS: Layout = {
   items: 0x560, itemsMax: 20, keyItems: 0x5b0, keyItemsMax: 20, balls: 0x600, ballsMax: 16,
   tmhm: 0x640, tmhmMax: 64, berries: 0x740, berriesMax: 46,
   seenCopies: [0x938, 0x3a8c], flags: 0x1220, vars: 0x1340, badgeFlag: 0x807, nationalDexFlag: 0x836, gameStats: 0x1540, pokeblocks: 0x7f8,
+  decorations: 0x26a0, roomDecor: 0x2688, baseDecor: 0x1a1a, roamer: 0x3144,
   encrypted: false,
 };
 
@@ -70,6 +77,7 @@ const EMERALD: Layout = {
   items: 0x560, itemsMax: 30, keyItems: 0x5d8, keyItemsMax: 30, balls: 0x650, ballsMax: 16,
   tmhm: 0x690, tmhmMax: 64, berries: 0x790, berriesMax: 46,
   seenCopies: [0x988, 0x3b24], flags: 0x1270, vars: 0x139c, badgeFlag: 0x867, nationalDexFlag: 0x896, gameStats: 0x159c, pokeblocks: 0x848,
+  decorations: 0x2734, roomDecor: 0x271c, baseDecor: 0x1aae, roamer: 0x31dc,
   encrypted: true,
 };
 
@@ -102,6 +110,9 @@ export const BERRY_POWDER_MAX = 99999;
 export const FRONTIER_FACILITIES = ['Battle Tower', 'Battle Dome', 'Battle Palace', 'Battle Arena', 'Battle Factory', 'Battle Pike', 'Battle Pyramid'] as const;
 const NATIONAL_MAGIC = 0xda;
 
+/** The roamer as saved (pokeemerald include/global.h struct Roamer). Its trainer ID is the player's. */
+export interface Roamer { species: number; pid: number; ivs: Ivs; hp: number; level: number; status: number; active: boolean }
+
 export const PARTY_MAX = 6;
 export const BOX_COUNT = 14;
 export const BOX_SLOTS = 30;
@@ -115,6 +126,12 @@ const PARTY_MON_SIZE = 100;
 const BOX_MON_SIZE = 80;
 
 // ---------- little-endian helpers ----------
+
+/** Six 5-bit IVs packed HP, Attack, Defense, Speed, Sp. Atk, Sp. Def from bit 0 (also the roamer's word). */
+const unpackIvs = (iv: number): Ivs =>
+  ({ hp: iv & 31, atk: (iv >>> 5) & 31, def: (iv >>> 10) & 31, spe: (iv >>> 15) & 31, spa: (iv >>> 20) & 31, spd: (iv >>> 25) & 31 });
+const packIvs = (iv: Ivs) =>
+  ((iv.hp & 31) | ((iv.atk & 31) << 5) | ((iv.def & 31) << 10) | ((iv.spe & 31) << 15) | ((iv.spa & 31) << 20) | ((iv.spd & 31) << 25)) >>> 0;
 
 const u16 = (d: Uint8Array, o: number) => d[o] | (d[o + 1] << 8);
 const u32 = (d: Uint8Array, o: number) => (d[o] | (d[o + 1] << 8) | (d[o + 2] << 16) | (d[o + 3] << 24)) >>> 0;
@@ -291,7 +308,7 @@ export function readMon(d: Uint8Array, off: number, party: boolean): Gen3Mon | n
     contest: [raw[E + 6], raw[E + 7], raw[E + 8], raw[E + 9], raw[E + 10], raw[E + 11]],
     pokerus: raw[M], metLocation: raw[M + 1],
     metLevel: origins & 0x7f, metGame: (origins >> 7) & 0xf, ball: (origins >> 11) & 0xf, otGender: origins & 0x8000 ? 'female' : 'male',
-    ivs: { hp: iv & 31, atk: (iv >>> 5) & 31, def: (iv >>> 10) & 31, spe: (iv >>> 15) & 31, spa: (iv >>> 20) & 31, spd: (iv >>> 25) & 31 },
+    ivs: unpackIvs(iv),
     isEgg: !!(iv & 0x40000000), abilityBit: iv >>> 31, ribbons: u32(raw, M + 8),
     level: 0, status: 0, mail: 0xff, hp: 0, maxHp: 0, atk: 0, def: 0, spe: 0, spa: 0, spd: 0,
     raw,
@@ -336,8 +353,7 @@ function monBytes(mon: Gen3Mon): Uint8Array {
   raw[M + 1] = mon.metLocation & 0xff;
   setU16(raw, M + 2, (mon.metLevel & 0x7f) | ((mon.metGame & 0xf) << 7) | ((mon.ball & 0xf) << 11) | (mon.otGender === 'female' ? 0x8000 : 0));
   const iv = mon.ivs;
-  const ivWord = (iv.hp & 31) | ((iv.atk & 31) << 5) | ((iv.def & 31) << 10) | ((iv.spe & 31) << 15) | ((iv.spa & 31) << 20)
-    | ((iv.spd & 31) << 25) | (mon.isEgg ? 0x40000000 : 0) | ((mon.abilityBit & 1) << 31);
+  const ivWord = packIvs(iv) | (mon.isEgg ? 0x40000000 : 0) | ((mon.abilityBit & 1) << 31);
   setU32(raw, M + 4, ivWord >>> 0);
   setU32(raw, M + 8, mon.ribbons >>> 0);
   return raw;
@@ -467,6 +483,13 @@ export class Gen3Save implements EditableSave {
   nationalDex: boolean;
   /** Emerald's Battle Frontier and Berry Crush: null for Ruby and Sapphire. Symbols are 0 none, 1 silver, 2 gold. */
   frontier: { battlePoints: number; battlePointsWon: number; berryPowder: number; symbols: number[]; streaks: Streak[] } | null;
+  /** The roaming Latios or Latias once the game has made it (after the Hall of Fame), else null. `active` is false once
+   * it has been caught or knocked out. Its HP and status carry from one encounter to the next. */
+  roamer: Roamer | null;
+  /** The decorations in the PC, one id list per category (decorations.ts). */
+  decorations: number[][];
+  /** Decorations set out in the bedroom and the player's secret base (read only). */
+  readonly placedDecorations: number[];
   /** The Pokéblock case, filled slots only. */
   pokeblocks: Pokeblock[];
   /** The game's counters, indexed as in stats.ts (steps, battles, catches...). */
@@ -488,7 +511,7 @@ export class Gen3Save implements EditableSave {
   private sb1: Uint8Array;
   private storage: Uint8Array;
   private key: number;
-  private loaded: { pockets: string; pcItems: string; boxNameRaw: Uint8Array[]; nameRaw: Uint8Array; frontier: string; gameStats: number[]; pokeblocks: string };
+  private loaded: { pockets: string; pcItems: string; boxNameRaw: Uint8Array[]; nameRaw: Uint8Array; frontier: string; gameStats: number[]; pokeblocks: string; decorations: string; roamer: string };
 
   constructor(data: Uint8Array, game?: Gen3Game) {
     if (data.length < SAVE_SIZE) throw new Error(`Gen 3 Pokémon saves are ${SAVE_SIZE.toLocaleString('en-US')} bytes (this file is ${data.length.toLocaleString('en-US')}).`);
@@ -538,6 +561,14 @@ export class Gen3Save implements EditableSave {
     } : null;
     this.gameStats = Array.from({ length: gameStatCount(this.game) }, (_, i) => (u32(sb1, L.gameStats + i * 4) ^ this.key) >>> 0);
     this.pokeblocks = readPokeblocks(sb1, L.pokeblocks);
+    this.decorations = readDecorations(sb1, L.decorations);
+    const ro = L.roamer, roamerSpecies = u16(sb1, ro + 8);
+    this.roamer = roamerSpecies ? {
+      species: dexOf(roamerSpecies), pid: u32(sb1, ro + 4), ivs: unpackIvs(u32(sb1, ro)), hp: u16(sb1, ro + 10), level: sb1[ro + 12],
+      status: sb1[ro + 13], active: !!sb1[ro + 19],
+    } : null;
+    this.placedDecorations = [...sb1.subarray(L.roomDecor, L.roomDecor + 12), ...sb1.subarray(L.baseDecor, L.baseDecor + 16)]
+      .filter((id) => id !== 0);
     this.pockets = {
       item: readItems(sb1, L.items, L.itemsMax, key16),
       key: readItems(sb1, L.keyItems, L.keyItemsMax, key16),
@@ -562,6 +593,7 @@ export class Gen3Save implements EditableSave {
       pockets: JSON.stringify(this.pockets), pcItems: JSON.stringify(this.pcItems), boxNameRaw,
       nameRaw: sb2.slice(SB2.name, SB2.name + 8), frontier: JSON.stringify(this.frontier),
       gameStats: this.gameStats.slice(), pokeblocks: JSON.stringify(this.pokeblocks),
+      decorations: JSON.stringify(this.decorations), roamer: JSON.stringify(this.roamer),
     };
   }
 
@@ -685,6 +717,17 @@ export class Gen3Save implements EditableSave {
       writeItems(sb1, L.tmhm, this.pockets.tmhm, L.tmhmMax, key16, 99);
       writeItems(sb1, L.berries, this.pockets.berry, L.berriesMax, key16, 999);
     }
+    const ro = this.roamer;
+    if (ro && JSON.stringify(ro) !== this.loaded.roamer) {
+      setU32(sb1, L.roamer, packIvs(ro.ivs));
+      setU32(sb1, L.roamer + 4, ro.pid >>> 0);
+      setU16(sb1, L.roamer + 8, speciesOf(ro.species));
+      setU16(sb1, L.roamer + 10, clamp(ro.hp, 0, 0xffff));
+      sb1[L.roamer + 12] = clamp(ro.level, 1, 100);
+      sb1[L.roamer + 13] = ro.status & 0xff;
+      sb1[L.roamer + 19] = +ro.active;
+    }
+    if (JSON.stringify(this.decorations) !== this.loaded.decorations) writeDecorations(sb1, L.decorations, this.decorations);
     if (JSON.stringify(this.pokeblocks) !== this.loaded.pokeblocks) writePokeblocks(sb1, L.pokeblocks, this.pokeblocks);
     if (JSON.stringify(this.pcItems) !== this.loaded.pcItems) writeItems(sb1, SB1.pcItems, this.pcItems, PC_ITEMS_MAX, 0, 999);
 
