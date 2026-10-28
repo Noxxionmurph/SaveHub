@@ -83,6 +83,13 @@ const SB1 = { partyCount: 0x234, party: 0x238, money: 0x490, coins: 0x494, pcIte
 const PC_ITEMS_MAX = 50;
 const STORAGE = { currentBox: 0, boxes: 4, names: 0x8344, size: 0x83d0 };
 const VAR_NATIONAL_DEX = 0x4046;
+// Emerald only (pokeemerald include/global.h): SaveBlock2's BerryCrush.berryPowderAmount (under the key) and
+// BattleFrontier.battlePoints, and the Frontier symbols, a silver then a gold flag per facility from SYSTEM_FLAGS + 0x64.
+const EM = { berryPowder: 0x1f4, battlePoints: 0xeb8, symbolFlag: 0x860 + 0x64 };
+export const BATTLE_POINTS_MAX = 9999;
+export const BERRY_POWDER_MAX = 99999;
+/** The seven Battle Frontier facilities, in the order of their symbol flags. */
+export const FRONTIER_FACILITIES = ['Battle Tower', 'Battle Dome', 'Battle Palace', 'Battle Arena', 'Battle Factory', 'Battle Pike', 'Battle Pyramid'] as const;
 const NATIONAL_MAGIC = 0xda;
 
 export const PARTY_MAX = 6;
@@ -448,6 +455,8 @@ export class Gen3Save implements EditableSave {
   /** Bit i set for badge i+1 (Stone ... Rain). */
   badges: number;
   nationalDex: boolean;
+  /** Emerald's Battle Frontier and Berry Crush: null for Ruby and Sapphire. Symbols are 0 none, 1 silver, 2 gold. */
+  frontier: { battlePoints: number; berryPowder: number; symbols: number[] } | null;
   pockets: Record<Exclude<Pocket, 'tmhm'>, BagItem[]> & { tmhm: BagItem[] };
   pcItems: BagItem[];
   party: Gen3Mon[];
@@ -465,7 +474,7 @@ export class Gen3Save implements EditableSave {
   private sb1: Uint8Array;
   private storage: Uint8Array;
   private key: number;
-  private loaded: { pockets: string; pcItems: string; boxNameRaw: Uint8Array[]; nameRaw: Uint8Array };
+  private loaded: { pockets: string; pcItems: string; boxNameRaw: Uint8Array[]; nameRaw: Uint8Array; frontier: string };
 
   constructor(data: Uint8Array, game?: Gen3Game) {
     if (data.length < SAVE_SIZE) throw new Error(`Gen 3 Pokémon saves are ${SAVE_SIZE.toLocaleString('en-US')} bytes (this file is ${data.length.toLocaleString('en-US')}).`);
@@ -506,6 +515,11 @@ export class Gen3Save implements EditableSave {
     for (let i = 0; i < 8; i++) if (this.flag(L.badgeFlag + i)) this.badges |= 1 << i;
     this.nationalDex = sb2[SB2.nationalMagic] === NATIONAL_MAGIC && u16(sb1, L.vars + (VAR_NATIONAL_DEX - 0x4000) * 2) === 0x302
       && this.flag(L.nationalDexFlag);
+    this.frontier = this.game === 'emerald' ? {
+      battlePoints: u16(sb2, EM.battlePoints),
+      berryPowder: (u32(sb2, EM.berryPowder) ^ this.key) >>> 0,
+      symbols: FRONTIER_FACILITIES.map((_, i) => +this.flag(EM.symbolFlag + i * 2) + +this.flag(EM.symbolFlag + i * 2 + 1)),
+    } : null;
     this.pockets = {
       item: readItems(sb1, L.items, L.itemsMax, key16),
       key: readItems(sb1, L.keyItems, L.keyItemsMax, key16),
@@ -528,7 +542,7 @@ export class Gen3Save implements EditableSave {
     this.boxNames = boxNameRaw.map(decodeText);
     this.loaded = {
       pockets: JSON.stringify(this.pockets), pcItems: JSON.stringify(this.pcItems), boxNameRaw,
-      nameRaw: sb2.slice(SB2.name, SB2.name + 8),
+      nameRaw: sb2.slice(SB2.name, SB2.name + 8), frontier: JSON.stringify(this.frontier),
     };
   }
 
@@ -616,6 +630,19 @@ export class Gen3Save implements EditableSave {
       setU16(sb1, L.vars + (VAR_NATIONAL_DEX - 0x4000) * 2, 0);
       this.setFlagIn(sb1, L.nationalDexFlag, false);
       sb2[SB2.dexMode] = 0;
+    }
+
+    // Only what was edited is written, so an unedited value the game wouldn't make (a hacked 60000 BP) is kept.
+    const f = this.frontier, f0 = JSON.parse(this.loaded.frontier) as Gen3Save['frontier'];
+    if (f && f0) {
+      if (f.battlePoints !== f0.battlePoints) setU16(sb2, EM.battlePoints, clamp(f.battlePoints, 0, BATTLE_POINTS_MAX));
+      if (f.berryPowder !== f0.berryPowder) setU32(sb2, EM.berryPowder, (clamp(f.berryPowder, 0, BERRY_POWDER_MAX) ^ this.key) >>> 0);
+      f.symbols.forEach((n, i) => {
+        if (n === f0.symbols[i]) return;
+        // The game gives the silver symbol first, and counts gold as a second symbol.
+        this.setFlagIn(sb1, EM.symbolFlag + i * 2, n >= 1);
+        this.setFlagIn(sb1, EM.symbolFlag + i * 2 + 1, n >= 2);
+      });
     }
 
     // Pockets are rewritten only when they changed, so an unedited bag keeps its exact bytes (gaps and all).

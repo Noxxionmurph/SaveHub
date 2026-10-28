@@ -8,7 +8,8 @@ import {
 } from '../../../core/gen3/data.ts';
 import { BOX_SLOTS, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, countAt, dropMon, monAt, placeName, shiftMon } from '../../../core/gen3/roster.ts';
 import {
-  BOX_NAME_LEN, COINS_MAX, MONEY_MAX, PLAYER_NAME_MAX, depositInBox, newMon, pocketSizes, type BagItem, type Gen3Mon, type Gen3Save,
+  BATTLE_POINTS_MAX, BERRY_POWDER_MAX, BOX_NAME_LEN, COINS_MAX, FRONTIER_FACILITIES, MONEY_MAX, PLAYER_NAME_MAX, depositInBox,
+  newMon, pocketSizes, type BagItem, type Gen3Mon, type Gen3Save,
 } from '../../../core/gen3/save.ts';
 import type { MountEditor } from '../../../core/types.ts';
 import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '../../dom.ts';
@@ -201,8 +202,27 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           h('span', {}, 'National Pokédex'),
           h('span', { class: 'muted' }, ' Unlocked after the Hall of Fame.'))),
       badgeCard(),
+      frontierCard(),
       optionsCard(),
     );
+  }
+
+  /** Emerald's Battle Frontier symbols and Battle Points, and its Berry Powder. */
+  function frontierCard(): Node | null {
+    const f = s.frontier;
+    if (!f) return null;
+    const levels = [{ value: '0', label: 'None' }, { value: '1', label: 'Silver' }, { value: '2', label: 'Gold' }];
+    return h('section', { class: 'card frontier' },
+      h('h3', {}, 'Battle Frontier'),
+      h('div', { class: 'grid pair' },
+        field('Battle Points', numberInput(f.battlePoints, 0, BATTLE_POINTS_MAX, (v) => { f.battlePoints = v; markDirty(); })),
+        field('Berry Powder', numberInput(f.berryPowder, 0, BERRY_POWDER_MAX, (v) => { f.berryPowder = v; markDirty(); })),
+      ),
+      h('div', { class: 'lcd options-window' },
+        FRONTIER_FACILITIES.map((name, i) => choiceRow(name.replace('Battle ', ''), levels, String(f.symbols[i]),
+          (v) => { f.symbols[i] = Number(v); markDirty(); }))),
+      h('div', { class: 'button-row' },
+        h('button', { onclick: () => { f.symbols = f.symbols.map(() => 2); markDirty(); render(); } }, 'All gold symbols')));
   }
 
   /** The settings from the in-game OPTION menu. */

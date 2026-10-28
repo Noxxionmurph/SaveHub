@@ -59,8 +59,18 @@ with sync_playwright() as p:
     assert page.get_attribute('html', 'data-console') == 'gba'
     assert page.inner_text('.game-name') == 'Pokémon Emerald'
     assert page.inner_text('.file-line').startswith('sample-emerald.sav')
+    frontier = page.locator('section.card.frontier')                                 # Emerald's Battle Frontier card
+    frontier.locator('label.field:has-text("Battle Points") input').fill('500')
+    frontier.locator('label.field:has-text("Battle Points") input').press('Tab')
+    frontier.locator('button:has-text("All gold symbols")').click()
+    assert page.locator('section.card.frontier .opt-choice:has(input:checked):has-text("Gold")').count() == 7
     page.click('button.tab:has-text("Party")')
     assert page.locator('.mon').count() == 5
+    page.click('.save-btn')
+    page.wait_for_selector('dialog.review-dialog[open]')
+    text = page.text_content('dialog.review-dialog')
+    assert 'Battle Points: 0 → 500' in text and 'Battle Pyramid symbol: none → gold' in text, text
+    page.keyboard.press('Escape')
 
     # --- Ruby / Sapphire: the file can't say which
     page.goto(BASE)
@@ -68,6 +78,7 @@ with sync_playwright() as p:
     assert page.locator('.version-pick button').count() == 2
     page.click('.version-pick button:has-text("Sapphire")')
     assert page.inner_text('.game-name') == 'Pokémon Sapphire'
+    assert page.locator('section.card.frontier').count() == 0                          # no Battle Frontier in Ruby / Sapphire
     assert page.input_value('label.field:has-text("Trainer name") input') == 'MAY'
     assert page.locator('.tcard-badges .badge-slot.earned').count() == 4
     page.screenshot(path=f'{SP}/r1-trainer.png', full_page=True)
