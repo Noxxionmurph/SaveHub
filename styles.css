@@ -648,6 +648,12 @@ html[data-art='off'] .pika-screen { display: none; }
 .box-nav select { text-overflow: ellipsis; }
 .box-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 @media (min-width: 560px) { .box-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+/* Gen 3's boxes are 6 x 5, and spots can be empty, so the grid keeps the game's shape at every width. */
+.box-grid.thirty { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.box-grid.thirty .box-cell { min-height: 72px; padding-inline: 1px; }
+/* thirty big plus signs would drown the Pokémon, so an empty spot's is faint until you point at it */
+.box-grid.thirty .box-cell.add .plus { font-size: 1.25rem; opacity: 0.35; }
+.box-grid.thirty .box-cell.add:is(:hover, :focus-visible) .plus { opacity: 1; }
 .box-cell {
   display: grid; justify-items: center; align-content: center; gap: 0; min-height: 84px; min-width: 0;
   padding: 4px 2px 3px; border-radius: 8px; border: 1px solid var(--lcd-edge); border-bottom-width: 3px;
@@ -799,6 +805,10 @@ button.danger { color: var(--danger); }
 /* ---- Gold / Silver additions ---- */
 /* Six stats (Special is split in two) and six battle-stat fields. */
 .stats.six { grid-template-columns: repeat(6, 1fr); }
+/* Gen 3: the stat a nature raises in red and the one it lowers in blue, as the summary screen marks them. */
+.stats .nature-up dt { color: #d0403a; }
+.stats .nature-down dt { color: #3a68d0; }
+.card .count.warn { color: var(--danger); font-weight: 600; }
 .mon-dialog .grid.cols6 { grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); gap: 6px; }
 .mon-dialog .cols6 .field { gap: 2px; }
 .mon-dialog .cols6 .field-label { font-size: 0.75rem; }

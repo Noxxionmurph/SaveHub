@@ -22,9 +22,11 @@ with sync_playwright() as p:
     # one row per generation: Gold, Silver and Crystal share a row and one "you can edit" line
     rows = page.locator('section.supported ul.tiles')
     assert [rows.nth(i).locator('.tile-name').all_inner_texts() for i in range(rows.count())] == [
-        ['Pokémon Red', 'Pokémon Blue', 'Pokémon Yellow'], ['Pokémon Gold', 'Pokémon Silver', 'Pokémon Crystal']]
+        ['Pokémon Red', 'Pokémon Blue', 'Pokémon Yellow'], ['Pokémon Gold', 'Pokémon Silver', 'Pokémon Crystal'],
+        ['Pokémon Ruby', 'Pokémon Sapphire', 'Pokémon Emerald']]
     edits = page.locator('.family-edits').all_inner_texts()
-    assert len(edits) == 2 and edits[1].startswith('In Gold, Silver and Crystal you can edit: Everything from Red, Blue and Yellow'), edits
+    assert len(edits) == 3 and edits[1].startswith('In Gold, Silver and Crystal you can edit: Everything from Red, Blue and Yellow'), edits
+    assert edits[2].startswith('In Ruby, Sapphire and Emerald you can edit: Everything from the Game Boy games'), edits
     page.click('.sample-row button >> nth=0')
     page.wait_for_selector('.tabs')
     assert 'made-up sample' in page.inner_text('.sample-note')
