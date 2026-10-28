@@ -349,7 +349,7 @@ export function recalcPartyStats(mon: Gen3Mon, heal = false): void {
   const s = calcStats(mon.species, mon.level, mon.ivs, mon.evs, natureOf(mon.pid));
   if (!s) return;
   mon.maxHp = s.hp; mon.atk = s.atk; mon.def = s.def; mon.spe = s.spe; mon.spa = s.spa; mon.spd = s.spd;
-  mon.hp = mon.isEgg ? 0 : heal ? s.hp : Math.min(mon.hp, s.hp);
+  mon.hp = mon.isEgg || heal ? s.hp : Math.min(mon.hp, s.hp); // an egg is always at full HP, as CreateEgg leaves it
 }
 
 /** The stats a Pokémon has now: a party Pokémon's are stored, a box Pokémon's are worked out. */
