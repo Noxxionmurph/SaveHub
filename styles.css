@@ -804,6 +804,7 @@ button.danger { color: var(--danger); }
 .mon-dialog .cols6 .field-label { font-size: 0.75rem; }
 .mon-dialog .cols6 input { padding-inline: 3px; text-align: center; }
 .gender { font-weight: 700; margin-left: 4px; }
+.gender-icon { display: inline-block; width: 0.75em; height: 0.75em; vertical-align: -0.05em; }
 .gender.male { color: var(--male); }
 .gender.female { color: var(--female); }
 .shiny-star { color: var(--shiny); margin-left: 4px; font-weight: 700; }
@@ -871,8 +872,9 @@ button.danger { color: var(--danger); }
 .mon-main > .mon-pic { grid-row: 1 / span 3; }
 .mon-pic > .mon-icon { display: block; }
 .mon-pic { position: relative; display: block; }
-/* in the bottom corner of the box round the art: it never covers the level under the picture or pokes out of a narrow cell */
-.mon-pic > .held { position: absolute; right: calc(-2 * var(--px1)); bottom: 0; }
+/* small, just past the art's bottom-right corner, as on the games' party screens, so it never hides the Pokémon */
+.mon-pic > .held { position: absolute; left: calc(100% - 2px); bottom: 0; }
+.mon-main > .mon-pic { margin-right: 14px; }
 .mon-meta { gap: 4px; }
 .mon-meta .lv { padding-inline: 6px; font-size: 0.875rem; }
 /* hovering a held item names it in a small bubble above the picture */
@@ -907,7 +909,7 @@ button.danger { color: var(--danger); }
 .mon-icon.big, .tile-icon { --art: var(--px2); }
 .sprite.empty { width: calc(40 * var(--px1)); height: calc(32 * var(--px1)); }
 .item-icon { --art: var(--px1); width: calc(32 * var(--art)); height: calc(32 * var(--art)); margin: calc(-2 * var(--art)); }
-.held .item-icon { margin: calc(-5 * var(--art)); }
+.held .item-icon { --art: 0.75px; margin: calc(-5 * var(--art)); }
 .dex-tile .dex-ball { margin: calc(-7 * var(--art)); }
 .pika-pic { --s: calc(40 * var(--px2)); }
 /* in tiles and cells the picture gets 4 art pixels of room above and below, so the art never crowds the edge or the Lv */
