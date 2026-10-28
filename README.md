@@ -169,6 +169,7 @@ the same editor (`GEN3_LAYOUTS` in `src/core/gen3/save.ts`).
   setting: text speed, battle scene, battle style, sound, button mode and the 20 frames. Emerald adds Battle Points,
   Berry Powder, the seven Battle Frontier symbols (none, silver or gold), and every facility's current and record streaks
   for each mode and level (plus Dome championships, Factory rentals and the trainer card's BP won).
+- The Pokéblock case: up to 40 Pokéblocks, each with its colour (in the game's own pictures), five flavours and feel.
 - Game stats: every counter the game keeps (steps, battles, catches, eggs hatched, trades, contests, link battles and
   the rest) and the first Hall of Fame time shown on the back of the trainer card.
 - All five bag pockets (Items, Poké Balls, Key Items, TMs & HMs as a count for each of the 58, Berries) and PC item
@@ -305,7 +306,7 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   save back byte for byte. The Ruby and Emerald samples, edited copies of both real saves (a new name, money, a TM
   count, a nickname, nature, shininess, EVs, a box name, a Pokémon added and one moved out of a box), and edited copies
   of the samples (nature, shininess, IVs, EVs, badges, options, the National Pokédex) all load and play in the real
-  games (checked in an emulator), as do Emerald's edited Battle Points, Berry Powder, Frontier symbols, BP won and game stats. Offsets come
+  games (checked in an emulator), as do Emerald's edited Battle Points, Berry Powder, Frontier symbols, BP won, game stats and Pokéblocks. Offsets come
   from pokeruby and pokeemerald. Event flags (other than badges, the National Pokédex and Emerald's Frontier symbols),
   map position, the clock, secret bases, the Day-Care, records and the rest of the Battle Frontier data
   (Battle Tower opponents, rental Pokémon and so on) are left untouched. FireRed and LeafGreen aren't supported yet.

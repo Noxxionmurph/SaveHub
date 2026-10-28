@@ -22,6 +22,7 @@ import {
 } from './data.ts';
 import { describeGen3Changes } from './diff.ts';
 import { CARD_BATTLE_POINTS, readStreaks, writeStreaks, type Streak } from './frontier.ts';
+import { readPokeblocks, writePokeblocks, type Pokeblock } from './pokeblocks.ts';
 import { RIBBON_MASK } from './ribbons.ts';
 import { GAME_STAT_MAX, HOF_TIME_STAT, gameStatCount } from './stats.ts';
 import { decodeText, encodeText } from './text.ts';
@@ -50,6 +51,8 @@ interface Layout {
   nationalDexFlag: number;
   /** SaveBlock1's game stats (see stats.ts). */
   gameStats: number;
+  /** SaveBlock1's Pokéblock case (see pokeblocks.ts). */
+  pokeblocks: number;
   /** Money, coins and bag quantities are XORed with the key at SaveBlock2 0xAC. */
   encrypted: boolean;
 }
@@ -58,7 +61,7 @@ const RS: Layout = {
   sb2Size: 0x890, sb1Size: 0x3ac0,
   items: 0x560, itemsMax: 20, keyItems: 0x5b0, keyItemsMax: 20, balls: 0x600, ballsMax: 16,
   tmhm: 0x640, tmhmMax: 64, berries: 0x740, berriesMax: 46,
-  seenCopies: [0x938, 0x3a8c], flags: 0x1220, vars: 0x1340, badgeFlag: 0x807, nationalDexFlag: 0x836, gameStats: 0x1540,
+  seenCopies: [0x938, 0x3a8c], flags: 0x1220, vars: 0x1340, badgeFlag: 0x807, nationalDexFlag: 0x836, gameStats: 0x1540, pokeblocks: 0x7f8,
   encrypted: false,
 };
 
@@ -66,7 +69,7 @@ const EMERALD: Layout = {
   sb2Size: 0xf2c, sb1Size: 0x3d88,
   items: 0x560, itemsMax: 30, keyItems: 0x5d8, keyItemsMax: 30, balls: 0x650, ballsMax: 16,
   tmhm: 0x690, tmhmMax: 64, berries: 0x790, berriesMax: 46,
-  seenCopies: [0x988, 0x3b24], flags: 0x1270, vars: 0x139c, badgeFlag: 0x867, nationalDexFlag: 0x896, gameStats: 0x159c,
+  seenCopies: [0x988, 0x3b24], flags: 0x1270, vars: 0x139c, badgeFlag: 0x867, nationalDexFlag: 0x896, gameStats: 0x159c, pokeblocks: 0x848,
   encrypted: true,
 };
 
@@ -464,6 +467,8 @@ export class Gen3Save implements EditableSave {
   nationalDex: boolean;
   /** Emerald's Battle Frontier and Berry Crush: null for Ruby and Sapphire. Symbols are 0 none, 1 silver, 2 gold. */
   frontier: { battlePoints: number; battlePointsWon: number; berryPowder: number; symbols: number[]; streaks: Streak[] } | null;
+  /** The Pokéblock case, filled slots only. */
+  pokeblocks: Pokeblock[];
   /** The game's counters, indexed as in stats.ts (steps, battles, catches...). */
   gameStats: number[];
   pockets: Record<Exclude<Pocket, 'tmhm'>, BagItem[]> & { tmhm: BagItem[] };
@@ -483,7 +488,7 @@ export class Gen3Save implements EditableSave {
   private sb1: Uint8Array;
   private storage: Uint8Array;
   private key: number;
-  private loaded: { pockets: string; pcItems: string; boxNameRaw: Uint8Array[]; nameRaw: Uint8Array; frontier: string; gameStats: number[] };
+  private loaded: { pockets: string; pcItems: string; boxNameRaw: Uint8Array[]; nameRaw: Uint8Array; frontier: string; gameStats: number[]; pokeblocks: string };
 
   constructor(data: Uint8Array, game?: Gen3Game) {
     if (data.length < SAVE_SIZE) throw new Error(`Gen 3 Pokémon saves are ${SAVE_SIZE.toLocaleString('en-US')} bytes (this file is ${data.length.toLocaleString('en-US')}).`);
@@ -532,6 +537,7 @@ export class Gen3Save implements EditableSave {
       streaks: readStreaks(sb2),
     } : null;
     this.gameStats = Array.from({ length: gameStatCount(this.game) }, (_, i) => (u32(sb1, L.gameStats + i * 4) ^ this.key) >>> 0);
+    this.pokeblocks = readPokeblocks(sb1, L.pokeblocks);
     this.pockets = {
       item: readItems(sb1, L.items, L.itemsMax, key16),
       key: readItems(sb1, L.keyItems, L.keyItemsMax, key16),
@@ -555,7 +561,7 @@ export class Gen3Save implements EditableSave {
     this.loaded = {
       pockets: JSON.stringify(this.pockets), pcItems: JSON.stringify(this.pcItems), boxNameRaw,
       nameRaw: sb2.slice(SB2.name, SB2.name + 8), frontier: JSON.stringify(this.frontier),
-      gameStats: this.gameStats.slice(),
+      gameStats: this.gameStats.slice(), pokeblocks: JSON.stringify(this.pokeblocks),
     };
   }
 
@@ -679,6 +685,7 @@ export class Gen3Save implements EditableSave {
       writeItems(sb1, L.tmhm, this.pockets.tmhm, L.tmhmMax, key16, 99);
       writeItems(sb1, L.berries, this.pockets.berry, L.berriesMax, key16, 999);
     }
+    if (JSON.stringify(this.pokeblocks) !== this.loaded.pokeblocks) writePokeblocks(sb1, L.pokeblocks, this.pokeblocks);
     if (JSON.stringify(this.pcItems) !== this.loaded.pcItems) writeItems(sb1, SB1.pcItems, this.pcItems, PC_ITEMS_MAX, 0, 999);
 
     const party = this.party.slice(0, PARTY_MAX);

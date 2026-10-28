@@ -849,6 +849,10 @@ button.danger { color: var(--danger); }
 .check-row input { width: 20px; height: 20px; margin: 0; }
 .check-row .muted { font-weight: 400; font-size: 0.875rem; }
 .item-row.no-count { grid-template-columns: 32px 1fr auto; }
+.pokeblock-row + .pokeblock-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.pokeblock-row .item-row { grid-template-columns: 32px 1fr auto; margin-bottom: 6px; }
+.pokeblock-row .item-row > .pokeblock-icon { justify-self: center; }
+.pokeblock-row .grid { grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; }
 .item-row.bare { grid-template-columns: 32px 1fr; margin: 0; }
 .item-icon.none { visibility: hidden; }
 .button-row.tight { margin-top: 0; }
@@ -928,7 +932,7 @@ button.danger { color: var(--danger); }
 @supports (width: round(10px, 3px)) {
   :root { --px1: max(var(--dpx), round(1px, var(--dpx))); --px2: max(var(--dpx), round(2px, var(--dpx))); }
 }
-.mon-icon, .tile-icon, .item-icon, .badge-icon, .ribbon-icon, .pika-frame { image-rendering: pixelated; }
+.mon-icon, .tile-icon, .item-icon, .badge-icon, .ribbon-icon, .pokeblock-icon, .pika-frame { image-rendering: pixelated; }
 .mon-icon, .tile-icon {
   --art: var(--px1);
   width: calc(68 * var(--art)); height: calc(56 * var(--art)); max-width: none;
@@ -940,6 +944,7 @@ button.danger { color: var(--danger); }
 .held .item-icon { --art: 0.75px; margin: calc(-5 * var(--art)); }
 /* Gen 3 ribbons are 32x32, drawn at the lists' scale like the items */
 .ribbon-btn .ribbon-icon { --art: var(--px1); width: calc(32 * var(--art)); height: calc(32 * var(--art)); }
+.pokeblock-icon { --art: var(--px2); width: calc(8 * var(--art)); height: calc(8 * var(--art)); }
 .dex-tile .dex-ball { margin: calc(-7 * var(--art)); }
 .pika-pic { --s: calc(40 * var(--px2)); }
 /* in tiles and cells the picture gets 4 art pixels of room above and below, so the art never crowds the edge or the Lv */

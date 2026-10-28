@@ -356,3 +356,22 @@ test("Emerald's Frontier streaks: current and record per mode and level, and a c
   for (const want of ['Battle Tower Doubles, Open Level: current 0 → 48, record 0 → 70', 'Battle Factory Singles, Lv. 50: record rentals 0 → 12',
     'Battle Points won: 0 → 4,321']) assert.ok(lines.includes(want), want);
 });
+
+test('the Pokéblock case: 8-byte slots, filled ones listed in order, rewritten packed to the front', () => {
+  for (const [game, at] of [['rs', 0x7f8], ['emerald', 0x848]] as const) {
+    const s = new Gen3Save(buildSampleSave(game));
+    assert.equal(s.pokeblocks.length, 2);
+    s.pokeblocks = [];
+    s.pokeblocks.push({ color: 14, spicy: 1, dry: 2, sweet: 3, bitter: 4, sour: 5, feel: 6 });
+    s.pokeblocks.push({ color: 1, spicy: 300, dry: 0, sweet: 0, bitter: 0, sour: 0, feel: 20 });
+    const t = new Gen3Save(s.serialize());
+    assert.deepEqual(t.pokeblocks, [
+      { color: 14, spicy: 1, dry: 2, sweet: 3, bitter: 4, sour: 5, feel: 6 },
+      { color: 1, spicy: 255, dry: 0, sweet: 0, bitter: 0, sour: 0, feel: 20 },
+    ]);
+    const raw = t['sb1'] as Uint8Array;
+    assert.deepEqual([...raw.subarray(at, at + 16)], [14, 1, 2, 3, 4, 5, 6, 0, 1, 255, 0, 0, 0, 0, 20, 0]);
+    const lines = s.describeChanges(new Gen3Save(buildSampleSave(game))).flatMap((g) => g.lines);
+    assert.ok(lines.includes('Added Gold Pokéblock (Lv. 5, feel 6)'), lines.join('\n'));
+  }
+});

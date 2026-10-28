@@ -7,6 +7,7 @@ import {
   baseStatsFor, findPid, genderOf, itemChoices, itemName, moveInfo, speciesName, type Pocket,
 } from '../../../core/gen3/data.ts';
 import { LEVELS, STREAK_MAX, STREAK_ROWS } from '../../../core/gen3/frontier.ts';
+import { FEEL_MAX, FLAVORS, FLAVOR_MAX, POKEBLOCK_COLORS, POKEBLOCK_SLOTS } from '../../../core/gen3/pokeblocks.ts';
 import { BOX_SLOTS, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, countAt, dropMon, monAt, placeName, shiftMon } from '../../../core/gen3/roster.ts';
 import {
   BATTLE_POINTS_MAX, BERRY_POWDER_MAX, BOX_NAME_LEN, COINS_MAX, FRONTIER_FACILITIES, MONEY_MAX, PLAYER_NAME_MAX, depositInBox,
@@ -18,7 +19,7 @@ import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '..
 import { enableDrag } from '../../drag.ts';
 import { dexTab as sharedDexTab } from '../../dexTab.ts';
 import { choiceRow, stepRow } from '../../gameChoice.ts';
-import { badgeIcon, frontierSymbolIcon, itemIcon, itemIconUrl, setIconSrc } from '../../sprites.ts';
+import { badgeIcon, frontierSymbolIcon, itemIcon, itemIconUrl, pokeblockIcon, pokeblockIconUrl, setIconSrc } from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
 import { discPath, itemSpritePath } from './itemSprites.ts';
@@ -389,7 +390,41 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
       itemList('Berries pocket', s.pockets.berry, SIZES.berry, OPTIONS.berry, () => ORAN_BERRY),
       itemList('PC item storage', s.pcItems, SIZES.pc, OPTIONS.pc, () => RARE_CANDY),
     ),
-    tmhmCard());
+    tmhmCard(),
+    pokeblockCard());
+
+  /** The Pokéblock case: each block's colour, five flavours and feel. */
+  function pokeblockCard(): Node {
+    const list = s.pokeblocks;
+    const wrap = h('section', { class: 'card pokeblocks' });
+    const colors = POKEBLOCK_COLORS.slice(1).map((name, i) => ({ value: String(i + 1), label: name }));
+    const draw = () => {
+      clear(wrap);
+      wrap.append(
+        h('h3', {}, 'Pokéblock case', h('span', { class: 'muted count' }, `${list.length}/${POKEBLOCK_SLOTS}`)),
+        ...list.map((p, i) => {
+          const icon = pokeblockIcon(p.color);
+          const num = (label: string, v: number, max: number, set: (v: number) => void) =>
+            field(label, numberInput(v, 0, Math.max(max, v), (n) => { set(n); markDirty(); }));
+          return h('div', { class: 'pokeblock-row' },
+            h('div', { class: 'item-row' },
+              icon,
+              Object.assign(selectInput(colors, String(p.color), (v) => { p.color = Number(v); icon.src = pokeblockIconUrl(p.color); markDirty(); }),
+                { ariaLabel: 'Colour' }),
+              h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { list.splice(i, 1); markDirty(); draw(); } }, '✕')),
+            h('div', { class: 'grid' },
+              FLAVORS.map((f) => num(f[0].toUpperCase() + f.slice(1), p[f], FLAVOR_MAX, (n) => { p[f] = n; })),
+              num('Feel', p.feel, FEEL_MAX, (n) => { p.feel = n; })));
+        }),
+        h('div', { class: 'button-row' },
+          h('button', {
+            disabled: list.length >= POKEBLOCK_SLOTS,
+            onclick: () => { list.push({ color: 14, spicy: 40, dry: 40, sweet: 40, bitter: 40, sour: 40, feel: 10 }); markDirty(); draw(); },
+          }, list.length >= POKEBLOCK_SLOTS ? `Full (${POKEBLOCK_SLOTS} of ${POKEBLOCK_SLOTS})` : '+ Add Pokéblock')));
+    };
+    draw();
+    return wrap;
+  }
 
   // ---------- Pokémon lists ----------
 

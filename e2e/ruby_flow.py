@@ -83,6 +83,14 @@ with sync_playwright() as p:
     stats.locator('label.field:has-text("Hours") input').press('Tab')
     assert stats.locator('label.field:has-text("Berry Crush games")').count() == 1   # Emerald only
     page.screenshot(path=f'{SP}/e-stats.png', full_page=True)
+    page.click('button.tab:has-text("Bag")')                                         # the Pokéblock case
+    page.click('section.pokeblocks button:has-text("Add Pokéblock")')
+    assert page.inner_text('section.pokeblocks h3 .count') == '3/40'                  # the sample has a red and a yellow one
+    added = page.locator('section.pokeblocks .pokeblock-row').nth(2)
+    assert added.locator('img.pokeblock-icon').get_attribute('src').endswith('pokeblocks/14.png')
+    added.locator('select').select_option('9')
+    assert added.locator('img.pokeblock-icon').get_attribute('src').endswith('pokeblocks/9.png')
+    page.locator('section.pokeblocks').screenshot(path=f'{SP}/e-pokeblocks.png')
     page.click('button.tab:has-text("Party")')
     assert page.locator('.mon').count() == 5
     page.click('.save-btn')
@@ -90,6 +98,7 @@ with sync_playwright() as p:
     text = page.text_content('dialog.review-dialog')
     assert 'Battle Points: 0 → 500' in text and 'Battle Pyramid symbol: none → gold' in text and 'Battle Tower symbol: none → silver' in text, text
     assert 'Battle Tower Singles, Lv. 50: current 0 → 48' in text, text
+    assert 'Added Lite Blue Pokéblock (Lv. 40, feel 10)' in text, text
     assert 'Steps: 0 → 4,321' in text and 'First Hall of Fame time: none → 7:00:00' in text, text
     page.keyboard.press('Escape')
 

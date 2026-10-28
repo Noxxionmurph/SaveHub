@@ -8,6 +8,7 @@ import {
 } from './data.ts';
 import { BOX_NAME_LEN, FRONTIER_FACILITIES, NICKNAME_MAX, PLAYER_NAME_MAX, monAbility, type BagItem, type Gen3Mon, type Gen3Save } from './save.ts';
 import { STREAK_ROWS, rowLabel } from './frontier.ts';
+import { pokeblockLevel, pokeblockName, type Pokeblock } from './pokeblocks.ts';
 import { ribbonNames } from './ribbons.ts';
 import { HOF_TIME_STAT, gameStatGroups, unpackHofTime } from './stats.ts';
 import { asSaved } from './text.ts';
@@ -267,6 +268,22 @@ function pokemonLines(b: Gen3Save, a: Gen3Save): string[] {
   return lines;
 }
 
+// ---------- Pokéblocks ----------
+
+function pokeblockLines(before: Pokeblock[], after: Pokeblock[]): string[] {
+  const key = (p: Pokeblock) => `${pokeblockName(p)} (Lv. ${pokeblockLevel(p)}, feel ${p.feel})`;
+  const count = (list: Pokeblock[]) => {
+    const m = new Map<string, number>();
+    for (const p of list) m.set(key(p), (m.get(key(p)) ?? 0) + 1);
+    return m;
+  };
+  const b = count(before), a = count(after), out: string[] = [];
+  const times = (n: number) => (n > 1 ? ` ×${n}` : '');
+  for (const [k, n] of a) if (n > (b.get(k) ?? 0)) out.push(`Added ${k}${times(n - (b.get(k) ?? 0))}`);
+  for (const [k, n] of b) if (n > (a.get(k) ?? 0)) out.push(`Removed ${k}${times(n - (a.get(k) ?? 0))}`);
+  return out;
+}
+
 // ---------- game stats ----------
 
 function statLines(b: Gen3Save, a: Gen3Save): string[] {
@@ -296,6 +313,7 @@ export function describeGen3Changes(before: Gen3Save, after: Gen3Save): ChangeGr
     group('TMs and HMs', tmLines(before.tmCounts(), after.tmCounts())),
     group('Berries pocket', itemLines(before.pockets.berry, after.pockets.berry)),
     group('PC items', itemLines(before.pcItems, after.pcItems)),
+    group('Pokéblock case', pokeblockLines(before.pokeblocks, after.pokeblocks)),
     group('Pokémon', pokemonLines(before, after), 14),
     group('Box names', boxNameLines(before, after)),
     group('Pokédex', dexLines(before, after)),
