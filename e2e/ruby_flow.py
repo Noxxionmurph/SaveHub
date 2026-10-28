@@ -75,6 +75,12 @@ with sync_playwright() as p:
     tower.locator('label.field:has-text("Win streak") input').press('Tab')
     assert frontier.locator('.streak-row').count() == 26
     page.screenshot(path=f'{SP}/e-streaks.png', full_page=True)
+    roamer = page.locator('section.card.roamer')                                      # the roaming Latios
+    assert roamer.locator('h3').inner_text() == 'Roaming Latios'
+    roamer.locator('label.check-row:has-text("Shiny") input').check()
+    roamer.locator('button:has-text("Perfect IVs")').click()
+    assert roamer.locator('label.check-row:has-text("Shiny") input').is_checked()
+    roamer.screenshot(path=f'{SP}/e-roamer.png')
     stats = page.locator('section.card.game-stats')                                    # the game's counters
     stats.locator('summary:has-text("Getting around")').click()
     stats.locator('label.field:has-text("Steps") input').fill('4321')
@@ -104,6 +110,7 @@ with sync_playwright() as p:
     assert 'Battle Points: 0 → 500' in text and 'Battle Pyramid symbol: none → gold' in text and 'Battle Tower symbol: none → silver' in text, text
     assert 'Battle Tower Singles, Lv. 50: current 0 → 48' in text, text
     assert 'Added Lite Blue Pokéblock (Lv. 40, feel 10)' in text, text
+    assert 'Latios is now shiny' in text and "Latios's IVs: 20/12/25/31/17/9 → 31/31/31/31/31/31" in text, text
     assert 'Added Small Desk' in text and 'and 108 more' in text, text
     assert 'Steps: 0 → 4,321' in text and 'First Hall of Fame time: none → 7:00:00' in text, text
     page.keyboard.press('Escape')
@@ -115,6 +122,7 @@ with sync_playwright() as p:
     page.click('.version-pick button:has-text("Sapphire")')
     assert page.inner_text('.game-name') == 'Pokémon Sapphire'
     assert page.locator('section.card.frontier').count() == 0                          # no Battle Frontier in Ruby / Sapphire
+    assert page.locator('section.card.roamer').count() == 0                            # no roamer before the Hall of Fame
     assert page.locator('section.card.game-stats label.field:has-text("Pokémon caught fishing")').count() == 1
     assert page.locator('section.card.game-stats label.field:has-text("Berry Crush games")').count() == 0
     assert page.input_value('label.field:has-text("Trainer name") input') == 'MAY'

@@ -4,7 +4,7 @@
 
 import {
   BUTTON_MODES, DEX_COUNT, DEX_NAMES, FRAME_COUNT, HM_COUNT, HOENN_BADGES, TEXT_SPEEDS, TMHM_LABELS, TMHM_MOVES, TM_COUNT,
-  baseStatsFor, findPid, genderOf, itemChoices, itemName, moveInfo, speciesName, type Pocket,
+  NATURE_NAMES, baseStatsFor, calcStats, findPid, genderOf, isShiny, itemChoices, itemName, moveInfo, natureOf, speciesName, type Pocket,
 } from '../../../core/gen3/data.ts';
 import { DECORS_BY_CATEGORY, DECOR_CATEGORIES } from '../../../core/gen3/decorations.ts';
 import { LEVELS, STREAK_MAX, STREAK_ROWS } from '../../../core/gen3/frontier.ts';
@@ -20,7 +20,9 @@ import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '..
 import { enableDrag } from '../../drag.ts';
 import { dexTab as sharedDexTab } from '../../dexTab.ts';
 import { choiceRow, stepRow } from '../../gameChoice.ts';
-import { badgeIcon, frontierSymbolIcon, itemIcon, itemIconUrl, pokeblockIcon, pokeblockIconUrl, setIconSrc } from '../../sprites.ts';
+import {
+  badgeIcon, frontierSymbolIcon, itemIcon, itemIconUrl, pokeblockIcon, pokeblockIconUrl, pokemonIcon, setIconSrc,
+} from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
 import { discPath, itemSpritePath } from './itemSprites.ts';
@@ -207,6 +209,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           h('span', { class: 'muted' }, ' Unlocked after the Hall of Fame.'))),
       badgeCard(),
       frontierCard(),
+      roamerCard(),
       statsCard(),
       optionsCard(),
     );
@@ -271,6 +274,52 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
                 r.extra ? field(r.extra.current !== undefined ? `Record ${r.extra.label.toLowerCase()}` : r.extra.label,
                   num(st.extraBest, (n) => { st.extraBest = n; })) : null));
           })))));
+  }
+
+  const LATIAS = 380, LATIOS = 381;
+  const IV_LABELS = { hp: 'HP', atk: 'Atk', def: 'Def', spa: 'SpA', spd: 'SpD', spe: 'Spe' } as const;
+
+  /** The roaming Latios or Latias, once the game has made one. */
+  function roamerCard(): Node | null {
+    const ro = s.roamer;
+    if (!ro) return null;
+    const otId = () => ((s.secretId << 16) | s.trainerId) >>> 0;
+    const wrap = h('section', { class: 'card roamer' });
+    // It meets you at full HP after any change that alters its stats, as the game made it.
+    const heal = () => {
+      ro.hp = calcStats(ro.species, ro.level, ro.ivs, { hp: 0, atk: 0, def: 0, spe: 0, spa: 0, spd: 0 }, natureOf(ro.pid))?.hp ?? ro.hp;
+      ro.status = 0;
+    };
+    const changed = () => { heal(); markDirty(); draw(); };
+    const draw = () => {
+      clear(wrap);
+      const shiny = isShiny(otId(), ro.pid);
+      wrap.append(
+        h('h3', {}, `Roaming ${speciesName(ro.species)}`),
+        h('div', { class: 'roamer-head' },
+          pokemonIcon(ro.species, '', '', shiny),
+          h('div', { class: 'grid pair' },
+            field('Pokémon', selectInput([{ value: LATIAS, label: 'Latias' }, { value: LATIOS, label: 'Latios' }], ro.species,
+              (v) => { ro.species = Number(v); ro.pid = findPid(ro.species, otId(), ro.pid, {}); changed(); })),
+            field('Level', numberInput(ro.level, 1, 100, (v) => { ro.level = v; changed(); })),
+            field('Nature', selectInput(NATURE_NAMES.map((n, i) => ({ value: i, label: n })), natureOf(ro.pid),
+              (v) => { ro.pid = findPid(ro.species, otId(), ro.pid, { nature: Number(v) }); changed(); })))),
+        h('h4', {}, 'IVs'),
+        h('div', { class: 'grid compact cols6' }, (['hp', 'atk', 'def', 'spa', 'spd', 'spe'] as const).map((k) =>
+          field(IV_LABELS[k], numberInput(ro.ivs[k], 0, 31, (v) => { ro.ivs[k] = v; changed(); })))),
+        h('div', { class: 'button-row' },
+          h('button', { onclick: () => { ro.ivs = { hp: 31, atk: 31, def: 31, spe: 31, spa: 31, spd: 31 }; changed(); } }, 'Perfect IVs')),
+        h('label', { class: 'check-row' },
+          h('input', { type: 'checkbox', checked: shiny, onchange: (e: Event) => {
+            ro.pid = findPid(ro.species, otId(), ro.pid, { shiny: (e.target as HTMLInputElement).checked }); changed(); } }),
+          h('span', {}, 'Shiny')),
+        h('label', { class: 'check-row' },
+          h('input', { type: 'checkbox', checked: ro.active, onchange: (e: Event) => { ro.active = (e.target as HTMLInputElement).checked; changed(); } }),
+          h('span', {}, 'Still roaming'),
+          h('span', { class: 'muted' }, ' Off once it has been caught or knocked out.')));
+    };
+    draw();
+    return wrap;
   }
 
   /** The game's own counters: steps, battles, catches and the rest. */

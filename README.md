@@ -169,6 +169,8 @@ the same editor (`GEN3_LAYOUTS` in `src/core/gen3/save.ts`).
   setting: text speed, battle scene, battle style, sound, button mode and the 20 frames. Emerald adds Battle Points,
   Berry Powder, the seven Battle Frontier symbols (none, silver or gold), and every facility's current and record streaks
   for each mode and level (plus Dome championships, Factory rentals and the trainer card's BP won).
+- The roaming Latios or Latias (once the game has made it): which one, level, nature, IVs, shininess and whether it still
+  roams.
 - Decorations in the PC: each category's list (desks, chairs, plants, ornaments, mats, posters, dolls, cushions), or one
   of every decoration.
 - The Pokéblock case: up to 40 Pokéblocks, each with its colour (in the game's own pictures), five flavours and feel.

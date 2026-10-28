@@ -269,6 +269,25 @@ function pokemonLines(b: Gen3Save, a: Gen3Save): string[] {
   return lines;
 }
 
+// ---------- the roamer ----------
+
+function roamerLines(b: Gen3Save, a: Gen3Save): string[] {
+  const x = b.roamer, y = a.roamer;
+  if (!x || !y) return [];
+  const out: string[] = [], name = speciesName(y.species);
+  const otId = (s: Gen3Save) => ((s.secretId << 16) | s.trainerId) >>> 0;
+  if (x.species !== y.species) out.push(`Roaming Pokémon: ${speciesName(x.species)} → ${name}`);
+  if (x.level !== y.level) out.push(`${name}'s level: ${x.level} → ${y.level}`);
+  const ivs = (v: typeof y.ivs) => [v.hp, v.atk, v.def, v.spa, v.spd, v.spe].join('/');
+  if (ivs(x.ivs) !== ivs(y.ivs)) out.push(`${name}'s IVs: ${ivs(x.ivs)} → ${ivs(y.ivs)}`);
+  const sx = isShiny(otId(b), x.pid), sy = isShiny(otId(a), y.pid);
+  if (sx !== sy) out.push(sy ? `${name} is now shiny` : `${name} is no longer shiny`);
+  if (natureOf(x.pid) !== natureOf(y.pid)) out.push(`${name}'s nature: ${NATURE_NAMES[natureOf(x.pid)]} → ${NATURE_NAMES[natureOf(y.pid)]}`);
+  if (x.hp !== y.hp && x.level === y.level && ivs(x.ivs) === ivs(y.ivs)) out.push(`${name}'s HP: ${x.hp} → ${y.hp}`);
+  if (x.active !== y.active) out.push(y.active ? `${name} is roaming Hoenn again` : `${name} no longer roams`);
+  return out;
+}
+
 // ---------- decorations ----------
 
 function decorationLines(b: Gen3Save, a: Gen3Save): string[] {
@@ -334,6 +353,7 @@ export function describeGen3Changes(before: Gen3Save, after: Gen3Save): ChangeGr
     group('TMs and HMs', tmLines(before.tmCounts(), after.tmCounts())),
     group('Berries pocket', itemLines(before.pockets.berry, after.pockets.berry)),
     group('PC items', itemLines(before.pcItems, after.pcItems)),
+    group('Roaming Pokémon', roamerLines(before, after)),
     group('Decorations', decorationLines(before, after)),
     group('Pokéblock case', pokeblockLines(before.pokeblocks, after.pokeblocks)),
     group('Pokémon', pokemonLines(before, after), 14),

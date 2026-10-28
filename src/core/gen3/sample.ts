@@ -52,6 +52,14 @@ export function blankGen3Save(game: Gen3Game = 'rs', trainer = 'MAY', female = t
     // Emerald also keys its Berry Powder and its 64 game stats (pokeemerald: ApplyNewEncryptionKeyToAllEncryptedData).
     for (let i = 0; i < 4; i++) sb2[0x1f4 + i] = (key >>> (i * 8)) & 0xff;
     for (let n = 0; n < 64; n++) for (let i = 0; i < 4; i++) sb1[0x159c + n * 4 + i] = (key >>> (i * 8)) & 0xff;
+    // A roaming Latios (struct Roamer), as the game makes one after the Hall of Fame: level 40, full HP, roaming.
+    const roamer = new DataView(sb1.buffer, sb1.byteOffset + 0x31dc, 0x1c);
+    roamer.setUint32(0, 20 | (12 << 5) | (25 << 10) | (9 << 15) | (31 << 20) | (17 << 25), true); // IVs
+    roamer.setUint32(4, 0x5eed1234, true); // personality
+    roamer.setUint16(8, 408, true); // SPECIES_LATIOS
+    roamer.setUint16(10, 122, true); // max HP at level 40 with an HP IV of 20
+    roamer.setUint8(12, 40);
+    roamer.setUint8(19, 1); // active
   }
   const sys = L.badgeFlag - 7; // SYSTEM_FLAGS: 0x800 in Ruby/Sapphire, 0x860 in Emerald
   for (const n of [sys, sys + 1]) sb1[L.flags + (n >> 3)] |= 1 << (n & 7); // FLAG_SYS_POKEMON_GET and _POKEDEX_GET: the start menu has POKéMON and POKéDEX

@@ -397,3 +397,24 @@ test('decorations: one list per category, packed; removing one still set out in 
     assert.ok(u.describeChanges(t).flatMap((g) => g.lines).some((l) => l.startsWith('Warning: Heavy Desk is still set out')));
   }
 });
+
+test('the roaming Latios: IVs, personality, level and roaming read back as edited; Ruby and Sapphire have none yet', async () => {
+  const { findPid, isShiny } = await import('../src/core/gen3/data.ts');
+  assert.equal(new Gen3Save(buildSampleSave('rs')).roamer, null);
+  const s = new Gen3Save(buildSampleSave('emerald'));
+  const r = s.roamer!;
+  assert.deepEqual({ species: r.species, level: r.level, hp: r.hp, active: r.active }, { species: 381, level: 40, hp: 122, active: true });
+  const otId = ((s.secretId << 16) | s.trainerId) >>> 0;
+  r.ivs = { hp: 31, atk: 31, def: 31, spe: 31, spa: 31, spd: 31 };
+  r.pid = findPid(381, otId, r.pid, { shiny: true });
+  r.species = 380; r.level = 50; r.active = false;
+  const t = new Gen3Save(s.serialize());
+  assert.deepEqual(t.roamer, r);
+  assert.ok(isShiny(otId, t.roamer!.pid));
+  const raw = t['sb1'] as Uint8Array;
+  assert.equal(raw[0x31dc + 8] | (raw[0x31dc + 9] << 8), 407); // SPECIES_LATIAS, the game's own number
+  const lines = s.describeChanges(new Gen3Save(buildSampleSave('emerald'))).flatMap((g) => g.lines);
+  for (const want of ['Roaming Pokémon: Latios → Latias', 'Latias is now shiny', 'Latias no longer roams', "Latias's level: 40 → 50"]) {
+    assert.ok(lines.includes(want), want);
+  }
+});
