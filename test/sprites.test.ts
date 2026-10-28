@@ -5,6 +5,8 @@ import { ITEM_CHOICES } from '../src/core/gen1/data.ts';
 import { itemSpritePath } from '../src/ui/editors/gen1/itemSprites.ts';
 import { itemChoices } from '../src/core/gen2/data.ts';
 import { UNKNOWN_ITEM, itemSpritePath as gen2SpritePath, tmhmIndex } from '../src/ui/editors/gen2/itemSprites.ts';
+import { itemChoices as gen3Choices } from '../src/core/gen3/data.ts';
+import { itemSpritePath as gen3SpritePath } from '../src/ui/editors/gen3/itemSprites.ts';
 
 // The artwork is a separate repository, checked out as ./assets/ (see README). The checks that read the files are
 // skipped when it isn't there, so the code still builds and tests without any artwork.
@@ -12,15 +14,17 @@ const sprites = new URL('../assets/sprites/', import.meta.url);
 const has = (rel: string) => existsSync(new URL(rel, sprites));
 const art = { skip: existsSync(sprites) ? false : 'artwork not checked out (git clone https://github.com/Noxxionmurph/SaveHub-assets assets)' };
 
-test('every Pokédex entry 1-251 has an icon, plus Unown B to Z and an egg', art, () => {
-  for (let dex = 1; dex <= 251; dex++) assert.ok(has(`pokemon/${dex}.png`), `missing pokemon/${dex}.png`);
-  for (const l of 'bcdefghijklmnopqrstuvwxyz') assert.ok(has(`pokemon/201-${l}.png`), `missing pokemon/201-${l}.png`);
+const UNOWN_FORMS = [...'bcdefghijklmnopqrstuvwxyz', 'exclamation', 'question'];
+
+test('every Pokédex entry 1-386 has an icon, plus Unown\'s other forms and an egg', art, () => {
+  for (let dex = 1; dex <= 386; dex++) assert.ok(has(`pokemon/${dex}.png`), `missing pokemon/${dex}.png`);
+  for (const l of UNOWN_FORMS) assert.ok(has(`pokemon/201-${l}.png`), `missing pokemon/201-${l}.png`);
   assert.ok(has('pokemon/egg.png'));
 });
 
-test('every Gen 2 icon has a shiny version', art, () => {
-  for (let dex = 1; dex <= 251; dex++) assert.ok(has(`pokemon/shiny/${dex}.png`), `missing pokemon/shiny/${dex}.png`);
-  for (const l of 'bcdefghijklmnopqrstuvwxyz') assert.ok(has(`pokemon/shiny/201-${l}.png`), `missing pokemon/shiny/201-${l}.png`);
+test('every icon has a shiny version', art, () => {
+  for (let dex = 1; dex <= 386; dex++) assert.ok(has(`pokemon/shiny/${dex}.png`), `missing pokemon/shiny/${dex}.png`);
+  for (const l of UNOWN_FORMS) assert.ok(has(`pokemon/shiny/201-${l}.png`), `missing pokemon/shiny/201-${l}.png`);
 });
 
 test('every selectable Gen 1 item resolves to an icon file that exists', art, () => {
@@ -34,6 +38,14 @@ test('every Gold / Silver item has an icon file that exists', art, () => {
   for (const { id, name } of itemChoices(['item', 'ball', 'key', 'tmhm'])) {
     const path = gen2SpritePath(id);
     assert.ok(has(`items/${path}.png`), `${name} (0x${id.toString(16)}) -> missing items/${path}.png`);
+  }
+});
+
+test('every Ruby / Sapphire / Emerald item has its own icon file that exists', art, () => {
+  for (const { id, name } of gen3Choices(['item', 'ball', 'key', 'tmhm', 'berry'], 'emerald')) {
+    const path = gen3SpritePath(id);
+    assert.notEqual(path, UNKNOWN_ITEM, `${name} (${id}) has no icon`);
+    assert.ok(has(`items/${path}.png`), `${name} (${id}) -> missing items/${path}.png`);
   }
 });
 
@@ -61,9 +73,10 @@ test('TMs and HMs get a disc coloured by move type', () => {
   assert.equal(itemSpritePath(0xc4 + 2), 'hm/water'); // HM03 Surf
 });
 
-test('all eight Kanto and eight Johto badges have a sprite', art, () => {
+test('all eight Kanto, Johto and Hoenn badges have a sprite', art, () => {
   for (let n = 1; n <= 8; n++) assert.ok(has(`badges/${n}.png`), `missing badges/${n}.png`);
   for (let n = 1; n <= 8; n++) assert.ok(has(`badges/johto/${n}.png`), `missing badges/johto/${n}.png`);
+  for (let n = 1; n <= 8; n++) assert.ok(has(`badges/hoenn/${n}.png`), `missing badges/hoenn/${n}.png`);
 });
 
 test('all 17 Gen 2 types, and Curse\'s ???, have a type icon', art, () => {
@@ -79,8 +92,8 @@ test('icon offsets match the sprite files (rerun scripts/measure-icons.mjs after
   const { readFile } = await import('node:fs/promises');
   const { centreOffset } = await import('../scripts/lib/png-alpha.mjs');
   const { ICON_OFFSETS, ICON_SIZE } = await import('../src/ui/spriteOffsets.ts');
-  assert.equal(ICON_OFFSETS.length, 252);
-  for (let dex = 1; dex <= 251; dex++) {
+  assert.equal(ICON_OFFSETS.length, 387);
+  for (let dex = 1; dex <= 386; dex++) {
     const o = centreOffset(await readFile(new URL(`../assets/sprites/pokemon/${dex}.png`, import.meta.url)));
     assert.deepEqual([o.width, o.height], [...ICON_SIZE], `icon ${dex} size`);
     assert.deepEqual([...ICON_OFFSETS[dex]], [o.dx, o.dy], `icon ${dex} offset`);

@@ -7,11 +7,12 @@ import { ICON_OFFSETS, ICON_SIZE } from './spriteOffsets.ts';
 
 const BASE = artUrl('sprites');
 
-/** `form` picks one of a species' other looks; only Unown has any in Gen 2 ('b' to 'z'; A is the plain icon). */
+/** `form` picks one of a species' other looks; only Unown has any ('b' to 'z', 'exclamation', 'question'; A is the plain icon). */
 export const pokemonIconUrl = (dex: number, form = '', shiny = false) =>
   `${BASE}/pokemon/${shiny ? 'shiny/' : ''}${dex}${form ? `-${form}` : ''}.png`;
 export const itemIconUrl = (path: string) => `${BASE}/items/${path}.png`;
-export const badgeIconUrl = (n: number, region: 'kanto' | 'johto' = 'kanto') => `${BASE}/badges/${region === 'johto' ? 'johto/' : ''}${n}.png`;
+export type BadgeRegion = 'kanto' | 'johto' | 'hoenn';
+export const badgeIconUrl = (n: number, region: BadgeRegion = 'kanto') => `${BASE}/badges/${region === 'kanto' ? '' : `${region}/`}${n}.png`;
 /** The type icon for a type name ("Fire"); Gen 2's ??? type (Curse) has its own. */
 export const typeIconUrl = (type: string) => `${BASE}/types/${type === '???' ? 'unknown' : type.toLowerCase()}.png`;
 
@@ -60,8 +61,8 @@ export function itemIcon(path: string, cls = ''): HTMLImageElement {
   return icon(itemIconUrl(path), 32, 32, `item-icon ${cls}`.trim());
 }
 
-/** Gym badge (16x16): Kanto 1 = Boulder ... 8 = Earth, Johto 1 = Zephyr ... 8 = Rising. Drawn with hard pixel edges. */
-export function badgeIcon(n: number, cls = '', region: 'kanto' | 'johto' = 'kanto'): HTMLImageElement {
+/** Gym badge (16x16): Kanto 1 = Boulder ... 8 = Earth, Johto 1 = Zephyr ... 8 = Rising, Hoenn 1 = Stone ... 8 = Rain. Drawn with hard pixel edges. */
+export function badgeIcon(n: number, cls = '', region: BadgeRegion = 'kanto'): HTMLImageElement {
   return icon(badgeIconUrl(n, region), 16, 16, `badge-icon ${cls}`.trim());
 }
 

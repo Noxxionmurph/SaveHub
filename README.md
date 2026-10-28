@@ -2,8 +2,8 @@
 
 One site, many games. Drop a save on the landing page, the game is detected from the file's structure
 (size, checksums, layout; never a hash, since saves change on every write), and that game's editor is
-lazy-loaded. Currently supported: Pokémon Red / Blue / Yellow, Gold / Silver and Crystal (English). Everything is a
-self-contained "game module", so adding Pokémon Gen 3–5, Final Fantasy, Mega Man Battle Network, etc. never touches the shell.
+lazy-loaded. Currently supported: Pokémon Red / Blue / Yellow, Gold / Silver / Crystal and Ruby / Sapphire / Emerald (English).
+Everything is a self-contained "game module", so adding Pokémon FireRed / LeafGreen, Gen 4–5, Final Fantasy, Mega Man Battle Network, etc. never touches the shell.
 
 ## Look and feel
 
@@ -97,6 +97,9 @@ node scripts/measure-icons.mjs                  # regenerates src/ui/spriteOffse
 node scripts/gen-gen2-data.mjs <pokegold checkout>   # regenerates src/core/gen2/tables.ts (species, base stats, moves, items)
 node scripts/gen-crystal-data.mjs <pokecrystal checkout>   # regenerates src/core/gen2/crystalTables.ts (Crystal's items and place names)
 python3 scripts/boot-gen2-save.py gold.gbc edited.sav out.png   # opens a Gold, Silver or Crystal save in the real game (PyBoy, your own ROM) and takes pictures
+node scripts/gen-gen3-data.mjs <pokeemerald checkout> <pokeruby checkout>   # regenerates src/core/gen3/tables.ts (species, base stats, abilities, moves, items, places)
+node scripts/import-sprites.mjs <PokéSprite checkout>   # copies the Pokémon, item and type icons into ./assets/ (then commit them in the artwork repository)
+python3 scripts/extract-hoenn-badges.py <pokeemerald>/graphics/trainer_card/badges.png   # the Hoenn badges, into ./assets/
 ```
 
 Everything runs client-side; saves never leave the browser. **Back up your real .sav before editing.**
@@ -154,6 +157,29 @@ one block in bank 0; see `GEN2_LAYOUTS` in `src/core/gen2/save.ts`). It also has
 - Its four new key items: Clear Bell, GS Ball, Blue Card and Egg Ticket.
 - Where each Pokémon was caught: the place, the level, the time of day and whether its trainer was a boy or a girl
   (two bytes Gold and Silver leave empty; `src/core/gen2/caught.ts`).
+
+## Gen 3 features (Ruby / Sapphire / Emerald)
+
+Ruby and Sapphire share a save layout and can't be told apart, so those saves ask which one yours is; Emerald's blocks
+are longer and it hides money, coins and bag counts under a per-save key, so it is recognised on its own and opens in
+the same editor (`GEN3_LAYOUTS` in `src/core/gen3/save.ts`).
+
+- Trainer: name, boy or girl, Trainer ID and secret ID, money, Game Corner coins, play time, the eight Hoenn badges (in
+  the games' own trainer card art), the National Pokédex (unlocked the way Professor Birch does it), and every OPTION
+  setting: text speed, battle scene, battle style, sound, button mode and the 20 frames.
+- All five bag pockets (Items, Poké Balls, Key Items, TMs & HMs as a count for each of the 58, Berries) and PC item
+  storage, each with the game's slot count and quantity limit.
+- Party and all 14 boxes of 30, laid out 6 x 5 like the PC. A box keeps its gaps: drop a Pokémon on an empty spot and it
+  goes there, and tap an empty spot to add one there. The PC rules are the game's (Mail, a party that can battle, healed
+  on the way out, PP restored on the way in). A Bad Egg can be moved or removed but not edited, and is written back
+  untouched.
+- Pokémon editor with what Gen 3 changed: nature (the raised and lowered stats marked on the stats), ability, IVs 0-31,
+  EVs 0-255 with the 510 total, gender, shininess and Unown's 28 forms (all from the personality value, so changing one
+  picks a new value that keeps the rest), Poké Ball, where and at what level it was met and in which game, its language,
+  and the original trainer's name, gender, ID and secret ID.
+- Pokédex: all 386 seen / caught (the game keeps the seen flags three times over; all three are written).
+- Every Pokémon is re-encrypted and re-checksummed, and every sector of the save slot gets a fresh checksum; an unedited
+  save round-trips byte for byte.
 
 ## Layout
 
@@ -268,6 +294,13 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   box, a Pokémon moved out of a box) loads and plays in the real game (checked in an emulator with
   `scripts/boot-gen2-save.py`), as does the sample. Offsets come from the pokegold disassembly's symbol file. Event
   flags, map position, the clock, the Day-Care and the Pokégear are left untouched.
+- Ruby / Sapphire / Emerald: English only. Tested against one real Ruby save and one real Emerald save: both load and
+  save back byte for byte. The Ruby sample and an edited copy of the real Ruby save (a new name, money, a Pokémon added
+  and one moved out of a box), and an edited copy of the sample (nature, shininess, IVs, EVs, badges, options, the
+  National Pokédex) all load and play in the real game (checked in an emulator). No Emerald ROM was tried, so Emerald
+  edits are checked only against the real save and the pokeemerald disassembly. Offsets come from pokeruby and
+  pokeemerald. Event flags (other than badges and the National Pokédex), map position, the clock, secret bases, the
+  Day-Care, records and Battle Frontier data are left untouched. FireRed and LeafGreen aren't supported yet.
 - A Pokémon's stats can be a point behind the editor's numbers in a real save: the game only recalculates stats when a
   Pokémon levels up, so stat experience earned since then hasn't counted yet. The editor shows both and leaves the
   stored ones alone unless you change the Pokémon.

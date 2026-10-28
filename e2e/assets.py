@@ -100,6 +100,8 @@ GAMES = [
     ('Crystal', lambda page: page.click('.sample-row button:has-text("Crystal")')),
     ('Red/Blue', lambda page: open_file(page, 'rb.sav')),
     ('Gold', lambda page: open_file(page, 'gold.sav')),
+    ('Ruby', lambda page: open_file(page, 'ruby.sav')),
+    ('Emerald', lambda page: open_file(page, 'emerald.sav')),
 ]
 
 counts = {}
