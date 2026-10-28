@@ -11,6 +11,7 @@ import {
   BATTLE_POINTS_MAX, BERRY_POWDER_MAX, BOX_NAME_LEN, COINS_MAX, FRONTIER_FACILITIES, MONEY_MAX, PLAYER_NAME_MAX, depositInBox,
   newMon, pocketSizes, type BagItem, type Gen3Mon, type Gen3Save,
 } from '../../../core/gen3/save.ts';
+import { GAME_STAT_MAX, HOF_TIME_STAT, gameStatGroups, packHofTime, unpackHofTime } from '../../../core/gen3/stats.ts';
 import type { MountEditor } from '../../../core/types.ts';
 import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '../../dom.ts';
 import { enableDrag } from '../../drag.ts';
@@ -203,6 +204,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           h('span', { class: 'muted' }, ' Unlocked after the Hall of Fame.'))),
       badgeCard(),
       frontierCard(),
+      statsCard(),
       optionsCard(),
     );
   }
@@ -250,6 +252,25 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
         h('div', { class: 'button-row' },
           h('button', { onclick: () => setAll(2) }, 'All gold symbols'),
           h('button', { onclick: () => setAll(0) }, 'Clear symbols'))));
+  }
+
+  /** The game's own counters: steps, battles, catches and the rest. */
+  function statsCard(): Node {
+    const st = s.gameStats;
+    const hof = unpackHofTime(st[HOF_TIME_STAT]);
+    const setHof = (part: keyof typeof hof, v: number) => { hof[part] = v; st[HOF_TIME_STAT] = packHofTime(hof); markDirty(); };
+    return h('section', { class: 'card game-stats' },
+      h('h3', {}, 'Game stats'),
+      h('div', { class: 'subgroup' },
+        h('h4', {}, 'First Hall of Fame time'),
+        h('div', { class: 'grid trio' },
+          field('Hours', numberInput(hof.hours, 0, 999, (v) => setHof('hours', v))),
+          field('Minutes', numberInput(hof.minutes, 0, 59, (v) => setHof('minutes', v))),
+          field('Seconds', numberInput(hof.seconds, 0, 59, (v) => setHof('seconds', v))))),
+      gameStatGroups(s.game).map((g) => h('details', { class: 'tips' },
+        h('summary', {}, g.title),
+        h('div', { class: 'grid pair' }, g.stats.map((x) =>
+          field(x.name, numberInput(st[x.index], 0, Math.max(GAME_STAT_MAX, st[x.index]), (v) => { st[x.index] = v; markDirty(); })))))));
   }
 
   /** The settings from the in-game OPTION menu. */

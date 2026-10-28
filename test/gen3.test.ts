@@ -305,3 +305,26 @@ test("giving a Pokémon a ribbon opens the PokéNav's RIBBONS menu (FLAG_SYS_RIB
     assert.match(lines, /ribbons added: Cool Hyper, Champion/);
   }
 });
+
+test('game stats read back as edited, under the key in Emerald and plain in Ruby and Sapphire', async () => {
+  const { gameStatGroups, packHofTime } = await import('../src/core/gen3/stats.ts');
+  for (const [game, count, at] of [['rs', 50, 0x1540], ['emerald', 52, 0x159c]] as const) {
+    // Every counter the game uses has a field, apart from the Hall of Fame time (its own fields) and the two unused ones.
+    const shown = gameStatGroups(game).flatMap((g) => g.stats.map((x) => x.index)).sort((a, b) => a - b);
+    assert.deepEqual(shown, Array.from({ length: count }, (_, i) => i).filter((i) => ![1, 22, 31].includes(i)), game);
+    const s = new Gen3Save(buildSampleSave(game));
+    assert.equal(s.gameStats.length, count);
+    assert.ok(s.gameStats.every((v) => v === 0), game);
+    s.gameStats[5] = 123456;
+    s.gameStats[1] = packHofTime({ hours: 12, minutes: 34, seconds: 56 });
+    s.gameStats[11] = 1 << 30; // more than the game counts to
+    const t = new Gen3Save(s.serialize());
+    assert.equal(t.gameStats[5], 123456);
+    assert.equal(t.gameStats[1], (12 << 16) | (34 << 8) | 56);
+    assert.equal(t.gameStats[11], 0xffffff);
+    const raw = t['sb1'] as Uint8Array, key = game === 'emerald' ? (t['key'] as number) : 0;
+    assert.equal(((raw[at + 20] | (raw[at + 21] << 8) | (raw[at + 22] << 16) | (raw[at + 23] << 24)) ^ key) >>> 0, 123456);
+    const lines = s.describeChanges(new Gen3Save(buildSampleSave(game))).flatMap((g) => g.lines);
+    for (const want of ['Steps: 0 → 123,456', 'First Hall of Fame time: none → 12:34:56']) assert.ok(lines.includes(want), want);
+  }
+});
