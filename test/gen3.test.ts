@@ -278,3 +278,30 @@ test("Emerald's Battle Points, Berry Powder and Frontier symbols read back as ed
     assert.ok(lines.includes(want), want);
   }
 });
+
+test('ribbons: contest ranks, one-bit ribbons and the count the game shows; other bits are left alone', async () => {
+  const r = await import('../src/core/gen3/ribbons.ts');
+  let v = (1 << 31) >>> 0; // the fateful-encounter bit, not a ribbon
+  v = r.setContestRank(v, 0, 2); // Cool Super (so Normal too)
+  v = r.setContestRank(v, 4, 4); // Tough Master
+  v = r.setRibbon(v, 15, true); // Champion
+  assert.equal(r.contestRank(v, 0), 2);
+  assert.equal(r.contestRank(v, 4), 4);
+  assert.equal(r.ribbonCount(v), 7);
+  assert.deepEqual(r.ribbonNames(v), ['Cool Super', 'Tough Master', 'Champion']);
+  assert.equal(v >>> 31, 1);
+  assert.equal(r.contestRibbonId(4, 4), 20);
+});
+
+test("giving a Pokémon a ribbon opens the PokéNav's RIBBONS menu (FLAG_SYS_RIBBON_GET), and the review names it", () => {
+  for (const [game, flag] of [['rs', 0x83b], ['emerald', 0x89b]] as const) {
+    const s = new Gen3Save(buildSampleSave(game));
+    assert.ok(!s['flag'](flag));
+    s.party[0].ribbons = (s.party[0].ribbons | (1 << 15) | 3) >>> 0; // Champion, Cool Hyper
+    const t = new Gen3Save(s.serialize());
+    assert.ok(t['flag'](flag), game);
+    assert.equal(t.party[0].ribbons & 0x8007, 0x8003);
+    const lines = s.describeChanges(new Gen3Save(buildSampleSave(game))).flatMap((g) => g.lines).join('\n');
+    assert.match(lines, /ribbons added: Cool Hyper, Champion/);
+  }
+});

@@ -447,10 +447,24 @@ input[type="checkbox"] { width: 20px; min-height: 20px; height: 20px; accent-col
 /* Emerald's seven Frontier symbols, in the badges' rings */
 .badge-grid.seven { grid-template-columns: repeat(7, minmax(0, 1fr)); max-width: 700px; }
 
+/* ---- ribbons (Gen 3 Pokémon window) ---- */
+/* The 32px ribbon art is drawn at its own size, so it stays a whole number of screen pixels per art pixel. */
+.ribbon-contest { display: grid; gap: 4px; }
+.ribbon-row { display: grid; grid-template-columns: 4.5em repeat(4, 44px); align-items: center; gap: 4px; }
+.ribbon-cat { font-size: 0.8125rem; color: var(--muted); }
+.ribbon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); gap: 4px; margin-top: 8px; }
+.ribbon-btn {
+  display: grid; justify-items: center; align-content: start; gap: 2px; min-height: 44px; padding: 4px 0; border: 0;
+  border-radius: 8px; background: none; color: var(--muted); font-size: 0.75rem;
+}
+.ribbon-btn .ribbon-icon { filter: grayscale(1); opacity: 0.3; }
+.ribbon-btn[aria-pressed="true"] { color: var(--text); font-weight: 600; }
+.ribbon-btn[aria-pressed="true"] .ribbon-icon { filter: none; opacity: 1; }
+
 /* ---- bag ---- */
 .two-col { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 .item-row { display: grid; grid-template-columns: 1fr 76px auto; gap: 8px; margin-bottom: 8px; }
-.card .count { margin-left: 6px; }
+.card .count, dialog h3 .count { margin-left: 6px; }
 
 /* ---- Pokémon lists ---- */
 .mon-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
@@ -905,14 +919,14 @@ button.danger { color: var(--danger); }
    plain desktop, 3 on a 2.625 phone), --px2 the nearest to two. Lists, tiles, cells, bag rows and held items all use
    --px1, so a Pokémon or an item is the same size everywhere; the Pokémon window and the landing page use --px2.
    The Pokémon icons are 68x56 with the art (never more than 35x30) in the middle, and the item icons 32x32 with the art
-   (never more than 27x23) in the middle, so negative margins give each picture a box just round its art: the empty
+   (never more than 27x23) in the middle (the Gen 3 ribbons are 32x32 too, at the same scale), so negative margins give each picture a box just round its art: the empty
    edges overlap the neighbours instead of pushing them away. Type icons and the shiny mark are smooth artwork, not
    pixel art; they have one fixed size each (24px and 16px). e2e/assets.py checks all of this. */
 :root { --px1: 1px; --px2: 2px; }
 @supports (width: round(10px, 3px)) {
   :root { --px1: max(var(--dpx), round(1px, var(--dpx))); --px2: max(var(--dpx), round(2px, var(--dpx))); }
 }
-.mon-icon, .tile-icon, .item-icon, .badge-icon, .pika-frame { image-rendering: pixelated; }
+.mon-icon, .tile-icon, .item-icon, .badge-icon, .ribbon-icon, .pika-frame { image-rendering: pixelated; }
 .mon-icon, .tile-icon {
   --art: var(--px1);
   width: calc(68 * var(--art)); height: calc(56 * var(--art)); max-width: none;
@@ -922,6 +936,8 @@ button.danger { color: var(--danger); }
 .sprite.empty { width: calc(40 * var(--px1)); height: calc(32 * var(--px1)); }
 .item-icon { --art: var(--px1); width: calc(32 * var(--art)); height: calc(32 * var(--art)); margin: calc(-2 * var(--art)); }
 .held .item-icon { --art: 0.75px; margin: calc(-5 * var(--art)); }
+/* Gen 3 ribbons are 32x32, drawn at the lists' scale like the items */
+.ribbon-btn .ribbon-icon { --art: var(--px1); width: calc(32 * var(--art)); height: calc(32 * var(--art)); }
 .dex-tile .dex-ball { margin: calc(-7 * var(--art)); }
 .pika-pic { --s: calc(40 * var(--px2)); }
 /* in tiles and cells the picture gets 4 art pixels of room above and below, so the art never crowds the edge or the Lv */
