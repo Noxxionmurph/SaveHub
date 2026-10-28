@@ -1,5 +1,5 @@
-"""Ruby / Sapphire and Emerald: made-up saves (e2e/make-fixtures.ts), every tab, the Pokémon window's Gen 3 parts (nature,
-gender, shiny, Unown's form, IVs and EVs, origin), a box with gaps, and the saved file's sector checksums."""
+"""Ruby / Sapphire and Emerald: made-up saves (e2e/make-fixtures.ts, and the landing page's Emerald sample), every tab,
+the Pokémon window's Gen 3 parts (nature, gender, shiny, Unown's form, IVs and EVs, origin), a box with gaps, and the saved file's sector checksums."""
 import struct
 import sys
 from playwright.sync_api import sync_playwright
@@ -51,6 +51,16 @@ with sync_playwright() as p:
     assert page.get_attribute('html', 'data-console') == 'gba'
     assert page.inner_text('.game-name') == 'Pokémon Emerald', page.inner_text('.game-name')
     assert page.locator('.version-pick button').count() == 0
+
+    # --- the landing page's Emerald sample is the same made-up save
+    page.goto(BASE)
+    page.click('.sample-row button:has-text("Emerald")')
+    page.wait_for_selector('.tabs')
+    assert page.get_attribute('html', 'data-console') == 'gba'
+    assert page.inner_text('.game-name') == 'Pokémon Emerald'
+    assert page.inner_text('.file-line').startswith('sample-emerald.sav')
+    page.click('button.tab:has-text("Party")')
+    assert page.locator('.mon').count() == 5
 
     # --- Ruby / Sapphire: the file can't say which
     page.goto(BASE)
