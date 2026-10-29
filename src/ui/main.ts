@@ -50,10 +50,6 @@ function shelves(games: GameModule[]): GameModule[][] {
 }
 const shortNames = (g: GameModule): string[] => g.games.map((n) => (n.startsWith(`${g.family} `) ? n.slice(g.family.length + 1) : n));
 
-/** The game a module's sample save is from, without the series name ("Yellow"), or all of its games. */
-const sampleName = (g: GameModule): string =>
-  (g.sampleGame && g.sampleGame.startsWith(`${g.family} `) ? g.sampleGame.slice(g.family.length + 1) : g.sampleGame) ?? shortNames(g).join(' / ');
-
 const setPageTitle = (name?: string) => { document.title = name ? `${name} · ${APP_NAME}` : APP_NAME; };
 
 /**
@@ -226,21 +222,49 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
 
 // ---------- screens ----------
 
-/** Example bytes for the "how it works" panel (Gen 1 layout; see src/core/gen1/save.ts). */
-const HEX_ROWS: [offset: string, bytes: string, means: string][] = [
-  ['0x2598', '80 92 87 50', 'Trainer name: ASH'],
-  ['0x2605', '30 39', 'Trainer ID: 12345'],
-  ['0x25F3', '00 30 00', 'Money: ¥3,000'],
-];
+/** Anchor for a series' shelf on the landing page ("Pokémon" -> "shelf-pokemon"). */
+const shelfId = (family: string) => `shelf-${family.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}`;
 
-/** "No save handy? Try a sample save" for every game that can build one. */
+/** "Red, Blue and Yellow", or "Red to Emerald" once a series has more titles than that. */
+function titleRange(names: string[]): string {
+  if (names.length > 3) return `${names[0]} to ${names[names.length - 1]}`;
+  return names.join(', ').replace(/, ([^,]*)$/, ' and $1');
+}
+
+/** One chip per series under the file slot, so the first screen says what opens today. Each jumps to its shelf. */
+function worksWith(): HTMLElement {
+  return h('nav', { class: 'works-with', 'aria-label': 'Supported series' },
+    h('span', { class: 'muted' }, 'Works with'),
+    [...gamesByFamily()].map(([family, games]) =>
+      h('a', { class: 'series-chip', href: `#${shelfId(family)}` },
+        h('strong', {}, family), ` ${titleRange(games.flatMap(shortNames))}`)));
+}
+
+/** "No save handy?" and a button per game that can build a sample, named in full so they stay clear across series. */
 function sampleRow(): HTMLElement | null {
   const withSample = GAMES.filter((g) => g.sample);
   if (!withSample.length) return null;
   return h('div', { class: 'sample-row' },
-    h('span', { class: 'muted' }, 'No save handy?'),
-    withSample.map((g) => h('button', { onclick: () => void openSample(g) },
-      withSample.length === 1 ? 'Try a sample save' : `Try ${/^[AEIOU]/.test(sampleName(g)) ? 'an' : 'a'} ${sampleName(g)} sample`)));
+    h('span', { class: 'muted' }, 'No save handy? Try a sample:'),
+    h('div', { class: 'sample-buttons' }, withSample.map((g) => {
+      const name = g.sampleGame ?? g.games.join(' / ');
+      const button = h('button', { class: 'sample-btn', onclick: () => void openSample(g) }, name);
+      const color = g.colors?.[name];
+      if (color) button.style.setProperty('--label', color);
+      return button;
+    })));
+}
+
+/** What the Save button lists, from the first game that offers an example. Same window as the real review list. */
+function demoPanel(): HTMLElement | null {
+  const demo = GAMES.find((g) => g.demo)?.demo;
+  if (!demo) return null;
+  return h('figure', { class: 'demo' },
+    h('figcaption', { class: 'muted' }, `Save lists every change first (${demo.game} sample):`),
+    h('div', { class: 'lcd review-list' },
+      demo.groups.map((g) => h('section', {},
+        h('h3', {}, g.title),
+        h('ul', {}, g.lines.map((l) => h('li', {}, l)))))));
 }
 
 function renderWelcome(): void {
@@ -265,20 +289,13 @@ function renderWelcome(): void {
     if (f) void loadFile(f);
   });
 
-  const hex = h('figure', { class: 'lcd hex' },
-    h('figcaption', {}, 'Curious how it works? SaveForge recognises a game by the bytes inside the file, not by its name. Here are three values from a Gen 1 Pokémon save.'),
-    h('table', {},
-      h('thead', {}, h('tr', {}, h('th', {}, 'Position'), h('th', {}, 'Bytes'), h('th', {}, 'Means'))),
-      h('tbody', {}, HEX_ROWS.map(([offset, bytes, means]) =>
-        h('tr', {}, h('td', {}, offset), h('td', {}, bytes), h('td', {}, means))))),
-  );
-
   root.append(
     h('header', { class: 'site-head' }, wordmark(30)),
     h('main', {},
     h('h1', { class: 'lede' }, 'Edit your retro game saves in the browser.'),
-    h('p', { class: 'lede-sub' }, 'Open a save file and SaveForge works out which game it is from and opens the right editor. Everything happens in your browser, so your file is never uploaded.'),
+    h('p', { class: 'lede-sub' }, 'Open a save file and SaveForge works out which game it is from. Everything happens in your browser, so your file is never uploaded.'),
     slot,
+    worksWith(),
     sampleRow(),
     h('p', { class: 'muted notice' }, 'SaveForge never changes the file you open. Saving makes a new copy, but keep a backup anyway.'),
 
@@ -286,11 +303,11 @@ function renderWelcome(): void {
       h('h2', {}, 'How it works'),
       h('div', { class: 'how-body' },
         h('ol', { class: 'steps' },
-          h('li', {}, h('strong', {}, 'Open your save'), h('span', {}, 'Use the .sav file (the battery save) from your emulator or cartridge dumper. Save states won’t work.')),
-          h('li', {}, h('strong', {}, 'Edit what you like'), h('span', {}, 'Use the tabs to change your trainer, items, Pokémon and Pokédex. Checksums, the numbers the game uses to spot damaged saves, are fixed for you.')),
-          h('li', {}, h('strong', {}, 'Save and use the new file'), h('span', {}, 'Tap Save, read the list of changes, then download your edited copy. Give it your original file’s name and put it where your game keeps its save.')),
+          h('li', {}, h('strong', {}, 'Open your save'), h('span', {}, 'The .sav file (battery save) from your emulator or cartridge dumper. Save states won’t work.')),
+          h('li', {}, h('strong', {}, 'Edit what you like'), h('span', {}, 'Checksums are fixed for you.')),
+          h('li', {}, h('strong', {}, 'Save the new file'), h('span', {}, 'Check the list of changes, then give the copy your original file’s name.')),
         ),
-        hex,
+        demoPanel(),
       ),
     ),
 
@@ -298,7 +315,7 @@ function renderWelcome(): void {
       h('h2', {}, 'Supported games'),
       ...[...gamesByFamily()].map(([family, games]) =>
         h('div', { class: 'family' },
-          h('h3', {}, family),
+          h('h3', { id: shelfId(family) }, family),
           // Each shelf's "You can edit" line sits right above its own games, so it's clear which games it means.
           ...shelves(games).flatMap((shelf) => [
             shelf[0].editable ? h('p', { class: 'muted family-edits' },

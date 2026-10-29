@@ -7,8 +7,10 @@ Everything is a self-contained "game module", so adding Pokémon FireRed / LeafG
 
 ## Look and feel
 
+[DESIGN.md](DESIGN.md) is the short version: tokens, consoles, fonts, pixel scales and the rules new pages follow.
+
 The page is styled as a handheld: grey plastic shell, olive LCD panels wherever the app shows data (levels, stats,
-Pokédex totals, the example bytes), magenta action buttons. Colours are CSS tokens at the top of `styles.css` with a
+Pokédex totals, the example change list on the landing page), magenta action buttons. Colours are CSS tokens at the top of `styles.css` with a
 light and a dark set. A game module can set `theme: 'gbc'` to restyle the page as a teal Game Boy Color (a pale screen with
 a dark bezel, teal shell, dark teal buttons) or `theme: 'gba'` for an indigo Game Boy Advance (a bright white-blue window,
 indigo shell and buttons, and the two-line frame and ruled paper of the Gen 3 trainer card on the big readouts): only

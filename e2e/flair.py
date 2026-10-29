@@ -280,7 +280,7 @@ with sync_playwright() as p:
     page = ctx.new_page()
     page.on('pageerror', lambda e: errors.append(f'pageerror: {e}'))
     page.goto(BASE); page.wait_for_selector('.slot')
-    pixel_only(page, '.lcd.hex', 'welcome page')
+    pixel_only(page, '.demo .lcd.review-list', 'welcome page')
     page.click('.sample-row button'); page.wait_for_selector('.tabs')
     pixel_only(page, '.lcd.tcard', 'trainer card'); pixel_only(page, '.lcd.options-window', 'options window')
     page.click('button.tab:has-text("Party")'); page.wait_for_selector('.pikachu-card')

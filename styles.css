@@ -41,7 +41,7 @@
     --text: #e6e8ec; --muted: #a2a9b5;
     --button: #e0447f; --button-edge: #a82a5c; --button-ink: #1a0610;
     --lcd: #223018; --lcd-ink: #c2d96e; --lcd-dim: #8aa04a; --lcd-edge: #3b4f27;
-    --cart: #a9afba; --cart-shade: #8d93a0; --pin: #d0d4db; --slot-bar: #0e1014;
+    --cart: #a9afba; --cart-shade: #8d93a0; --pin: #d0d4db; --slot-bar: #565e6d;
     --focus: #7fb0ff; --danger: #ff9a9a;
     --male: #8ab4ff; --female: #ff8ea0; --shiny: #ffd257;
     color-scheme: dark;
@@ -52,7 +52,7 @@
   --text: #e6e8ec; --muted: #a2a9b5;
   --button: #e0447f; --button-edge: #a82a5c; --button-ink: #1a0610;
   --lcd: #223018; --lcd-ink: #c2d96e; --lcd-dim: #8aa04a; --lcd-edge: #3b4f27;
-  --cart: #a9afba; --cart-shade: #8d93a0; --pin: #d0d4db; --slot-bar: #0e1014;
+  --cart: #a9afba; --cart-shade: #8d93a0; --pin: #d0d4db; --slot-bar: #565e6d;
   --focus: #7fb0ff; --danger: #ff9a9a;
   --male: #8ab4ff; --female: #ff8ea0; --shiny: #ffd257;
   color-scheme: dark;
@@ -75,7 +75,7 @@
     --text: #e3f3f1; --muted: #9cc0bc;
     --button: #5fd8c9; --button-edge: #35a89a; --button-ink: #04201c;
     --lcd: #0d1a1d; --lcd-ink: #cfeee8; --lcd-dim: #8fb8b2; --lcd-edge: #4b7a76;
-    --cart: #4fc3b5; --cart-shade: #39a396; --pin: #cfe6e3; --slot-bar: #07181b;
+    --cart: #4fc3b5; --cart-shade: #39a396; --pin: #cfe6e3; --slot-bar: #3f6a6f;
     --focus: #8bd0ff; --danger: #ff9a9a;
   }
 }
@@ -84,12 +84,12 @@
   --text: #e3f3f1; --muted: #9cc0bc;
   --button: #5fd8c9; --button-edge: #35a89a; --button-ink: #04201c;
   --lcd: #0d1a1d; --lcd-ink: #cfeee8; --lcd-dim: #8fb8b2; --lcd-edge: #4b7a76;
-  --cart: #4fc3b5; --cart-shade: #39a396; --pin: #cfe6e3; --slot-bar: #07181b;
+  --cart: #4fc3b5; --cart-shade: #39a396; --pin: #cfe6e3; --slot-bar: #3f6a6f;
   --focus: #8bd0ff; --danger: #ff9a9a;
 }
 
 /* Game Boy Advance (indigo), for games that set theme: 'gba' (the Gen 3 games; ?console=gba previews it). Colours, plus one
-   detail from the games themselves: the big readout windows (trainer card, stats, hex view, review list) get the two-line
+   detail from the games themselves: the big readout windows (trainer card, stats, review list) get the two-line
    frame and the faint ruled paper of the Gen 3 trainer card and summary screens. The window's screen colour is a bright,
    cool white-blue, since the GBA screen shows full colour, not an olive or grey LCD. */
 :root[data-console="gba"] {
@@ -109,7 +109,7 @@
     --button: #9a8bff; --button-edge: #6657d6; --button-ink: #0d0a2a;
     --lcd: #0c1233; --lcd-ink: #e1e9ff; --lcd-dim: #98a8e0; --lcd-edge: #4a5fb5;
     --lcd-inner: #2b3a80; --lcd-rule: rgba(160, 180, 255, 0.07);
-    --cart: #7b6dd2; --cart-shade: #6154b8; --pin: #ddd9f7; --slot-bar: #0a0820;
+    --cart: #7b6dd2; --cart-shade: #6154b8; --pin: #ddd9f7; --slot-bar: #5a52a0;
     --focus: #a9c4ff; --danger: #ff9a9a;
   }
 }
@@ -119,12 +119,12 @@
   --button: #9a8bff; --button-edge: #6657d6; --button-ink: #0d0a2a;
   --lcd: #0c1233; --lcd-ink: #e1e9ff; --lcd-dim: #98a8e0; --lcd-edge: #4a5fb5;
   --lcd-inner: #2b3a80; --lcd-rule: rgba(160, 180, 255, 0.07);
-  --cart: #7b6dd2; --cart-shade: #6154b8; --pin: #ddd9f7; --slot-bar: #0a0820;
+  --cart: #7b6dd2; --cart-shade: #6154b8; --pin: #ddd9f7; --slot-bar: #5a52a0;
   --focus: #a9c4ff; --danger: #ff9a9a;
 }
 /* Only the large windows: the small screens (level badge, PP box, stepper) are too small for a double line. This one adds the
    ruled paper to the frame every theme's windows get (see .lcd below). */
-:root[data-console="gba"] .lcd:is(.tcard, .stats, .hex, .review-list, .save-window, .options-window, .dex-summary) {
+:root[data-console="gba"] .lcd:is(.tcard, .stats, .review-list, .save-window, .options-window, .dex-summary) {
   background-image: repeating-linear-gradient(to bottom, transparent 0 3px, var(--lcd-rule) 3px 4px);
   box-shadow: inset 0 0 0 2px var(--lcd), inset 0 0 0 3px var(--lcd-inner);
 }
@@ -144,7 +144,18 @@ h3 { font-size: 0.9375rem; font-weight: 600; margin: 22px 0 8px; }
 a { color: inherit; text-underline-offset: 3px; }
 .muted { color: var(--muted); font-size: 0.9em; }
 .notice { margin-top: 12px; }
-.sample-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 14px; }
+.works-with { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 14px; }
+.series-chip {
+  padding: 4px 12px; border: 1px solid var(--line-strong); border-radius: 999px;
+  background: var(--surface); text-decoration: none; font-size: 0.875rem;
+}
+.series-chip:hover { border-color: var(--button); }
+.sample-row { display: grid; gap: 6px; margin-top: 14px; }
+.sample-buttons { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+/* one per line on phones, so a long title never leaves one button alone on a row of its own */
+@media (max-width: 520px) { .sample-buttons { grid-template-columns: 1fr; } }
+.sample-btn { display: flex; align-items: center; gap: 10px; text-align: left; padding-left: 0; overflow: hidden; }
+.sample-btn::before { content: ''; align-self: stretch; width: 6px; margin-block: -6px -3px; background: var(--label, var(--line-strong)); }
 .sample-note {
   margin-top: 6px; padding: 8px 12px; max-width: 36em; font-size: 0.875rem;
   background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 6px;
@@ -216,7 +227,7 @@ a { color: inherit; text-underline-offset: 3px; }
   box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.12), inset 0 0 18px rgba(0, 0, 0, 0.08);
 }
 /* The big readout windows get a two-line frame, like the game's own text boxes. */
-.lcd:is(.tcard, .stats, .hex, .review-list, .save-window, .options-window, .dex-summary) {
+.lcd:is(.tcard, .stats, .review-list, .save-window, .options-window, .dex-summary) {
   box-shadow: inset 0 0 0 2px var(--lcd), inset 0 0 0 3px color-mix(in srgb, var(--lcd-edge) 60%, var(--lcd));
 }
 /* The window the game shows when you save (PLAYER, BADGES, POKÉDEX, TIME), at the top of the review dialog. */
@@ -271,13 +282,13 @@ a { color: inherit; text-underline-offset: 3px; }
 /* The trainer card types itself in once, the first time it is drawn after a file opens (not on each return to the tab). */
 @keyframes type-in { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
 @media (prefers-reduced-motion: no-preference) {
-  .tcard.boot .tcard-name, .tcard.boot .tcard-id { display: inline-block; animation: type-in 0.5s steps(8) both; }
-  .tcard.boot .tcard-id { animation-delay: 0.3s; }
-  .tcard.boot .tcard-stats dd { animation: type-in 0.4s steps(6) both; }
-  .tcard.boot .tcard-stats > div:nth-child(1) dd { animation-delay: 0.5s; }
-  .tcard.boot .tcard-stats > div:nth-child(2) dd { animation-delay: 0.65s; }
-  .tcard.boot .tcard-stats > div:nth-child(3) dd { animation-delay: 0.8s; }
-  .tcard.boot .tcard-stats > div:nth-child(4) dd { animation-delay: 0.95s; }
+  .tcard.boot .tcard-name, .tcard.boot .tcard-id { display: inline-block; animation: type-in 0.3s steps(8) both; }
+  .tcard.boot .tcard-id { animation-delay: 0.15s; }
+  .tcard.boot .tcard-stats dd { animation: type-in 0.25s steps(6) both; }
+  .tcard.boot .tcard-stats > div:nth-child(1) dd { animation-delay: 0.25s; }
+  .tcard.boot .tcard-stats > div:nth-child(2) dd { animation-delay: 0.32s; }
+  .tcard.boot .tcard-stats > div:nth-child(3) dd { animation-delay: 0.39s; }
+  .tcard.boot .tcard-stats > div:nth-child(4) dd { animation-delay: 0.46s; }
 }
 
 /* HP bars, drawn like the game's: they fill with HP and go green, yellow, then red (core/gen1/hp.ts has the cut-offs). */
@@ -293,19 +304,8 @@ a { color: inherit; text-underline-offset: 3px; }
 .hp-row { display: flex; align-items: center; gap: 8px; max-width: 220px; margin-top: 8px; }
 .hp-row .hp-bar { flex: 1; }
 .hp-label { font: 600 0.75rem var(--font-display); color: var(--muted); }
-.hex { padding: 12px 14px; overflow-x: auto; }
-.hex figcaption { font-size: 0.9375rem; line-height: 1.4; color: var(--lcd-dim); margin-bottom: 8px; max-width: 34em; }
-.hex table { border-collapse: collapse; width: 100%; font: 500 1rem/1.3 var(--font-display); }
-.hex th { font: 500 0.875rem var(--font-display); text-transform: uppercase; text-align: left; color: var(--lcd-dim); padding: 2px 14px 4px 0; }
-.hex td { padding: 3px 14px 3px 0; white-space: nowrap; }
-.hex td:nth-child(2) { letter-spacing: 0.06em; }
-/* the pixel face is wider than the monospace this window used to use: a little smaller and tighter keeps all three columns on a 360px phone */
-@media (max-width: 400px) {
-  .hex table { font-size: 0.8125rem; }
-  .hex th, .hex td { padding-right: 10px; }
-  .hex td:nth-child(2) { letter-spacing: 0.03em; }
-}
-
+.demo { display: grid; gap: 8px; }
+.demo .review-list { max-height: none; }
 .supported { margin-top: 44px; }
 .family + .family { margin-top: 8px; }
 .tiles { list-style: none; padding: 0; margin: 0 0 18px; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }

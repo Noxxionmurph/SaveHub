@@ -9,7 +9,7 @@ export default defineGame<Gen2Save>({
   family: 'Pokémon',
   games: GAMES,
   platform: 'Game Boy Color · English',
-  editable: 'Everything from Red, Blue and Yellow, plus all 16 badges, Mom’s savings, held items, shininess, gender, eggs and named boxes. Crystal also has whether you play as the boy or the girl, its new key items, and where each Pokémon was caught.',
+  editable: 'Everything from Red, Blue and Yellow, plus Mom’s savings, held items, shininess, gender, eggs and named boxes. Crystal adds the player’s gender, its key items and where each Pokémon was caught.',
   shelf: 'pokemon-gen2',
   fileHint: 'Pokémon Gold and Silver (English) saves are 32,768 bytes (32 KB).',
   colors: { 'Pokémon Gold': '#c9a227', 'Pokémon Silver': '#9aa4b1' },
