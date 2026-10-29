@@ -60,6 +60,8 @@ with sync_playwright() as p:
     assert page.inner_text('.game-name') == 'Pokémon Emerald'
     assert page.inner_text('.file-line').startswith('sample-emerald.sav')
     frontier = page.locator('section.card.frontier')                                 # Emerald's Battle Frontier card
+    assert frontier.locator('details.fold').get_attribute('open') is None             # long Gen 3 cards start folded
+    frontier.locator('details.fold > summary').click()
     frontier.locator('label.field:has-text("Battle Points") input').fill('500')
     frontier.locator('label.field:has-text("Battle Points") input').press('Tab')
     frontier.locator('button:has-text("All gold symbols")').click()
@@ -70,23 +72,26 @@ with sync_playwright() as p:
     assert page.get_attribute('section.card.frontier .badge-btn:has-text("Tower")', 'data-metal') == 'silver'
     assert 'silver-1.png' in page.get_attribute('section.card.frontier .badge-btn:has-text("Tower") img', 'src')
     frontier.locator('summary:has-text("Battle Tower")').click()                     # streaks and records
-    tower = frontier.locator('details:has(summary:text-is("Battle Tower")) .streak-row:has(h5:text-is("Singles · Lv. 50"))')
+    tower = frontier.locator('details.tips:has(summary:text-is("Battle Tower")) .streak-row:has(h5:text-is("Singles · Lv. 50"))')
     tower.locator('label.field:has-text("Win streak") input').fill('48')
     tower.locator('label.field:has-text("Win streak") input').press('Tab')
     assert frontier.locator('.streak-row').count() == 26
     page.screenshot(path=f'{SP}/e-streaks.png', full_page=True)
     roamer = page.locator('section.card.roamer')                                      # the roaming Latios
+    roamer.locator('details.fold > summary').click()
     assert roamer.locator('h3').inner_text() == 'Roaming Latios'
     roamer.locator('label.check-row:has-text("Shiny") input').check()
     roamer.locator('button:has-text("Perfect IVs")').click()
     assert roamer.locator('label.check-row:has-text("Shiny") input').is_checked()
     roamer.screenshot(path=f'{SP}/e-roamer.png')
     rematch = page.locator('section.card.rematches')                                   # Match Call rematches
-    rematch.locator('summary').click()
+    rematch.locator('details.fold > summary').click()
+    rematch.locator('details.tips summary').click()
     assert rematch.locator('label.check-row').count() == 3                            # Rose, Andres, Dusty are registered
     rematch.locator('label.check-row:has-text("Dusty") input').check()
-    assert '1/3' in rematch.locator('summary .count').inner_text()
+    assert '1/3' in rematch.locator('details.tips summary .count').inner_text()
     stats = page.locator('section.card.game-stats')                                    # the game's counters
+    stats.locator('details.fold > summary').click()
     stats.locator('summary:has-text("Getting around")').click()
     stats.locator('label.field:has-text("Steps") input').fill('4321')
     stats.locator('label.field:has-text("Steps") input').press('Tab')
@@ -95,6 +100,7 @@ with sync_playwright() as p:
     assert stats.locator('label.field:has-text("Berry Crush games")').count() == 1   # Emerald only
     page.screenshot(path=f'{SP}/e-stats.png', full_page=True)
     page.click('button.tab:has-text("Bag")')                                         # the Pokéblock case
+    page.click('section.pokeblocks details.fold > summary')
     page.click('section.pokeblocks button:has-text("Add Pokéblock")')
     assert page.inner_text('section.pokeblocks h3 .count') == '3/40'                  # the sample has a red and a yellow one
     added = page.locator('section.pokeblocks .pokeblock-row').nth(2)

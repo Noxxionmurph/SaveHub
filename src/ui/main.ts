@@ -118,7 +118,7 @@ async function reviewThenSave(game: GameModule, save: EditableSave, original: Ui
   const bytes = save.serialize();
   if (save.describeChanges) {
     let groups: ChangeGroup[] = [];
-    try { groups = save.describeChanges(game.load(original)); } catch { groups = []; }
+    try { groups = save.describeChanges(await game.load(original)); } catch { groups = []; }
     let summary: SummaryLine[] = [];
     try { summary = save.summary?.() ?? []; } catch { summary = []; }
     if (!await askReview(groups, !sameBytes(bytes, original), summary)) return;
@@ -156,7 +156,7 @@ const externalLink = (href: string, label: string) =>
 async function openGame(game: GameModule, data: Uint8Array, isSample = false): Promise<void> {
   let save: EditableSave;
   try {
-    save = game.load(data);
+    save = await game.load(data);
   } catch (e) {
     renderError(`Couldn't open this file as ${moduleLabel(game)}.`, `${e instanceof Error ? e.message : String(e)} It may be damaged or from a different game.`, () => renderChooser(data, detectGames(data)));
     return;

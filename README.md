@@ -221,7 +221,9 @@ test/                      node:test suite
    plus data tables. Keep it free of DOM code so it's testable in Node.
 2. **Descriptor** in `src/games/<game>.ts`, using `defineGame({ id, family, games, platform, detect, identify?, load, loadEditor })`.
    `detect()` must be cheap, side-effect-free and never throw; return `{ confidence: 'certain' }` only when
-   size + checksum + layout all match, otherwise `'likely'` or `null`.
+   size + checksum + layout all match, otherwise `'likely'` or `null`. Import only a small layout file for
+   `detect()` (see `src/core/gen2/layout.ts`) and let `load()` import the save code, so the landing page doesn't
+   download every game's tables.
    `games` lists every exact title the module opens (e.g. `Pokémon Red`, `Pokémon Blue`); the site shows the
    exact name as the page headline. If the format records the version (a game code, a layout difference),
    have `identify()` return the single matching name; if it genuinely can't tell (Red vs Blue), return all

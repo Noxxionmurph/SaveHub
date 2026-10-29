@@ -15,10 +15,10 @@ test('the blank save is valid and empty', () => {
   assert.deepEqual(s.serialize(), raw);
 });
 
-test('the sample save opens as a Gen 1 save and survives a round trip', () => {
+test('the sample save opens as a Gen 1 save and survives a round trip', async () => {
   const raw = buildSampleSave();
   assert.deepEqual(buildSampleSave(), raw, 'building twice gives the same bytes');
-  const found = openSave(raw);
+  const found = await openSave(raw);
   assert.equal(found?.module.id, 'pokemon-gen1');
   assert.deepEqual(found!.save.serialize(), raw);
 });

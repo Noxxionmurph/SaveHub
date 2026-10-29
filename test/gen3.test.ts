@@ -136,10 +136,10 @@ test("the sample has the start menu's POKéMON and POKéDEX: system flags 0x800 
   }
 });
 
-test('the registry opens Ruby / Sapphire and Emerald with their own modules, and leaves Gen 2 alone', () => {
-  assert.equal(openSave(buildSampleSave('rs'))?.module.id, 'pokemon-gen3');
-  assert.equal(openSave(buildSampleSave('emerald'))?.module.id, 'pokemon-emerald');
-  assert.notEqual(openSave(buildCrystalSample('crystal'))?.module.id, 'pokemon-gen3');
+test('the registry opens Ruby / Sapphire and Emerald with their own modules, and leaves Gen 2 alone', async () => {
+  assert.equal((await openSave(buildSampleSave('rs')))?.module.id, 'pokemon-gen3');
+  assert.equal((await openSave(buildSampleSave('emerald')))?.module.id, 'pokemon-emerald');
+  assert.notEqual((await openSave(buildCrystalSample('crystal')))?.module.id, 'pokemon-gen3');
 });
 
 test('the sample reads back as built: party, box gap, bag and Pokédex', () => {
@@ -256,9 +256,9 @@ test('a Pokémon holding a letter is not copied, so two never share it', () => {
 
 for (const [env, id] of [['GEN3_SAV', 'pokemon-gen3'], ['EMERALD_SAV', 'pokemon-emerald']] as const) {
   const real = process.env[env];
-  test(`a real save in ${env} round-trips byte for byte`, { skip: real && existsSync(real) ? false : `set ${env} to a real save to run` }, () => {
+  test(`a real save in ${env} round-trips byte for byte`, { skip: real && existsSync(real) ? false : `set ${env} to a real save to run` }, async () => {
     const raw = new Uint8Array(readFileSync(real!));
-    const found = openSave(raw);
+    const found = await openSave(raw);
     assert.equal(found?.module.id, id);
     assert.deepEqual(found!.save.serialize(), raw);
   });

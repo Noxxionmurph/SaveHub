@@ -35,10 +35,10 @@ export function detectGames(data: Uint8Array): Match[] {
 }
 
 /** Convenience for tests/scripts: load with the single unambiguous match, or null. */
-export function openSave(data: Uint8Array): { module: GameModule; save: EditableSave } | null {
+export async function openSave(data: Uint8Array): Promise<{ module: GameModule; save: EditableSave } | null> {
   const matches = detectGames(data);
   if (matches.length !== 1) return null;
-  return { module: matches[0].module, save: matches[0].module.load(data) };
+  return { module: matches[0].module, save: await matches[0].module.load(data) };
 }
 
 /** Games grouped by series, for the landing page. */

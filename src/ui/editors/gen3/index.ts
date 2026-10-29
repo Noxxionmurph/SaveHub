@@ -17,7 +17,7 @@ import {
 } from '../../../core/gen3/save.ts';
 import { GAME_STAT_MAX, HOF_TIME_STAT, gameStatGroups, packHofTime, unpackHofTime } from '../../../core/gen3/stats.ts';
 import type { MountEditor } from '../../../core/types.ts';
-import { clear, field, h, lazySelect, numberInput, refocusAfterRemove, selectInput, toast } from '../../dom.ts';
+import { type Child, clear, field, h, lazySelect, numberInput, refocusAfterRemove, selectInput, toast } from '../../dom.ts';
 import { tabBar, tabPanel } from '../../tabs.ts';
 import { enableDrag } from '../../drag.ts';
 import { dexTab as sharedDexTab } from '../../dexTab.ts';
@@ -57,6 +57,14 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
   let boxView = s.currentBoxIndex;
   let cardIntroPlayed = false;
   let tmHideHeld = false;
+  /** Gen 3's long, less-used cards start folded so the Trainer and Bag tabs stay short; one opened stays open. */
+  const unfolded = new Set<string>();
+  const fold = (key: string, title: Child, ...body: Child[]): HTMLDetailsElement => {
+    const d = h('details', { class: 'fold' }, h('summary', {}, h('h3', {}, title)), ...body);
+    d.open = unfolded.has(key);
+    d.addEventListener('toggle', () => { if (d.open) unfolded.add(key); else unfolded.delete(key); });
+    return d;
+  };
   const of = (...pockets: Pocket[]): Options => itemChoices(pockets, s.game).map((c) => ({ value: c.id, label: c.name }));
   const OPTIONS = { item: of('item'), ball: of('ball'), key: of('key'), berry: of('berry'), pc: of('item', 'ball', 'key', 'berry', 'tmhm') };
   const SIZES = pocketSizes(s.game);
@@ -244,8 +252,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
     });
     paintCaption();
     const setAll = (n: number) => { f.symbols = f.symbols.map(() => n); buttons.forEach((b) => b.paint()); paintCaption(); markDirty(); };
-    return h('section', { class: 'card frontier' },
-      h('h3', {}, 'Battle Frontier'),
+    return h('section', { class: 'card frontier' }, fold('frontier', 'Battle Frontier',
       h('div', { class: 'grid trio' },
         field('Battle Points', numberInput(f.battlePoints, 0, BATTLE_POINTS_MAX, (v) => { f.battlePoints = v; markDirty(); })),
         field('BP won', numberInput(f.battlePointsWon, 0, 0xffff, (v) => { f.battlePointsWon = v; markDirty(); })),
@@ -272,7 +279,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
                 r.extra?.current !== undefined ? field(r.extra.label, num(st.extraCurrent, (n) => { st.extraCurrent = n; })) : null,
                 r.extra ? field(r.extra.current !== undefined ? `Record ${r.extra.label.toLowerCase()}` : r.extra.label,
                   num(st.extraBest, (n) => { st.extraBest = n; })) : null));
-          })))));
+          }))))));
   }
 
   const LATIAS = 380, LATIOS = 381;
@@ -293,8 +300,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
     const draw = () => {
       clear(wrap);
       const shiny = isShiny(otId(), ro.pid);
-      wrap.append(
-        h('h3', {}, `Roaming ${speciesName(ro.species)}`),
+      wrap.append(fold('roamer', `Roaming ${speciesName(ro.species)}`,
         h('div', { class: 'roamer-head' },
           pokemonIcon(ro.species, '', '', shiny),
           h('div', { class: 'grid pair' },
@@ -315,7 +321,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
         h('label', { class: 'check-row' },
           h('input', { type: 'checkbox', checked: ro.active, onchange: (e: Event) => { ro.active = (e.target as HTMLInputElement).checked; changed(); } }),
           h('span', {}, 'Still roaming'),
-          h('span', { class: 'muted' }, ' Off once it has been caught or knocked out.')));
+          h('span', { class: 'muted' }, ' Off once it has been caught or knocked out.'))));
     };
     draw();
     refreshers.push(draw); // its shininess follows the Trainer ID and Secret ID
@@ -340,12 +346,11 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           h('span', {}, name)))));
       details.open = open;
       details.addEventListener('toggle', () => { open = details.open; });
-      wrap.append(
-        h('h3', {}, 'Trainer rematches'),
+      wrap.append(fold('rematches', 'Trainer rematches',
         shown.length ? details : h('p', { class: 'muted' }, 'No trainers registered in the PokéNav yet.'),
         shown.length ? h('div', { class: 'button-row' },
           h('button', { onclick: () => { shown.forEach((x) => set(x.m, true)); markDirty(); draw(); } }, 'Everyone wants a rematch'),
-          h('button', { onclick: () => { shown.forEach((x) => set(x.m, false)); markDirty(); draw(); } }, 'No rematches')) : null);
+          h('button', { onclick: () => { shown.forEach((x) => set(x.m, false)); markDirty(); draw(); } }, 'No rematches')) : null));
     };
     draw();
     return wrap;
@@ -356,8 +361,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
     const st = s.gameStats;
     const hof = unpackHofTime(st[HOF_TIME_STAT]);
     const setHof = (part: keyof typeof hof, v: number) => { hof[part] = v; st[HOF_TIME_STAT] = packHofTime(hof); markDirty(); };
-    return h('section', { class: 'card game-stats' },
-      h('h3', {}, 'Game stats'),
+    return h('section', { class: 'card game-stats' }, fold('stats', 'Game stats',
       h('div', { class: 'subgroup' },
         h('h4', {}, 'First Hall of Fame time'),
         h('div', { class: 'grid trio' },
@@ -367,7 +371,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
       gameStatGroups(s.game).map((g) => h('details', { class: 'tips' },
         h('summary', {}, g.title),
         h('div', { class: 'grid pair' }, g.stats.map((x) =>
-          field(x.name, numberInput(st[x.index], 0, Math.max(GAME_STAT_MAX, st[x.index]), (v) => { st[x.index] = v; markDirty(); })))))));
+          field(x.name, numberInput(st[x.index], 0, Math.max(GAME_STAT_MAX, st[x.index]), (v) => { st[x.index] = v; markDirty(); }))))))));
   }
 
   /** The settings from the in-game OPTION menu. */
@@ -519,8 +523,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
     const colors = POKEBLOCK_COLORS.slice(1).map((name, i) => ({ value: String(i + 1), label: name }));
     const draw = () => {
       clear(wrap);
-      wrap.append(
-        h('h3', {}, 'Pokéblock case', h('span', { class: 'muted count' }, `${list.length}/${POKEBLOCK_SLOTS}`)),
+      wrap.append(fold('pokeblocks', ['Pokéblock case', h('span', { class: 'muted count' }, `${list.length}/${POKEBLOCK_SLOTS}`)],
         ...list.map((p, i) => {
           const icon = pokeblockIcon(p.color);
           const num = (label: string, v: number, max: number, set: (v: number) => void) =>
@@ -539,7 +542,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           h('button', {
             disabled: list.length >= POKEBLOCK_SLOTS,
             onclick: () => { list.push({ color: 14, spicy: 40, dry: 40, sweet: 40, bitter: 40, sour: 40, feel: 10 }); markDirty(); draw(); },
-          }, list.length >= POKEBLOCK_SLOTS ? `Full (${POKEBLOCK_SLOTS} of ${POKEBLOCK_SLOTS})` : '+ Add Pokéblock')));
+          }, list.length >= POKEBLOCK_SLOTS ? `Full (${POKEBLOCK_SLOTS} of ${POKEBLOCK_SLOTS})` : '+ Add Pokéblock'))));
     };
     draw();
     return wrap;
