@@ -3,6 +3,8 @@
 // carries on into the next challenge while its bit in winStreakActiveFlags is set (include/constants/frontier_util.h),
 // as the game leaves it after a won challenge; otherwise the game shows it as the previous streak.
 
+import { le } from '../bytes.ts';
+
 export const STREAK_MAX = 9999;
 export const LEVELS = ['Lv. 50', 'Open Level'] as const;
 const ACTIVE_FLAGS = 0xcdc;
@@ -50,9 +52,7 @@ export const STREAK_ROWS: readonly StreakRow[] = rows();
 /** One row's numbers as saved. */
 export interface Streak { current: number; best: number; active: boolean; extraCurrent: number; extraBest: number }
 
-const u16 = (d: Uint8Array, o: number) => d[o] | (d[o + 1] << 8);
-const setU16 = (d: Uint8Array, o: number, v: number) => { d[o] = v & 0xff; d[o + 1] = (v >> 8) & 0xff; };
-const u32 = (d: Uint8Array, o: number) => (d[o] | (d[o + 1] << 8) | (d[o + 2] << 16) | (d[o + 3] << 24)) >>> 0;
+const { u16, setU16, u32 } = le;
 const cap = (v: number) => Math.max(0, Math.min(STREAK_MAX, Math.floor(v)));
 
 export function readStreaks(sb2: Uint8Array): Streak[] {

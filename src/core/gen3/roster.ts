@@ -13,7 +13,7 @@ export const PARTY = -1;
 export { BOX_SLOTS, PARTY_MAX };
 export const BOX_TOTAL = BOX_COUNT;
 
-export type Refusal = 'full' | 'last-party' | 'same' | 'missing' | 'mail' | 'last-healthy';
+export type Refusal = 'full' | 'last-party' | 'same' | 'missing' | 'mail' | 'copy-mail' | 'last-healthy';
 
 export const REFUSAL_TEXT: Record<Refusal, string> = {
   full: 'That place is full.',
@@ -21,6 +21,7 @@ export const REFUSAL_TEXT: Record<Refusal, string> = {
   same: "It's already there.",
   missing: "That Pokémon isn't there any more.",
   mail: 'It’s holding Mail, and the game won’t put a Pokémon holding Mail in a box. Take the Mail off first (in the editor, change its held item).',
+  'copy-mail': 'It’s holding Mail, and a letter belongs to one Pokémon, so a copy would share it. Take the Mail off first.',
   'last-healthy': 'Your party needs a Pokémon that can battle (not an egg, and not fainted), so this one stays.',
 };
 
@@ -97,7 +98,9 @@ export function copyMon(s: Gen3Save, from: number, index: number): Slot | Refusa
   if (!mon) return 'missing';
   const where = [from, ...ALL_PLACES.filter((w) => w !== PARTY)].find((w) => spaceAt(s, w) > 0);
   if (where === undefined) return 'full';
+  // The Pokémon only records which saved letter it holds, so a copy would point at the same one.
   if (where !== PARTY && holdsMail(mon)) return 'mail';
+  if (holdsMail(mon) && mon.mail !== 0xff) return 'copy-mail';
   const copy = structuredClone(mon);
   let at: number;
   if (where === PARTY) { at = index + 1; s.party.splice(at, 0, copy); }

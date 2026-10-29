@@ -187,7 +187,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
             (v) => { s.gender = v === 'female' ? 'female' : 'male'; markDirty(); })),
         h('div', { class: 'grid pair' },
           field('Trainer ID', numberInput(s.trainerId, 0, 65535, (v) => { s.trainerId = v; edited(); })),
-          field('Secret ID', numberInput(s.secretId, 0, 65535, (v) => { s.secretId = v; markDirty(); })),
+          field('Secret ID', numberInput(s.secretId, 0, 65535, (v) => { s.secretId = v; edited(); })),
         ),
         h('p', { class: 'muted section-note' }, 'Change either and your Pokémon count as traded (and their shininess can change).'),
         h('div', { class: 'grid pair money' },
@@ -321,6 +321,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           h('span', { class: 'muted' }, ' Off once it has been caught or knocked out.')));
     };
     draw();
+    refreshers.push(draw); // its shininess follows the Trainer ID and Secret ID
     return wrap;
   }
 

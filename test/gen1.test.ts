@@ -204,6 +204,40 @@ test('bad checksum is rejected by detection', () => {
   assert.equal(openSave(raw), null);
 });
 
+test('a file that failed its checksum still opens, and says so', () => {
+  const raw = blankSave();
+  assert.equal(new Gen1Save(raw).loadNote(), null);
+  raw[0x3523] ^= 0xff;
+  const s = new Gen1Save(raw);
+  assert.equal(s.checksumOk, false);
+  assert.ok(s.loadNote());
+});
+
+test('boxes the game never set up read as empty, and stay untouched until one gets a Pokémon', () => {
+  const raw = blankSave();
+  // Junk in box 2's slot of the box bank, as an SRAM the game never wrote can hold.
+  raw[0x4000 + 0x462] = 3;
+  const s = new Gen1Save(raw);
+  assert.equal(s.boxesReady, false);
+  assert.equal(s.boxes[1].length, 0);
+  // Editing the current box alone leaves the box banks and the flag as they were.
+  s.boxes[0] = [newMon(0x99, 5)];
+  let out = s.serialize();
+  assert.equal(out[0x284c], 0);
+  assert.deepEqual(out.slice(0x4000, 0x8000), raw.slice(0x4000, 0x8000));
+  // A Pokémon in another box sets them all up and marks them, so the game won't empty them on the first box change.
+  s.boxes[5] = [newMon(0x54, 10)];
+  out = s.serialize();
+  assert.equal(out[0x284c], 0x80);
+  assert.equal(out[0x4000 + 0x462], 0);
+  assert.equal(out[0x6000 + 0x1a4c], checksum8(out, 0x6000, 0x6000 + 0x1a4c));
+  const back = new Gen1Save(out);
+  assert.equal(back.boxesReady, true);
+  assert.equal(back.currentBoxIndex, 0);
+  assert.equal(back.boxes[5].length, 1);
+  assert.deepEqual(back.serialize(), out);
+});
+
 test('in-game options read and write the right bits and nothing else', () => {
   const raw = blankSave();
   raw[0x2601] = 0b1100_0011; // medium text, Set battle style, animations off

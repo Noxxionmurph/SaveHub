@@ -7,7 +7,7 @@
 //   ruby.sav       a Ruby / Sapphire save, and emerald.sav the same trainer in Emerald (no Gen 3 sample on the landing page)
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { buildSampleSave } from '../src/core/gen1/sample.ts';
-import { checksum8 } from '../src/core/gen1/save.ts';
+import { GEN1_OFFSETS as O, checksum8 } from '../src/core/gen1/save.ts';
 import { buildSampleSave as buildGen2Sample } from '../src/core/gen2/sample.ts';
 import { buildSampleSave as buildGen3Sample } from '../src/core/gen3/sample.ts';
 
@@ -18,8 +18,8 @@ const sample = buildSampleSave();
 writeFileSync(`${out}/sample.sav`, sample);
 
 const rb = sample.slice();
-rb[0x271c] = 0; rb[0x271d] = 0;
-rb[0x3523] = checksum8(rb, 0x2598, 0x3523);
+rb[O.pikachuFriendship] = 0; rb[O.pikachuMood] = 0;
+rb[O.checksum] = checksum8(rb, O.checksumStart, O.checksumEnd);
 writeFileSync(`${out}/rb.sav`, rb);
 
 const footer = Uint8Array.from({ length: 44 }, (_, i) => 0xa5 ^ i);

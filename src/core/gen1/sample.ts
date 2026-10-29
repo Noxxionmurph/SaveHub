@@ -4,7 +4,9 @@
 
 import { DEX_TO_INTERNAL, INTERNAL_TO_DEX, MOVE_NAMES, expForLevel, type Growth } from './data.ts';
 import { maxPp } from './moves.ts';
-import { Gen1Save, SAVE_SIZE, checksum8, newMon, recalcPartyStats, type Gen1Mon } from './save.ts';
+import {
+  BOXES_PER_BANK, BOX_SIZE, GEN1_OFFSETS, Gen1Save, SAVE_SIZE, checksum8, newMon, recalcPartyStats, type Gen1Mon,
+} from './save.ts';
 import { encodeText } from './text.ts';
 
 /**
@@ -13,17 +15,19 @@ import { encodeText } from './text.ts';
  * what marks the file as Pokémon Yellow.
  */
 export function blankGen1Save(trainer = 'ASH', rival = 'GARY', yellow = false): Uint8Array {
+  const O = GEN1_OFFSETS;
   const d = new Uint8Array(SAVE_SIZE);
-  d.set(encodeText(trainer, 11), 0x2598);
-  d.set(encodeText(rival, 11), 0x25f6);
-  d[0x25ca] = 0xff; d[0x27e7] = 0xff; d[0x2f2d] = 0xff; d[0x30c1] = 0xff; // empty bag, PC items, party, box
-  for (const bank of [0x4000, 0x6000]) {
-    for (let i = 0; i < 6; i++) d[bank + i * 0x462 + 1] = 0xff;
-    d[bank + 0x1a4c] = checksum8(d, bank, bank + 0x1a4c);
-    for (let i = 0; i < 6; i++) d[bank + 0x1a4d + i] = checksum8(d, bank + i * 0x462, bank + (i + 1) * 0x462);
+  d.set(encodeText(trainer, 11), O.playerName);
+  d.set(encodeText(rival, 11), O.rivalName);
+  for (const list of [O.bagCount, O.pcItemCount, O.party, O.currentBoxData]) d[list + 1] = 0xff; // empty lists
+  const total = BOX_SIZE * BOXES_PER_BANK;
+  for (const bank of [O.bank2, O.bank3]) {
+    for (let i = 0; i < BOXES_PER_BANK; i++) d[bank + i * BOX_SIZE + 1] = 0xff;
+    d[bank + total] = checksum8(d, bank, bank + total);
+    for (let i = 0; i < BOXES_PER_BANK; i++) d[bank + total + 1 + i] = checksum8(d, bank + i * BOX_SIZE, bank + (i + 1) * BOX_SIZE);
   }
-  if (yellow) { d[0x271c] = 90; d[0x271d] = 0x80; }
-  d[0x3523] = checksum8(d, 0x2598, 0x3523);
+  if (yellow) { d[O.pikachuFriendship] = 90; d[O.pikachuMood] = 0x80; }
+  d[O.checksum] = checksum8(d, O.checksumStart, O.checksumEnd);
   return d;
 }
 

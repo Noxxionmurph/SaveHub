@@ -240,6 +240,17 @@ test('Mail stays out of the boxes, and the party keeps one Pokémon that can bat
   assert.equal(typeof r, 'object');
 });
 
+test('a Pokémon holding a letter is not copied, so two never share it', () => {
+  const s = new Gen3Save(buildSampleSave('rs'));
+  s.party = s.party.slice(0, 2);
+  s.party[0].item = 121; // Orange Mail
+  s.party[0].mail = 0;
+  assert.equal(copyMon(s, PARTY, 0), 'copy-mail');
+  assert.equal(s.party.length, 2);
+  s.party[0].mail = 0xff; // Mail with no letter written is just an item
+  assert.equal(typeof copyMon(s, PARTY, 0), 'object');
+});
+
 // ---------- real saves, if you have them ----------
 // Set GEN3_SAV and/or EMERALD_SAV to check they round-trip. Nothing from them is printed or stored.
 
