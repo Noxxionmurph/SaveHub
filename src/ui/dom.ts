@@ -66,8 +66,9 @@ export function textInput(
 
 export function selectInput(
   options: { value: number | string; label: string }[], value: number | string, onChange: (v: string) => void,
+  extra: Record<string, unknown> = {},
 ): HTMLSelectElement {
-  const sel = h('select', { value: String(value), onchange: () => onChange(sel.value) },
+  const sel = h('select', { value: String(value), onchange: () => onChange(sel.value), ...extra },
     options.map((o) => h('option', { value: String(o.value) }, o.label)));
   return sel;
 }
@@ -82,9 +83,11 @@ const FILL_EVENTS = ['pointerdown', 'touchstart', 'mousedown', 'focus', 'keydown
  * 70 rows cost 70 options instead of ~8,700. Pass the same `options` array each time so its markup is built once
  * and cloned.
  */
-export function lazySelect(options: Choice[], value: number | string, onChange: (v: string) => void): HTMLSelectElement {
+export function lazySelect(
+  options: Choice[], value: number | string, onChange: (v: string) => void, extra: Record<string, unknown> = {},
+): HTMLSelectElement {
   const current = options.find((o) => String(o.value) === String(value));
-  const sel = h('select', {}, h('option', { value: String(value) }, current?.label ?? String(value)));
+  const sel = h('select', extra, h('option', { value: String(value) }, current?.label ?? String(value)));
   sel.value = String(value);
   const fill = () => {
     for (const ev of FILL_EVENTS) sel.removeEventListener(ev, fill);
@@ -130,4 +133,14 @@ export function toast(message: string): void {
   document.body.append(el);
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.remove(), 5000);
+}
+
+/**
+ * After a list row is removed and the list redrawn, put focus back where the keyboard was: the Remove button that
+ * now sits in the same place, else the one above, else the list's add button. Without this, focus falls to the page.
+ */
+export function refocusAfterRemove(scope: Element, removeLabel: (index: number) => string, index: number): void {
+  const find = (i: number) => (i < 0 ? null : scope.querySelector<HTMLButtonElement>(`button[aria-label="${removeLabel(i)}"]`));
+  const add = [...scope.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')].find((b) => b.textContent?.startsWith('+'));
+  (find(index) ?? find(index - 1) ?? add)?.focus();
 }

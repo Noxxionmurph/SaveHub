@@ -17,7 +17,8 @@ import {
 } from '../../../core/gen3/save.ts';
 import { GAME_STAT_MAX, HOF_TIME_STAT, gameStatGroups, packHofTime, unpackHofTime } from '../../../core/gen3/stats.ts';
 import type { MountEditor } from '../../../core/types.ts';
-import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '../../dom.ts';
+import { clear, field, h, lazySelect, numberInput, refocusAfterRemove, selectInput, toast } from '../../dom.ts';
+import { tabBar, tabPanel } from '../../tabs.ts';
 import { enableDrag } from '../../drag.ts';
 import { dexTab as sharedDexTab } from '../../dexTab.ts';
 import { choiceRow, stepRow } from '../../gameChoice.ts';
@@ -67,12 +68,8 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
     refreshers = [];
     clear(container);
     container.append(
-      h('nav', { class: 'tabs', role: 'tablist' }, TABS.map((t) =>
-        h('button', {
-          role: 'tab', class: t.id === tab ? 'tab active' : 'tab', 'aria-selected': String(t.id === tab),
-          onclick: () => { tab = t.id; render(); },
-        }, t.label))),
-      h('main', { class: 'panel' }, renderTab()),
+      tabBar(TABS, tab, (id) => { tab = id; render(); }),
+      tabPanel(TABS, tab, renderTab()),
     );
   };
 
@@ -407,9 +404,9 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           return h('div', { class: 'item-row' },
             icon,
             lazySelect(options.some((c) => c.value === it.id) ? options : [{ value: it.id, label: itemName(it.id) }, ...options],
-              it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }),
-            numberInput(it.count, 1, Math.max(size.count, it.count), (v) => { it.count = v; markDirty(); }, { 'aria-label': 'Quantity' }),
-            h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { items.splice(i, 1); markDirty(); draw(); } }, '✕'),
+              it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }, { 'aria-label': `${title}, item ${i + 1}` }),
+            numberInput(it.count, 1, Math.max(size.count, it.count), (v) => { it.count = v; markDirty(); }, { 'aria-label': `Quantity of item ${i + 1}` }),
+            h('button', { class: 'icon', 'aria-label': `Remove item ${i + 1}`, onclick: () => { items.splice(i, 1); markDirty(); draw(); refocusAfterRemove(wrap, (n) => `Remove item ${n + 1}`, i); } }, '✕'),
           );
         }),
         h('button', {
@@ -489,8 +486,8 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           const details = h('details', { class: 'tips' },
             h('summary', {}, cat.name, h('span', { class: 'muted count' }, `${list.length}/${cat.slots}`)),
             list.map((id, i) => h('div', { class: 'item-row decor-row' },
-              selectInput(options, id, (v) => { list[i] = Number(v); markDirty(); }),
-              h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { list.splice(i, 1); markDirty(); draw(); } }, '✕'))),
+              selectInput(options, id, (v) => { list[i] = Number(v); markDirty(); }, { 'aria-label': `${cat.name} ${i + 1}` }),
+              h('button', { class: 'icon', 'aria-label': `Remove ${cat.name.toLowerCase()} ${i + 1}`, onclick: () => { list.splice(i, 1); markDirty(); draw(); refocusAfterRemove(wrap.querySelectorAll('details')[c], (n) => `Remove ${cat.name.toLowerCase()} ${n + 1}`, i); } }, '✕'))),
             h('button', {
               disabled: list.length >= cat.slots,
               onclick: () => { list.push((options.find((o) => !list.includes(o.value)) ?? options[0]).value); markDirty(); draw(); },
@@ -531,9 +528,9 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           return h('div', { class: 'pokeblock-row' },
             h('div', { class: 'item-row' },
               icon,
-              Object.assign(selectInput(colors, String(p.color), (v) => { p.color = Number(v); icon.src = pokeblockIconUrl(p.color); markDirty(); }),
-                { ariaLabel: 'Colour' }),
-              h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { list.splice(i, 1); markDirty(); draw(); } }, '✕')),
+              selectInput(colors, String(p.color), (v) => { p.color = Number(v); icon.src = pokeblockIconUrl(p.color); markDirty(); },
+                { 'aria-label': `Colour of Pokéblock ${i + 1}` }),
+              h('button', { class: 'icon', 'aria-label': `Remove Pokéblock ${i + 1}`, onclick: () => { list.splice(i, 1); markDirty(); draw(); refocusAfterRemove(wrap, (n) => `Remove Pokéblock ${n + 1}`, i); } }, '✕')),
             h('div', { class: 'grid' },
               FLAVORS.map((f) => num(f[0].toUpperCase() + f.slice(1), p[f], FLAVOR_MAX, (n) => { p[f] = n; })),
               num('Feel', p.feel, FEEL_MAX, (n) => { p.feel = n; })));

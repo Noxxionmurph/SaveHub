@@ -41,11 +41,11 @@ export function openMonEditor({ mon, party, onDone, onDiscard }: MonEditorOption
   /** The experience a Pokémon of this species has at a level. The curve is fixed by the species; a glitch species is guessed once, on opening. */
   const guessed = guessGrowth(mon.level, mon.exp);
   const expAt = (level: number) => expForLevel(growthOf(mon.species, guessed), level);
-  const dialog = h('dialog', { class: 'mon-dialog' });
+  const dialog = h('dialog', { class: 'mon-dialog', 'aria-labelledby': 'mon-title' });
   const body = h('div', { class: 'dialog-body' });
   dialog.append(body);
 
-  // Edits are applied to `mon` as they're made. Done (and Escape) keep them. The X at the top right throws them
+  // Edits are applied to `mon` as they're made. Done keeps them. The X at the top right (and Escape) throws them
   // away: it puts the Pokémon back the way it was when this window opened, after asking if anything was changed.
   const original = structuredClone(mon);
   const originalPrint = fingerprint(mon);
@@ -110,7 +110,7 @@ export function openMonEditor({ mon, party, onDone, onDiscard }: MonEditorOption
               mon.moves[i] = Number(v);
               mon.pp[i] = maxPp(mon.moves[i], mon.ppUps[i]); // a newly picked move starts with full PP
               redraw();
-            })),
+            }, { 'aria-label': `Move ${i + 1}` })),
           h('div', { class: 'move-nums' },
             h('div', { class: 'inline-field' },
               h('span', { class: 'field-label' }, 'PP'),
@@ -148,7 +148,7 @@ export function openMonEditor({ mon, party, onDone, onDiscard }: MonEditorOption
         h('div', { class: 'mon-id' },
           pokemonIcon(dex, 'big'),
           h('div', {},
-            h('h2', {}, mon.nickname || speciesName(mon.species)),
+            h('h2', { id: 'mon-title' }, mon.nickname || speciesName(mon.species)),
             h('p', { class: 'muted' }, dex ? `#${String(dex).padStart(3, '0')} ${speciesName(mon.species)}` : speciesName(mon.species)),
             // on a narrow phone the level moves down beside the types (styles.css), so the name keeps its room
             h('div', { class: 'mon-head-meta' }, h('span', { class: 'lcd lv lv-inline' }, `Lv ${mon.level}`), typeChips(base)),
@@ -224,6 +224,8 @@ export function openMonEditor({ mon, party, onDone, onDiscard }: MonEditorOption
     ];
   }
 
+  // Escape works like the ✕: it asks before throwing edits away, rather than closing and keeping them.
+  dialog.addEventListener('cancel', (e) => { e.preventDefault(); void discardAndClose(); });
   dialog.addEventListener('close', () => { dialog.remove(); if (discarded) onDiscard?.(); onDone(changed()); });
   document.body.append(dialog);
   refresh();

@@ -161,7 +161,7 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
     renderError(`Couldn't open this file as ${moduleLabel(game)}.`, `${e instanceof Error ? e.message : String(e)} It may be damaged or from a different game.`, () => renderChooser(data, detectGames(data)));
     return;
   }
-  const container = h('div', { class: 'editor' }, h('p', { class: 'muted' }, 'Loading editor…'));
+  const container = h('main', { class: 'editor' }, h('p', { class: 'muted' }, 'Loading editor…'));
   let identity: GameIdentity;
   try { identity = game.identify?.(data) ?? { names: game.games }; } catch { identity = { names: game.games }; }
   const names = identity.names.length ? identity.names : game.games;
@@ -275,6 +275,7 @@ function renderWelcome(): void {
 
   root.append(
     h('header', { class: 'site-head' }, wordmark(30)),
+    h('main', {},
     h('h1', { class: 'lede' }, 'Edit your retro game saves in the browser.'),
     h('p', { class: 'lede-sub' }, 'Open a save file and SaveForge works out which game it is from and opens the right editor. Everything happens in your browser, so your file is never uploaded.'),
     slot,
@@ -317,6 +318,7 @@ function renderWelcome(): void {
             }))),
           ]))),
       h('p', { class: 'request' }, 'Want another game? ', externalLink(`${REPO}/issues/new`, 'Request it on GitHub'), '.'),
+    ),
     ),
 
     siteFooter(),

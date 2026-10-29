@@ -6,7 +6,8 @@ import {
 import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, dropMon, listAt, placeName, shiftMon } from '../../../core/gen1/roster.ts';
 import { newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
 import type { EditorHost, MountEditor } from '../../../core/types.ts';
-import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '../../dom.ts';
+import { clear, field, h, lazySelect, numberInput, refocusAfterRemove, selectInput, toast } from '../../dom.ts';
+import { tabBar, tabPanel } from '../../tabs.ts';
 import { enableDrag } from '../../drag.ts';
 import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
@@ -48,12 +49,8 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
     refreshers = [];
     clear(container);
     container.append(
-      h('nav', { class: 'tabs', role: 'tablist' }, TABS.map((t) =>
-        h('button', {
-          role: 'tab', class: t.id === tab ? 'tab active' : 'tab', 'aria-selected': String(t.id === tab),
-          onclick: () => { tab = t.id; render(); },
-        }, t.label))),
-      h('main', { class: 'panel' }, renderTab()),
+      tabBar(TABS, tab, (id) => { tab = id; render(); }),
+      tabPanel(TABS, tab, renderTab()),
     );
   };
 
@@ -225,9 +222,9 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
             icon,
             lazySelect(
               ITEM_CHOICES.some((c) => c.id === it.id) ? ITEM_OPTIONS : [{ value: it.id, label: itemLabel(it.id) }, ...ITEM_OPTIONS],
-              it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }),
-            numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': 'Quantity' }),
-            h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { items.splice(i, 1); markDirty(); draw(); } }, '✕'),
+              it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }, { 'aria-label': `${title}, item ${i + 1}` }),
+            numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': `Quantity of item ${i + 1}` }),
+            h('button', { class: 'icon', 'aria-label': `Remove item ${i + 1}`, onclick: () => { items.splice(i, 1); markDirty(); draw(); refocusAfterRemove(wrap, (n) => `Remove item ${n + 1}`, i); } }, '✕'),
           );
         }),
         h('button', {

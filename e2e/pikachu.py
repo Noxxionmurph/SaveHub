@@ -57,7 +57,7 @@ with sync_playwright() as p:
     card = page.locator('section.pikachu-card')
     card.locator('.lcd.second').scroll_into_view_if_needed()
     page.wait_for_timeout(200)
-    box = card.locator('.pika-preview').bounding_box(); tabs = page.locator('nav.tabs').bounding_box()
+    box = card.locator('.pika-preview').bounding_box(); tabs = page.locator('.tabs').bounding_box()
     print('sticky preview top', round(box['y']), 'tabs bottom', round(tabs['y'] + tabs['height']))
     assert 40 <= box['y'] <= 60 and box['y'] >= tabs['y'] + tabs['height'] - 1, (box, tabs)
     page.screenshot(path=f'{SP}/pk-sticky.png')

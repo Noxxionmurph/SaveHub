@@ -48,6 +48,13 @@ SCAN = """async () => {
     // a Pokémon picture's empty edges may run past a tile (styles.css, "one scale for every picture"); only text counts
     if (e.scrollWidth > e.clientWidth + 1 && !(e.querySelector('img') && !textSpills(e))) bad.push(`cut off: ${e.tagName.toLowerCase()}.${e.className} "${e.textContent.trim().slice(0, 30)}"`);
   });
+  // a number box too narrow for its largest value (a phone once showed 99 as "9(")
+  [...scope.querySelectorAll('input[type=number]')].filter(shown).forEach((e) => {
+    if (!e.max || e.disabled) return;
+    const was = e.value; e.value = e.max;
+    if (e.scrollWidth > e.clientWidth + 1) bad.push(`number cut off: "${e.getAttribute('aria-label') || e.closest('label')?.textContent.trim().slice(0, 20) || e.className}" can't show ${e.max}`);
+    e.value = was;
+  });
   // a value that never got filled in: Element.append() writes null as the text "null"
   const walker = document.createTreeWalker(scope === document ? document.body : scope, NodeFilter.SHOW_TEXT);
   for (let t = walker.nextNode(); t; t = walker.nextNode()) {
@@ -87,8 +94,8 @@ with sync_playwright() as p:
             page.goto(BASE); page.wait_for_selector('.slot')
             opener(page); page.wait_for_selector('.tabs'); page.wait_for_timeout(1200)   # the trainer card types itself in
             found[f'{width} {game} version picker'] = page.evaluate(SCAN)
-            for tab in ('Trainer', 'Bag', 'Party', 'Boxes', 'Pokédex'):
-                page.click(f'button.tab:has-text("{tab}")'); page.wait_for_timeout(200)
+            for tab in page.locator('button.tab').all_inner_texts():
+                page.click(f'button.tab:text-is("{tab}")'); page.wait_for_timeout(200)
                 found[f'{width} {game} {tab}'] = page.evaluate(SCAN)
             page.click('button.tab:has-text("Party")')
             for i in range(page.locator('.mon-main').count()):   # every party member: eggs, Unown and Pikachu differ
