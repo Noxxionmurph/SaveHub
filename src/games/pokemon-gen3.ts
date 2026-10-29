@@ -1,4 +1,5 @@
-import { Gen3Save, detectGen3 } from '../core/gen3/save.ts';
+import { detectGen3 } from '../core/gen3/layout.ts';
+import type { Gen3Save } from '../core/gen3/save.ts';
 import { defineGame } from '../core/types.ts';
 
 const GAMES = ['Pokémon Ruby', 'Pokémon Sapphire'] as const;
@@ -22,6 +23,6 @@ export default defineGame<Gen3Save>({
     names: GAMES,
     note: "Ruby and Sapphire saves are identical inside, so the file can't say which one yours is. Your choice only changes the name shown here; the editor works the same either way.",
   }),
-  load: (data) => new Gen3Save(data, 'rs'),
+  load: async (data) => new (await import('../core/gen3/save.ts')).Gen3Save(data, 'rs'),
   loadEditor: async () => (await import('../ui/editors/gen3/index.ts')).mountGen3Editor,
 });

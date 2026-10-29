@@ -11,6 +11,7 @@ errors = []
 
 SCAN = """async () => {
   // load every picture now, not when it scrolls into view, so a missing one is caught
+  document.querySelectorAll('details.fold').forEach((d) => { d.open = true; });   // check what folded cards hold too
   const imgs = [...document.querySelectorAll('img')];
   imgs.forEach((i) => { i.loading = 'eager'; });
   await Promise.all(imgs.map((i) => (i.complete ? null : new Promise((r) => { i.onload = i.onerror = r; setTimeout(r, 3000); }))));

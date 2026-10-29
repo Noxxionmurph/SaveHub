@@ -98,10 +98,10 @@ test('experience curves', () => {
   assert.equal(guessGrowth(100, 1059860), 'Medium Slow');
 });
 
-test('blank save detects, loads and serializes identically', () => {
+test('blank save detects, loads and serializes identically', async () => {
   const raw = blankSave();
   assert.ok(gen1Handler.detect(raw));
-  const found = openSave(raw);
+  const found = await openSave(raw);
   assert.ok(found);
   assert.equal(found.module.id, 'pokemon-gen1');
   const out = found.save.serialize();
@@ -197,11 +197,11 @@ test('edit everything, serialize, reload and compare', () => {
   assert.deepEqual(back.serialize(), bytes);
 });
 
-test('bad checksum is rejected by detection', () => {
+test('bad checksum is rejected by detection', async () => {
   const raw = blankSave();
   raw[0x3523] ^= 0xff;
   assert.equal(gen1Handler.detect(raw), false);
-  assert.equal(openSave(raw), null);
+  assert.equal(await openSave(raw), null);
 });
 
 test('a file that failed its checksum still opens, and says so', () => {

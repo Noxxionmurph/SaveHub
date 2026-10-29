@@ -31,9 +31,9 @@ test('a blank Crystal save passes both checksums and round-trips', () => {
   assert.deepEqual(s.serialize(), raw);
 });
 
-test('Gold, Silver and Crystal saves each open with their own module', () => {
-  assert.equal(openSave(buildSampleSave('crystal'))?.module.id, 'pokemon-crystal');
-  assert.equal(openSave(buildSampleSave('gs'))?.module.id, 'pokemon-gen2');
+test('Gold, Silver and Crystal saves each open with their own module', async () => {
+  assert.equal((await openSave(buildSampleSave('crystal')))?.module.id, 'pokemon-crystal');
+  assert.equal((await openSave(buildSampleSave('gs')))?.module.id, 'pokemon-gen2');
   assert.equal(Gen2Save.detectGame(new Uint8Array(SAVE_SIZE)), null);
 });
 
@@ -95,9 +95,9 @@ test('Crystal names its four new key items; Gold and Silver leave those ids unus
 // Set CRYSTAL_SAV=/path/to/your.sav to check it round-trips. Nothing from it is printed or stored.
 
 const real = process.env.CRYSTAL_SAV;
-test('a real Crystal save round-trips byte for byte, and an edit keeps both copies valid', { skip: real && existsSync(real) ? false : 'set CRYSTAL_SAV to a real save to run' }, () => {
+test('a real Crystal save round-trips byte for byte, and an edit keeps both copies valid', { skip: real && existsSync(real) ? false : 'set CRYSTAL_SAV to a real save to run' }, async () => {
   const raw = new Uint8Array(readFileSync(real!));
-  const found = openSave(raw);
+  const found = await openSave(raw);
   assert.equal(found?.module.id, 'pokemon-crystal');
   assert.deepEqual(found!.save.serialize().subarray(0, SAVE_SIZE), raw.subarray(0, SAVE_SIZE));
   const s = found!.save as Gen2Save;

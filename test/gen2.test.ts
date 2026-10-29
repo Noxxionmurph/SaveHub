@@ -111,10 +111,10 @@ test('a blank save passes both checksums and round-trips', () => {
   assert.deepEqual(s.serialize(), raw);
 });
 
-test('the Gold sample opens as Gold / Silver and survives a round trip', () => {
+test('the Gold sample opens as Gold / Silver and survives a round trip', async () => {
   const raw = buildSampleSave('gs');
   assert.deepEqual(buildSampleSave('gs'), raw, 'building twice gives the same bytes');
-  const found = openSave(raw);
+  const found = await openSave(raw);
   assert.equal(found?.module.id, 'pokemon-gen2');
   assert.deepEqual(found!.save.serialize(), raw);
   const s = found!.save as Gen2Save;
@@ -125,9 +125,9 @@ test('the Gold sample opens as Gold / Silver and survives a round trip', () => {
   assert.equal(s.boxNames[0], 'JOHTO');
 });
 
-test('Gen 1 and Gen 2 saves are told apart', () => {
-  assert.equal(openSave(buildGen1Sample())?.module.id, 'pokemon-gen1');
-  assert.equal(openSave(buildSampleSave('gs'))?.module.id, 'pokemon-gen2');
+test('Gen 1 and Gen 2 saves are told apart', async () => {
+  assert.equal((await openSave(buildGen1Sample()))?.module.id, 'pokemon-gen1');
+  assert.equal((await openSave(buildSampleSave('gs')))?.module.id, 'pokemon-gen2');
   const broken = buildSampleSave('gs');
   broken[0x2100] ^= 0xff; // the checksum no longer matches
   assert.ok(!Gen2Save.mainValid(broken));
@@ -297,9 +297,9 @@ test('the Gen 2 review shows recalculated party stats and names as saved', () =>
 // Set GEN2_SAV=/path/to/your.sav to check it round-trips. Nothing from it is printed or stored.
 
 const real = process.env.GEN2_SAV;
-test('a real Gold or Silver save round-trips byte for byte', { skip: real && existsSync(real) ? false : 'set GEN2_SAV to a real save to run' }, () => {
+test('a real Gold or Silver save round-trips byte for byte', { skip: real && existsSync(real) ? false : 'set GEN2_SAV to a real save to run' }, async () => {
   const raw = new Uint8Array(readFileSync(real!));
-  const found = openSave(raw);
+  const found = await openSave(raw);
   assert.equal(found?.module.id, 'pokemon-gen2');
   assert.deepEqual(found!.save.serialize().subarray(0, SAVE_SIZE), raw.subarray(0, SAVE_SIZE));
 });

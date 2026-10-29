@@ -1,9 +1,10 @@
-import { Gen2Save } from '../core/gen2/save.ts';
+import { detectGen2 } from '../core/gen2/layout.ts';
+import type { Gen2Save } from '../core/gen2/save.ts';
 import { defineGame } from '../core/types.ts';
 
 const GAMES = ['Pokémon Crystal'] as const;
 
-// Crystal uses the Gold / Silver editor, with its own save layout (see GEN2_LAYOUTS in save.ts).
+// Crystal uses the Gold / Silver editor, with its own save layout (see GEN2_LAYOUTS in layout.ts).
 export default defineGame<Gen2Save>({
   id: 'pokemon-crystal',
   family: 'Pokémon',
@@ -16,8 +17,8 @@ export default defineGame<Gen2Save>({
   // The box's mascot: Suicune.
   icons: { 'Pokémon Crystal': 'sprites/pokemon/245.png' },
   theme: 'gbc',
-  detect: (data) => (Gen2Save.detectGame(data) === 'crystal' ? { confidence: 'certain' } : null),
+  detect: (data) => (detectGen2(data) === 'crystal' ? { confidence: 'certain' } : null),
   sample: async () => ({ fileName: 'sample-crystal.sav', data: (await import('../core/gen2/sample.ts')).buildSampleSave('crystal') }),
-  load: (data) => new Gen2Save(data, 'crystal'),
+  load: async (data) => new (await import('../core/gen2/save.ts')).Gen2Save(data, 'crystal'),
   loadEditor: async () => (await import('../ui/editors/gen2/index.ts')).mountGen2Editor,
 });
