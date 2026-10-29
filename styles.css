@@ -230,6 +230,26 @@ a { color: inherit; text-underline-offset: 3px; }
 .lcd:is(.tcard, .stats, .review-list, .save-window, .options-window, .dex-summary) {
   box-shadow: inset 0 0 0 2px var(--lcd), inset 0 0 0 3px color-mix(in srgb, var(--lcd-edge) 60%, var(--lcd));
 }
+/* The chosen in-game frame. Games with a FRAME option (Gen 2's eight TYPEs, Gen 3's twenty) draw the one the save has
+   chosen round the big windows in place of the two-line frame, and redraw it as the Options card steps through them.
+   src/ui/windowFrame.ts sets data-frame on the page and paints the frame (the game's 8x8 tiles, at --frame-px screen
+   pixels per art pixel) as the window's background picture; this makes room for it and squares the corners off.
+   Gen 3's frames are in the game's own colours round the game's white window, so a Gen 3 window keeps the light
+   theme's ink in both themes. Without the artwork, the two-line frame. */
+:root { --frame-px: var(--px2); }
+:root[data-frame]:not([data-art="off"]) .lcd:is(.tcard, .stats, .review-list, .save-window, .options-window, .dex-summary) {
+  border: calc(8 * var(--frame-px)) solid transparent; border-radius: 0; box-shadow: none;
+  background-repeat: no-repeat; background-origin: border-box; background-clip: border-box; image-rendering: pixelated;
+}
+:root[data-frame="gen3"]:not([data-art="off"]) .lcd:is(.tcard, .stats, .review-list, .save-window, .options-window, .dex-summary) {
+  --lcd: #ffffff; --lcd-ink: #131f4a; --lcd-dim: #3e4e82; --lcd-edge: #2b3f8f; --lcd-inner: #a9b8e6;
+  color: var(--lcd-ink); color-scheme: light;
+}
+/* the painted picture has the window's colour in it (until it is painted, while the frame loads, plain --lcd) */
+:root[data-frame]:not([data-art="off"]) .lcd:is(.tcard, .stats, .review-list, .save-window, .options-window, .dex-summary)[data-frame-key] {
+  background-color: transparent;
+}
+
 /* The window the game shows when you save (PLAYER, BADGES, POKÉDEX, TIME), at the top of the review dialog. */
 .save-window { display: grid; grid-template-columns: auto 1fr; gap: 3px 20px; margin: 0 0 14px; padding: 12px 16px; font: 500 1.0625rem/1.4 var(--font-display); }
 .save-window dt { color: var(--lcd-dim); }
@@ -940,7 +960,8 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
    The Pokémon icons are 68x56 with the art (never more than 35x30) in the middle, and the item icons 32x32 with the art
    (never more than 27x23) in the middle (the Gen 3 ribbons are 32x32 too, at the same scale), so negative margins give each picture a box just round its art: the empty
    edges overlap the neighbours instead of pushing them away. Type icons and the shiny mark are smooth artwork, not
-   pixel art; they have one fixed size each (24px and 16px). e2e/assets.py checks all of this. */
+   pixel art; they have one fixed size each (24px and 16px). The window frames are painted at --px2 (--frame-px). e2e/assets.py
+   checks all of this. */
 :root { --px1: 1px; --px2: 2px; }
 @supports (width: round(10px, 3px)) {
   :root { --px1: max(var(--dpx), round(1px, var(--dpx))); --px2: max(var(--dpx), round(2px, var(--dpx))); }

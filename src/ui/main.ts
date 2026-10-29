@@ -9,6 +9,7 @@ import { askConfirm, clear, h, toast } from './dom.ts';
 import { trackPixelRatio } from './pixels.ts';
 import { askReview } from './review.ts';
 import { pictureIcon } from './sprites.ts';
+import { hideFrame } from './windowFrame.ts';
 import { makeZip } from './zip.ts';
 
 const root = document.getElementById('app')!;
@@ -59,6 +60,8 @@ const setPageTitle = (name?: string) => { document.title = name ? `${name} · ${
 const CONSOLES = ['gb', 'gbc', 'gba'] as const;
 const forcedConsole = CONSOLES.find((c) => c === new URLSearchParams(location.search).get('console'));
 function applyConsole(game?: GameModule): void {
+  // An editor whose game has a FRAME setting puts its frame back when it mounts (see windowFrame.ts).
+  hideFrame();
   const wanted = forcedConsole ?? game?.theme ?? 'gb';
   if (wanted === 'gb') delete document.documentElement.dataset.console;
   else document.documentElement.dataset.console = wanted;
