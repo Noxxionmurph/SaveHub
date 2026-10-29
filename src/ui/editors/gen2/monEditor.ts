@@ -69,11 +69,11 @@ const fingerprint = (mon: Gen2Mon): string => JSON.stringify(mon, (_key, v) => (
 export function openMonEditor({ mon, party, game = 'gs', onDone, onDiscard }: MonEditorOptions): void {
   const guessed = guessGrowth(mon.level, mon.exp);
   const expAt = (level: number) => expForLevel(growthOf(mon.species, guessed), level);
-  const dialog = h('dialog', { class: 'mon-dialog' });
+  const dialog = h('dialog', { class: 'mon-dialog', 'aria-labelledby': 'mon-title' });
   const body = h('div', { class: 'dialog-body' });
   dialog.append(body);
 
-  // Edits are applied to `mon` as they're made. Done (and Escape) keep them; the X puts it back as it was.
+  // Edits are applied to `mon` as they're made. Done keeps them; the X (and Escape) puts it back as it was.
   const original = structuredClone(mon);
   const originalPrint = fingerprint(mon);
   const changed = () => fingerprint(mon) !== originalPrint;
@@ -148,7 +148,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone, onDiscard }: Mo
               mon.moves[i] = Number(v);
               mon.pp[i] = maxPp(mon.moves[i], mon.ppUps[i]);
               redraw();
-            })),
+            }, { 'aria-label': `Move ${i + 1}` })),
           h('div', { class: 'move-nums' },
             h('div', { class: 'inline-field' },
               h('span', { class: 'field-label' }, 'PP'),
@@ -187,7 +187,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone, onDiscard }: Mo
       if (!isMail(mon.item)) delete mon.mail;
       heldIcon.classList.toggle('none', !mon.item);
       setIconSrc(heldIcon, itemIconUrl(itemSpritePath(mon.item)));
-    });
+    }, { 'aria-label': 'Held item' });
     const heldNote = isMail(mon.item)
       ? 'It holds Mail with a letter written in the game. Pick another item to throw the letter away.'
       : 'Mail can only be given in the game.';
@@ -209,7 +209,7 @@ export function openMonEditor({ mon, party, game = 'gs', onDone, onDiscard }: Mo
         h('div', { class: 'mon-id' },
           monIcon(mon, 'big'),
           h('div', {},
-            h('h2', {}, title, ' ', mon.isEgg ? null : genderMark(gender), shiny && !mon.isEgg ? shinyBadge() : null),
+            h('h2', { id: 'mon-title' }, title, ' ', mon.isEgg ? null : genderMark(gender), shiny && !mon.isEgg ? shinyBadge() : null),
             h('p', { class: 'muted' }, mon.isEgg ? `Will hatch into ${speciesName(mon.species)}` : `#${String(mon.species).padStart(3, '0')} ${speciesName(mon.species)}`,
               mon.species === UNOWN && !mon.isEgg ? [' · ', h('span', { class: 'nowrap' }, `letter ${unownLetter(mon.dvs)}`)] : null),
             // on a narrow phone the level moves down beside the types (styles.css), so the name keeps its room
@@ -336,6 +336,8 @@ export function openMonEditor({ mon, party, game = 'gs', onDone, onDiscard }: Mo
     ];
   }
 
+  // Escape works like the ✕: it asks before throwing edits away, rather than closing and keeping them.
+  dialog.addEventListener('cancel', (e) => { e.preventDefault(); void discardAndClose(); });
   dialog.addEventListener('close', () => { dialog.remove(); if (discarded) onDiscard?.(); onDone(changed()); });
   document.body.append(dialog);
   refresh();

@@ -1,5 +1,5 @@
 """The Pokémon window has a close button (X) that stays at its top right while the form scrolls and doesn't sit on the
-level badge or the scrollbar. Done and Escape keep the edits made in the window; the X throws them away (after asking, if
+level badge or the scrollbar. Done keeps the edits made in the window; the X and Escape throw them away (after asking, if
 anything was changed) and puts the Pokémon back exactly as it was; on a Pokémon that was only just added, the X takes it
 back out. Only edits that are kept mark the save as changed. Current HP stops at Max HP. Also:
 the one-line guidance under each tab runs the full width, not a capped width that breaks the line early. Checked at
@@ -100,11 +100,12 @@ def check(p, name, size):
     dlg.locator('button.primary').click(); page.wait_for_selector('dialog.mon-dialog', state='detached')
     assert level() == 'Lv 29' and page.locator('.save-btn.dirty').count() == 1
 
-    # Escape keeps edits too, as it always has
+    # Escape works like the X: it asks, then throws the edit away
     dlg = open_first()
     lvl = dlg.locator('label.field:has-text("Level") input'); lvl.fill('30'); lvl.dispatch_event('change')
-    page.keyboard.press('Escape'); page.wait_for_selector('dialog.mon-dialog', state='detached')
-    assert level() == 'Lv 30', level()
+    page.keyboard.press('Escape'); page.wait_for_selector('dialog.confirm-dialog[open]')
+    page.click('dialog.confirm-dialog button:has-text("Discard")'); page.wait_for_selector('dialog.mon-dialog', state='detached')
+    assert level() == 'Lv 29', level()
 
     # Current HP can't go above Max HP: typing more stops at the maximum
     dlg = open_first()

@@ -800,8 +800,9 @@ button.danger { color: var(--danger); }
 .mon-dialog .cols5 .field { gap: 2px; }
 .mon-dialog .cols5 .field-label { font-size: 0.75rem; }
 .mon-dialog .cols5 input { padding-inline: 3px; text-align: center; }
-.mon-dialog input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
-.mon-dialog input[type="number"]::-webkit-inner-spin-button, .mon-dialog input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+/* No spin arrows on number boxes: they take the room of a digit and are too small to tap */
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 .derived {
   display: flex; align-items: center; justify-content: center; min-height: 36px; padding: 0 3px;
   border: 1px dashed var(--line-strong); border-radius: 6px; color: var(--muted); font: 500 1rem var(--font-mono);
@@ -860,6 +861,7 @@ button.danger { color: var(--danger); }
 .pokeblock-row .item-row { grid-template-columns: 32px 1fr auto; margin-bottom: 6px; }
 .pokeblock-row .item-row > .pokeblock-icon { justify-self: center; }
 .pokeblock-row .grid { grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); gap: 6px; }
+.pokeblock-row .grid input { padding-inline: 4px; text-align: center; }
 .item-row.bare { grid-template-columns: 32px 1fr; margin: 0; }
 .item-icon.none { visibility: hidden; }
 .button-row.tight { margin-top: 0; }
@@ -895,8 +897,12 @@ button.danger { color: var(--danger); }
 }
 /* Pokédex tiles: a touch tighter, so ten-letter names (Charmander, Hitmonchan) fit a phone-width tile without being cut */
 .dex-tile .dex-name { letter-spacing: -0.05em; }
-/* Bag rows on a phone: the count only ever needs two digits, so the item name gets the room (MooMoo Milk, TM24 Thunderbolt) */
-@media (max-width: 480px) { .item-row { grid-template-columns: 32px 1fr 52px auto; gap: 6px; } }
+/* Bag rows on a phone: the count box is just wide enough for three digits (Gen 3 holds up to 999), so the item name gets
+   the rest of the room (MooMoo Milk, TM24 Thunderbolt) */
+@media (max-width: 480px) {
+  .item-row { grid-template-columns: 32px 1fr 52px auto; gap: 6px; }
+  .item-row input[type="number"], .pokeblock-row .grid input { padding-inline: 4px; text-align: center; }
+}
 /* Party strip names on the smallest phones: a ten-letter name (Charmeleon) fits a third of a 320px screen */
 @media (max-width: 360px) { .slot-name { font-size: 0.75rem; letter-spacing: -0.03em; } }
 
@@ -972,3 +978,9 @@ button.danger { color: var(--danger); }
   .mon-head-meta .lv-inline { display: inline-block; padding-inline: 6px; font-size: 0.875rem; }
 }
 .nowrap { white-space: nowrap; }
+
+/* Crystal's caught Pokédex tiles in dark mode: the number needs more contrast against the teal than the usual muted grey */
+@media (prefers-color-scheme: dark) {
+  :root[data-console="gbc"]:not([data-theme="light"]) { --caught-dim: color-mix(in srgb, var(--text) 90%, var(--caught)); }
+}
+:root[data-console="gbc"][data-theme="dark"] { --caught-dim: color-mix(in srgb, var(--text) 90%, var(--caught)); }

@@ -12,7 +12,8 @@ import {
   BAG_MAX, BOX_NAME_LEN, COINS_MAX, MONEY_MAX, PLAYER_NAME_MAX, depositInBox, newMon, type BagItem, type Gen2Mon, type Gen2Save,
 } from '../../../core/gen2/save.ts';
 import type { MountEditor } from '../../../core/types.ts';
-import { clear, field, h, lazySelect, numberInput, selectInput, toast } from '../../dom.ts';
+import { clear, field, h, lazySelect, numberInput, refocusAfterRemove, selectInput, toast } from '../../dom.ts';
+import { tabBar, tabPanel } from '../../tabs.ts';
 import { enableDrag } from '../../drag.ts';
 import { dexTab as sharedDexTab } from '../../dexTab.ts';
 import { choiceRow, stepRow } from '../../gameChoice.ts';
@@ -68,12 +69,8 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
     refreshers = [];
     clear(container);
     container.append(
-      h('nav', { class: 'tabs', role: 'tablist' }, TABS.map((t) =>
-        h('button', {
-          role: 'tab', class: t.id === tab ? 'tab active' : 'tab', 'aria-selected': String(t.id === tab),
-          onclick: () => { tab = t.id; render(); },
-        }, t.label))),
-      h('main', { class: 'panel' }, renderTab()),
+      tabBar(TABS, tab, (id) => { tab = id; render(); }),
+      tabPanel(TABS, tab, renderTab()),
     );
   };
 
@@ -266,9 +263,9 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
           return h('div', { class: 'item-row' },
             icon,
             lazySelect(options.some((c) => c.value === it.id) ? options : [{ value: it.id, label: nameOf(it.id) }, ...options],
-              it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }),
-            numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': 'Quantity' }),
-            h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { items.splice(i, 1); markDirty(); draw(); } }, '✕'),
+              it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }, { 'aria-label': `${title}, item ${i + 1}` }),
+            numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': `Quantity of item ${i + 1}` }),
+            h('button', { class: 'icon', 'aria-label': `Remove item ${i + 1}`, onclick: () => { items.splice(i, 1); markDirty(); draw(); refocusAfterRemove(wrap, (n) => `Remove item ${n + 1}`, i); } }, '✕'),
           );
         }),
         h('button', {
@@ -295,8 +292,8 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
           return h('div', { class: 'item-row no-count' },
             icon,
             lazySelect(KEY_OPTIONS.some((c) => c.value === id) ? KEY_OPTIONS : [{ value: id, label: nameOf(id) }, ...KEY_OPTIONS],
-              id, (v) => { list[i] = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(list[i]))); markDirty(); }),
-            h('button', { class: 'icon', 'aria-label': 'Remove', onclick: () => { list.splice(i, 1); markDirty(); draw(); } }, '✕'),
+              id, (v) => { list[i] = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(list[i]))); markDirty(); }, { 'aria-label': `Key item ${i + 1}` }),
+            h('button', { class: 'icon', 'aria-label': `Remove key item ${i + 1}`, onclick: () => { list.splice(i, 1); markDirty(); draw(); refocusAfterRemove(wrap, (n) => `Remove key item ${n + 1}`, i); } }, '✕'),
           );
         }),
         h('button', {
