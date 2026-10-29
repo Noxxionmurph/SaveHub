@@ -9,7 +9,7 @@ export default defineGame<Gen3Save>({
   family: 'Pokémon',
   games: GAMES,
   platform: 'Game Boy Advance · English',
-  editable: 'Everything from the Game Boy games, plus natures, abilities, IVs and EVs, where each Pokémon was met and its ball, the secret ID, the National Pokédex, the Berries pocket, and boxes of 30 that keep their gaps.',
+  editable: 'Everything from the Game Boy games, plus natures, abilities, IVs and EVs, where each Pokémon was met, the National Pokédex and Berries.',
   shelf: 'pokemon-gen3',
   fileHint: 'Pokémon Ruby and Sapphire (English) saves are 131,072 bytes (128 KB).',
   colors: { 'Pokémon Ruby': '#b8333a', 'Pokémon Sapphire': '#2f5fb3' },

@@ -112,8 +112,13 @@ export interface GameModule<S extends EditableSave = EditableSave> {
    * Built in code (no binary file shipped); load it lazily so it costs nothing until used.
    */
   sample?(): Promise<{ fileName: string; data: Uint8Array }>;
-  /** Which of `games` the sample save is from, for its button ("Try a Yellow sample"). Omit to name them all. */
+  /** Which of `games` the sample save is from, for its button ("Pokémon Yellow"). Omit to name them all. */
   readonly sampleGame?: string;
+  /**
+   * A few lines in the wording of this game's review list, shown on the landing page as an example of what
+   * Save lists. The shell shows the first module that has one; `game` names which game the lines are from.
+   */
+  readonly demo?: { readonly game: string; readonly groups: readonly ChangeGroup[] };
   /**
    * Parse into an editable model. May throw with a user-readable message if the file is unusable. It may import the
    * save code when called, so the landing page needs only what `detect` uses.

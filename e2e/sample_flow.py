@@ -17,7 +17,11 @@ with sync_playwright() as p:
 
     # --- sample save from the landing page
     buttons = page.locator('.sample-row button')
-    assert [buttons.nth(i).inner_text() for i in range(buttons.count())] == ['Try a Yellow sample', 'Try a Crystal sample', 'Try an Emerald sample']
+    assert [buttons.nth(i).inner_text() for i in range(buttons.count())] == ['Pokémon Yellow', 'Pokémon Crystal', 'Pokémon Emerald']
+    # the first screen names each series and links to its shelf
+    chips = page.locator('.works-with .series-chip')
+    assert chips.all_inner_texts() == ['Pokémon Red to Emerald'], chips.all_inner_texts()
+    assert chips.nth(0).get_attribute('href') == '#shelf-pokemon' and page.locator('h3#shelf-pokemon').count() == 1
     page.screenshot(path=f'{SP}/c1-welcome.png')
     # one row per generation: Gold, Silver and Crystal share a row and one "you can edit" line
     rows = page.locator('section.supported ul.tiles')

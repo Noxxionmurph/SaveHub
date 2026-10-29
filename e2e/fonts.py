@@ -36,7 +36,7 @@ with sync_playwright() as p:
     used = page.evaluate("""() => ({
       body: getComputedStyle(document.body).fontFamily,
       h1: getComputedStyle(document.querySelector('.wordmark-text')).fontFamily,
-      hex: getComputedStyle(document.querySelector('.hex td')).fontFamily })""")
+      hex: getComputedStyle(document.querySelector('.demo .review-list li')).fontFamily })""")
     print(used)
     assert used['body'].startswith('"Instrument Sans"') and used['h1'].startswith('"Pixelify Sans"') and used['hex'].startswith('"Pixelify Sans"')   # the retro windows are all pixel text
     # the pixel face as shipped: its 5 is not its S (it used to be the same shape, so "500" read "S00"), and its fi / fl
