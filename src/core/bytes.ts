@@ -43,3 +43,6 @@ export function writeItemList(d: Uint8Array, base: number, items: BagItem[], max
   });
   d[base + 1 + list.length * 2] = 0xff;
 }
+
+/** How many of a byte's bits are set (badges earned, for one). */
+export const popcount = (n: number): number => { let c = 0; for (let v = n & 0xff; v; v &= v - 1) c++; return c; };

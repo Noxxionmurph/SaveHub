@@ -13,7 +13,8 @@ import {
   setRibbon,
 } from '../../../core/gen3/ribbons.ts';
 import { defaultNickname, recalcPartyStats, type Gen3Mon } from '../../../core/gen3/save.ts';
-import { askConfirm, clear, field, h, lazySelect, numberInput, selectInput } from '../../dom.ts';
+import { field, h, lazySelect, numberInput, selectInput } from '../../dom.ts';
+import { monDialog } from '../../monDialog.ts';
 import { gen3RibbonIcon, itemIcon, itemIconUrl, setIconSrc, shinyIcon, typeIcon } from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
@@ -58,45 +59,11 @@ export interface MonEditorOptions {
   onDiscard?: () => void;
 }
 
-const fingerprint = (mon: Gen3Mon): string => JSON.stringify(mon, (_key, v) => (v instanceof Uint8Array ? Array.from(v) : v));
 
 export function openMonEditor({ mon, party, game, onDone, onDiscard }: MonEditorOptions): void {
   const expAt = (level: number) => expForLevel(growthOf(mon.species), level);
-  const dialog = h('dialog', { class: 'mon-dialog', 'aria-labelledby': 'mon-title' });
-  const body = h('div', { class: 'dialog-body' });
-  dialog.append(body);
-
-  // Edits are applied to `mon` as they're made. Done keeps them; the ✕ (and Escape) puts it back as it was.
-  const original = structuredClone(mon);
-  const originalPrint = fingerprint(mon);
-  const changed = () => fingerprint(mon) !== originalPrint;
-  let discarded = false;
-  const discardAndClose = async () => {
-    if (changed()) {
-      const label = original.nickname || speciesName(original.species);
-      if (!await askConfirm(`Discard your changes to ${label}?`, 'Discard', 'Keep editing')) return;
-      Object.assign(mon, structuredClone(original));
-    }
-    discarded = true;
-    dialog.close();
-  };
-  const closeBar = h('div', { class: 'dialog-x-bar' },
-    h('button', {
-      class: 'dialog-x', type: 'button', title: 'Close without keeping changes', 'aria-label': 'Close without keeping changes',
-      onclick: () => { void discardAndClose(); },
-    }));
-
-  let refreshing = false;
-  const refresh = () => {
-    if (refreshing) return;
-    refreshing = true;
-    try {
-      const y = body.scrollTop;
-      clear(body);
-      body.append(closeBar, ...render().filter((n): n is Node => n !== null));
-      body.scrollTop = y;
-    } finally { refreshing = false; }
-  };
+  const win = monDialog({ mon, label: (m) => m.nickname || speciesName(m.species), render, onDone, onDiscard });
+  const refresh = win.refresh;
   const touched = () => { if (party) recalcPartyStats(mon); };
   /** A new personality value with these traits; the rest of the Pokémon stays as it is. */
   const repersonalise = (wish: PidWish) => { mon.pid = findPid(mon.species, mon.otId, mon.pid, wish); touched(); refresh(); };
@@ -359,15 +326,10 @@ export function openMonEditor({ mon, party, game, onDone, onDiscard }: MonEditor
       ),
       h('div', { class: 'dialog-foot' },
         h('span', { class: 'muted' }, 'Done keeps your changes; the ✕ at the top throws them away.'),
-        h('button', { class: 'primary', onclick: () => { dialog.close(); } }, 'Done'),
+        h('button', { class: 'primary', onclick: win.close }, 'Done'),
       ),
     ];
   }
 
-  // Escape works like the ✕: it asks before throwing edits away, rather than closing and keeping them.
-  dialog.addEventListener('cancel', (e) => { e.preventDefault(); void discardAndClose(); });
-  dialog.addEventListener('close', () => { dialog.remove(); if (discarded) onDiscard?.(); onDone(changed()); });
-  document.body.append(dialog);
-  refresh();
-  dialog.showModal();
+  win.open();
 }

@@ -2,6 +2,7 @@
 // Gen 2 editor, with what Gen 3 has: the secret ID, the Hoenn badges, the National Pokédex, five bag pockets with
 // quantities (Berries among them), boxes of 30 spots that can have gaps, and the 386-Pokémon Pokédex.
 
+import { popcount } from '../../../core/bytes.ts';
 import {
   BUTTON_MODES, DEX_COUNT, DEX_NAMES, FRAME_COUNT, HM_COUNT, HOENN_BADGES, TEXT_SPEEDS, TMHM_LABELS, TMHM_MOVES, TM_COUNT,
   NATURE_NAMES, baseStatsFor, calcStats, findPid, genderOf, isShiny, itemChoices, itemName, moveInfo, natureOf, speciesName, type Pocket,
@@ -17,14 +18,15 @@ import {
 } from '../../../core/gen3/save.ts';
 import { GAME_STAT_MAX, HOF_TIME_STAT, gameStatGroups, packHofTime, unpackHofTime } from '../../../core/gen3/stats.ts';
 import type { MountEditor } from '../../../core/types.ts';
-import { type Child, clear, field, h, lazySelect, numberInput, refocusAfterRemove, selectInput, toast } from '../../dom.ts';
-import { tabBar, tabPanel } from '../../tabs.ts';
+import { type Child, clear, field, h, numberInput, refocusAfterRemove, selectInput, toast } from '../../dom.ts';
 import { enableDrag } from '../../drag.ts';
 import { dexTab as sharedDexTab } from '../../dexTab.ts';
 import { choiceRow, stepRow } from '../../gameChoice.ts';
+import { itemList } from '../../itemList.ts';
 import {
-  badgeIcon, frontierSymbolIcon, itemIcon, itemIconUrl, pokeblockIcon, pokeblockIconUrl, pokemonIcon, setIconSrc,
+  badgeIcon, frontierSymbolIcon, itemIcon, pokeblockIcon, pokeblockIconUrl, pokemonIcon,
 } from '../../sprites.ts';
+import { tabBar, tabPanel } from '../../tabs.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
 import { discPath, itemSpritePath } from './itemSprites.ts';
@@ -50,7 +52,6 @@ const ORAN_BERRY = 139;
 /** Wurmple, a Hoenn starting point for a new Pokémon. */
 const NEW_MON_SPECIES = 265;
 
-const popcount = (n: number) => { let c = 0; for (let v = n & 0xff; v; v &= v - 1) c++; return c; };
 
 export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
@@ -397,36 +398,9 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
 
   // ---------- bag ----------
 
-  function itemList(title: string, items: BagItem[], size: { slots: number; count: number }, options: Options, fresh: () => number): Node {
-    const wrap = h('section', { class: 'card' });
-    const draw = () => {
-      clear(wrap);
-      wrap.append(
-        h('h3', {}, title, h('span', { class: 'muted count' }, `${items.length}/${size.slots}`)),
-        ...items.map((it, i) => {
-          const icon = itemIcon(itemSpritePath(it.id));
-          return h('div', { class: 'item-row' },
-            icon,
-            lazySelect(options.some((c) => c.value === it.id) ? options : [{ value: it.id, label: itemName(it.id) }, ...options],
-              it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }, { 'aria-label': `${title}, item ${i + 1}` }),
-            numberInput(it.count, 1, Math.max(size.count, it.count), (v) => { it.count = v; markDirty(); }, { 'aria-label': `Quantity of item ${i + 1}` }),
-            h('button', { class: 'icon', 'aria-label': `Remove item ${i + 1}`, onclick: () => { items.splice(i, 1); markDirty(); draw(); refocusAfterRemove(wrap, (n) => `Remove item ${n + 1}`, i); } }, '✕'),
-          );
-        }),
-        h('button', {
-          disabled: items.length >= size.slots,
-          onclick: () => {
-            const has = (id: number) => items.some((it) => it.id === id);
-            const id = !has(fresh()) ? fresh() : options.find((o) => !has(o.value))?.value ?? fresh();
-            items.push({ id, count: 1 });
-            markDirty(); draw();
-          },
-        }, items.length >= size.slots ? `Full (${size.slots} of ${size.slots})` : '+ Add item'),
-      );
-    };
-    draw();
-    return wrap;
-  }
+
+  const bagCard = (title: string, items: BagItem[], size: { slots: number; count: number }, options: Options, fresh: () => number) =>
+    itemList({ title, items, slots: size.slots, maxCount: size.count, options, nameOf: itemName, spritePath: itemSpritePath, fresh, unique: true, markDirty });
 
   /** TM/HM pocket: a count for each of the 58. */
   function tmhmCard(): Node {
@@ -467,11 +441,11 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
 
   const bagTab = () => h('div', { class: 'stack' },
     h('div', { class: 'two-col' },
-      itemList('Items pocket', s.pockets.item, SIZES.item, OPTIONS.item, () => RARE_CANDY),
-      itemList('Poké Balls pocket', s.pockets.ball, SIZES.ball, OPTIONS.ball, () => ULTRA_BALL),
-      itemList('Key Items pocket', s.pockets.key, SIZES.key, OPTIONS.key, () => MACH_BIKE),
-      itemList('Berries pocket', s.pockets.berry, SIZES.berry, OPTIONS.berry, () => ORAN_BERRY),
-      itemList('PC item storage', s.pcItems, SIZES.pc, OPTIONS.pc, () => RARE_CANDY),
+      bagCard('Items pocket', s.pockets.item, SIZES.item, OPTIONS.item, () => RARE_CANDY),
+      bagCard('Poké Balls pocket', s.pockets.ball, SIZES.ball, OPTIONS.ball, () => ULTRA_BALL),
+      bagCard('Key Items pocket', s.pockets.key, SIZES.key, OPTIONS.key, () => MACH_BIKE),
+      bagCard('Berries pocket', s.pockets.berry, SIZES.berry, OPTIONS.berry, () => ORAN_BERRY),
+      bagCard('PC item storage', s.pcItems, SIZES.pc, OPTIONS.pc, () => RARE_CANDY),
     ),
     tmhmCard(),
     pokeblockCard(),
