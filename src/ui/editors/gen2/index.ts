@@ -21,6 +21,7 @@ import { itemList } from '../../itemList.ts';
 import { badgeIcon, itemIcon, itemIconUrl, setIconSrc } from '../../sprites.ts';
 import { tabBar, tabPanel } from '../../tabs.ts';
 import { typeChips } from '../../typeChip.ts';
+import { showFrame } from '../../windowFrame.ts';
 import { monHpBar } from './hpBar.ts';
 import { discPath, itemSpritePath } from './itemSprites.ts';
 import { genderMark, monLabel, monPic, shinyMark } from './monBits.ts';
@@ -246,7 +247,7 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
         choiceRow('Menu account', [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }], onOff(o.menuAccount),
           (v) => { o.menuAccount = v === 'on'; edited(); }, 'On shows a line explaining each start-menu choice.'),
         stepRow('Frame', Array.from({ length: 8 }, (_, i) => ({ value: String(i), label: `Type ${i + 1}` })), String(o.frame),
-          (v) => { o.frame = Number(v); edited(); }),
+          (v) => { o.frame = Number(v); showFrame('gen2', o.frame); edited(); }),
       ));
   }
 
@@ -528,5 +529,6 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
     return sharedDexTab(s, DEX_NAMES, markDirty);
   }
 
+  showFrame('gen2', s.options.frame);
   render();
 };

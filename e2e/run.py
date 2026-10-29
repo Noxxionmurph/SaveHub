@@ -24,7 +24,7 @@ HERE = Path(__file__).resolve().parent
 OUT = HERE / 'out'
 
 # Checks that use the build that carries the artwork inside dist/ (./assets/) ...
-LOCAL = ['redblue_flow', 'sample_flow', 'gold_flow', 'crystal_flow', 'ruby_flow', 'yellow', 'blue_footer', 'pikachu', 'mood', 'drag', 'bag', 'names', 'hosted_download', 'console_theme', 'dialog_close', 'flair', 'crisp', 'narrow', 'sweep', 'assets']
+LOCAL = ['redblue_flow', 'sample_flow', 'gold_flow', 'crystal_flow', 'ruby_flow', 'yellow', 'blue_footer', 'pikachu', 'mood', 'drag', 'bag', 'names', 'hosted_download', 'console_theme', 'dialog_close', 'flair', 'crisp', 'narrow', 'sweep', 'assets', 'frames']
 # ... and checks that need the build as it is deployed (pictures and fonts loaded by address).
 HOSTED = ['art', 'fonts', 'versioned']
 

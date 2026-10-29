@@ -18,7 +18,7 @@ the tokens (and that one frame rule) change, in the `data-console` blocks of `st
 Add `?console=gbc` or `?console=gba` (or `?console=gb`) to the address to preview a theme on every screen.
 Touches borrowed from the games themselves: HP bars use the game's own length and colour rules (`src/core/gen1/hp.ts`, from
 the disassembly in pret/pokered), the review dialog opens with the PLAYER / BADGES / POKÉDEX / TIME window the game shows when you
-save, the open tab has the menu cursor, the big readouts have a two-line frame like the in-game text boxes, the Options card is
+save, the open tab has the menu cursor, the big readouts have a two-line frame like the in-game text boxes (on Gen 2 and Gen 3 pages, the frame the save's OPTION menu has chosen, in the game's own art, redrawn as you step through FRAME: `src/ui/windowFrame.ts`, `scripts/extract-frames.py`), the Options card is
 drawn like the game's OPTION screen (every choice shown, the chosen one marked with the cursor; real radio buttons underneath),
 the Pokédex totals are the game's SEEN / OWN window, the trainer card keeps each badge in its own boxed slot (dashed until earned) and the badge picker is one row of eight (on a phone without the names, with a line under it naming the badges you have), and the trainer card types itself in once when a file opens (not for
 people who ask for less motion). Fonts (Pixelify Sans, Instrument Sans, JetBrains Mono) are bundled in `fonts/` (SIL Open Font License, Latin only,
@@ -102,6 +102,7 @@ python3 scripts/boot-gen2-save.py gold.gbc edited.sav out.png   # opens a Gold, 
 node scripts/gen-gen3-data.mjs <pokeemerald checkout> <pokeruby checkout>   # regenerates src/core/gen3/tables.ts (species, base stats, abilities, moves, items, places)
 node scripts/import-sprites.mjs <PokéSprite checkout>   # copies the Pokémon, item and type icons into ./assets/ (then commit them in the artwork repository)
 python3 scripts/extract-hoenn-badges.py <pokeemerald>/graphics/trainer_card/badges.png   # the Hoenn badges, into ./assets/
+python3 scripts/extract-frames.py <pokecrystal> <pokeruby> <pokeemerald>   # the OPTION menu's window frames, into ./assets/
 ```
 
 Everything runs client-side; saves never leave the browser. **Back up your real .sav before editing.**

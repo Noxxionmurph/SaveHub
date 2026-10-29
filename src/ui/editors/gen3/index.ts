@@ -28,6 +28,7 @@ import {
 } from '../../sprites.ts';
 import { tabBar, tabPanel } from '../../tabs.ts';
 import { typeChips } from '../../typeChip.ts';
+import { showFrame } from '../../windowFrame.ts';
 import { monHpBar } from './hpBar.ts';
 import { discPath, itemSpritePath } from './itemSprites.ts';
 import { genderMark, monLabel, monPic, shinyMark } from './monBits.ts';
@@ -392,7 +393,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           (v) => { o.stereo = v === 'stereo'; edited(); }),
         choiceRow('Button mode', keep(BUTTON_MODES, o.buttonMode), String(o.buttonMode), (v) => { o.buttonMode = Number(v); edited(); }),
         stepRow('Frame', Array.from({ length: FRAME_COUNT }, (_, i) => ({ value: String(i), label: `Type ${i + 1}` })), String(o.frame),
-          (v) => { o.frame = Number(v); edited(); }),
+          (v) => { o.frame = Number(v); showFrame(s.game, o.frame); edited(); }),
       ));
   }
 
@@ -709,5 +710,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
     return holder;
   }
 
+  // A frame number past the last TYPE (the game has no picture for it) shows as TYPE 1, like the Options card does.
+  showFrame(s.game, s.options.frame < FRAME_COUNT ? s.options.frame : 0);
   render();
 };
