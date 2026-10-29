@@ -211,6 +211,8 @@ src/core/<game>/           format code per game: data tables, text encoding, par
 src/ui/main.ts             game-agnostic shell: drop zone, detection, chooser, review dialog, save
 src/ui/drag.ts             pointer-event drag and drop (mouse, touch, pen); knows nothing about any game
 src/ui/editors/<game>/     editor UI per game (lazy-loaded)
+src/ui/tabs.ts, itemList.ts, monMenu.ts, monDialog.ts, hpBar.ts
+                           pieces every editor shares: tab bar, bag pockets, the Pokémon action sheet and window, HP bar
 scripts/build.mjs          strips types -> dist/ (rewrites .ts imports and import() to .js)
 test/                      node:test suite
 ```
@@ -229,6 +231,7 @@ test/                      node:test suite
    have `identify()` return the single matching name; if it genuinely can't tell (Red vs Blue), return all
    candidates and the site asks the user to confirm which one theirs is.
 3. **Editor** in `src/ui/editors/<game>/index.ts` exporting a `MountEditor`; call `host.markDirty()` on edits.
+   Build it from the shared pieces above rather than copying another game's editor.
 4. **Register** it in the `GAMES` array in `src/core/registry.ts`.
 5. Optional, and the shell picks them up when present: `describeChanges(before)` on the save model (a list of
    `ChangeGroup`s for the review dialog) and `sample()` on the descriptor (a made-up save for the "Try a sample

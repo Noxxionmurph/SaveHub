@@ -1,15 +1,16 @@
 // Gen 1 (Red / Blue / Yellow) editor UI. Loaded lazily by the shell via the game module.
 
+import { popcount } from '../../../core/bytes.ts';
 import {
   BADGE_NAMES, DEX_NAMES, DEX_TO_INTERNAL, INTERNAL_TO_DEX, ITEM_CHOICES, SOUND_OPTIONS, TEXT_SPEEDS, baseStatsFor, itemName, speciesName, tmhmMoveName,
 } from '../../../core/gen1/data.ts';
 import { BOX_MAX, BOX_TOTAL, PARTY, PARTY_MAX, REFUSAL_TEXT, dropMon, listAt, placeName, shiftMon } from '../../../core/gen1/roster.ts';
 import { newMon, recalcPartyStats, type BagItem, type Gen1Mon, type Gen1Save } from '../../../core/gen1/save.ts';
 import type { EditorHost, MountEditor } from '../../../core/types.ts';
-import { clear, field, h, lazySelect, numberInput, refocusAfterRemove, selectInput, toast } from '../../dom.ts';
-import { tabBar, tabPanel } from '../../tabs.ts';
+import { clear, field, h, numberInput, selectInput, toast } from '../../dom.ts';
 import { enableDrag } from '../../drag.ts';
-import { badgeIcon, itemIcon, itemIconUrl, pokemonIcon, setIconSrc } from '../../sprites.ts';
+import { itemList } from '../../itemList.ts';
+import { badgeIcon, pokemonIcon } from '../../sprites.ts';
 import { itemSpritePath } from './itemSprites.ts';
 import { dexTab as sharedDexTab } from '../../dexTab.ts';
 import { choiceRow, stepRow } from '../../gameChoice.ts';
@@ -18,6 +19,7 @@ import { openMonEditor } from './monEditor.ts';
 import { openMonMenu } from './monMenu.ts';
 import { nameField } from './nameField.ts';
 import { pikachuCard } from './pikachuCard.ts';
+import { tabBar, tabPanel } from '../../tabs.ts';
 import { typeChips } from '../../typeChip.ts';
 
 type Tab = 'trainer' | 'bag' | 'party' | 'boxes' | 'dex';
@@ -66,7 +68,6 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
 
   // ---------- trainer ----------
 
-  const popcount = (n: number) => { let c = 0; for (let v = n & 0xff; v; v &= v - 1) c++; return c; };
   const monLabel = (mon: Gen1Mon) => (mon.nickname && mon.nickname.toLowerCase() !== speciesName(mon.species).toLowerCase() ? mon.nickname : speciesName(mon.species));
 
   /** The in-game trainer card at a glance, plus the party as icons (tap one to edit it). */
@@ -209,38 +210,15 @@ export const mountGen1Editor: MountEditor<Gen1Save> = (container, s, host) => {
 
   // ---------- bag ----------
 
-  function itemList(title: string, note: string, items: BagItem[], max: number): Node {
-    const wrap = h('section', { class: 'card' });
-    const draw = () => {
-      clear(wrap);
-      wrap.append(
-        h('h3', {}, title, h('span', { class: 'muted count' }, `${items.length}/${max}`)),
-        ...(note ? [h('p', { class: 'muted card-note' }, note)] : []),
-        ...items.map((it, i) => {
-          const icon = itemIcon(itemSpritePath(it.id));
-          return h('div', { class: 'item-row' },
-            icon,
-            lazySelect(
-              ITEM_CHOICES.some((c) => c.id === it.id) ? ITEM_OPTIONS : [{ value: it.id, label: itemLabel(it.id) }, ...ITEM_OPTIONS],
-              it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }, { 'aria-label': `${title}, item ${i + 1}` }),
-            numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': `Quantity of item ${i + 1}` }),
-            h('button', { class: 'icon', 'aria-label': `Remove item ${i + 1}`, onclick: () => { items.splice(i, 1); markDirty(); draw(); refocusAfterRemove(wrap, (n) => `Remove item ${n + 1}`, i); } }, '✕'),
-          );
-        }),
-        h('button', {
-          disabled: items.length >= max,
-          onclick: () => { items.push({ id: 0x28, count: 1 }); markDirty(); draw(); },
-        }, items.length >= max ? `Full (${max} of ${max})` : '+ Add item'),
-      );
-    };
-    draw();
-    return wrap;
-  }
+
+  const bagCard = (title: string, items: BagItem[], slots: number) => itemList({
+    title, items, slots, maxCount: 99, options: ITEM_OPTIONS, nameOf: itemLabel, spritePath: itemSpritePath, fresh: () => 0x28, markDirty,
+  });
 
   const bagTab = () => h('div', {},
     h('div', { class: 'two-col' },
-      itemList('Bag', '', s.bag, 20),
-      itemList('PC item storage', '', s.pcItems, 50)));
+      bagCard('Bag', s.bag, 20),
+      bagCard('PC item storage', s.pcItems, 50)));
 
   // ---------- Pokémon lists ----------
 

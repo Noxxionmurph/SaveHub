@@ -7,7 +7,8 @@ import {
 import {
   applySpeciesTypes, calcStats, defaultNickname, hpDv, recalcPartyStats, type Gen1Mon,
 } from '../../../core/gen1/save.ts';
-import { askConfirm, clear, field, h, numberInput, selectInput } from '../../dom.ts';
+import { field, h, numberInput, selectInput } from '../../dom.ts';
+import { monDialog } from '../../monDialog.ts';
 import { maxPp, moveInfo } from '../../../core/gen1/moves.ts';
 import { pokemonIcon, typeIcon } from '../../sprites.ts';
 import { monHpBar } from './hpBar.ts';
@@ -34,47 +35,12 @@ export interface MonEditorOptions {
   onDiscard?: () => void;
 }
 
-/** A comparable picture of a Pokémon (raw name bytes included), to tell whether anything was edited. */
-const fingerprint = (mon: Gen1Mon): string => JSON.stringify(mon, (_key, v) => (v instanceof Uint8Array ? Array.from(v) : v));
-
 export function openMonEditor({ mon, party, onDone, onDiscard }: MonEditorOptions): void {
   /** The experience a Pokémon of this species has at a level. The curve is fixed by the species; a glitch species is guessed once, on opening. */
   const guessed = guessGrowth(mon.level, mon.exp);
   const expAt = (level: number) => expForLevel(growthOf(mon.species, guessed), level);
-  const dialog = h('dialog', { class: 'mon-dialog', 'aria-labelledby': 'mon-title' });
-  const body = h('div', { class: 'dialog-body' });
-  dialog.append(body);
-
-  // Edits are applied to `mon` as they're made. Done keeps them. The X at the top right (and Escape) throws them
-  // away: it puts the Pokémon back the way it was when this window opened, after asking if anything was changed.
-  const original = structuredClone(mon);
-  const originalPrint = fingerprint(mon);
-  const changed = () => fingerprint(mon) !== originalPrint;
-  let discarded = false;
-  const discardAndClose = async () => {
-    if (changed()) {
-      const label = original.nickname || speciesName(original.species);
-      if (!await askConfirm(`Discard your changes to ${label}?`, 'Discard', 'Keep editing')) return;
-      const target = mon as unknown as Record<string, unknown>;
-      for (const key of Object.keys(target)) if (!(key in original)) delete target[key];
-      Object.assign(mon, structuredClone(original));
-    }
-    discarded = true;
-    dialog.close();
-  };
-  // Stays at the top right while the form scrolls, so leaving doesn't mean scrolling down to Done.
-  const closeBar = h('div', { class: 'dialog-x-bar' },
-    h('button', {
-      class: 'dialog-x', type: 'button', title: 'Close without keeping changes', 'aria-label': 'Close without keeping changes',
-      onclick: () => { void discardAndClose(); },
-    }));
-
-  let refreshing = false;
-  const refresh = () => {
-    if (refreshing) return;
-    refreshing = true;
-    try { clear(body); body.append(closeBar, ...render().filter((n): n is Node => n !== null)); } finally { refreshing = false; }
-  };
+  const win = monDialog({ mon, label: (m) => m.nickname || speciesName(m.species), render, onDone, onDiscard });
+  const refresh = win.refresh;
   const touched = () => { if (party) recalcPartyStats(mon); };
 
   function render(): (Node | null)[] {
@@ -219,15 +185,10 @@ export function openMonEditor({ mon, party, onDone, onDiscard }: MonEditorOption
       ),
       h('div', { class: 'dialog-foot' },
         h('span', { class: 'muted' }, 'Done keeps your changes and the ✕ at the top throws them away. The file is only written when you tap Save on the main page.'),
-        h('button', { class: 'primary', onclick: () => { dialog.close(); } }, 'Done'),
+        h('button', { class: 'primary', onclick: win.close }, 'Done'),
       ),
     ];
   }
 
-  // Escape works like the ✕: it asks before throwing edits away, rather than closing and keeping them.
-  dialog.addEventListener('cancel', (e) => { e.preventDefault(); void discardAndClose(); });
-  dialog.addEventListener('close', () => { dialog.remove(); if (discarded) onDiscard?.(); onDone(changed()); });
-  document.body.append(dialog);
-  refresh();
-  dialog.showModal();
+  win.open();
 }

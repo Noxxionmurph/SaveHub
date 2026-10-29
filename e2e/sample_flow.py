@@ -147,7 +147,7 @@ with sync_playwright() as p:
     page.locator('.mon').nth(0).locator('button[aria-label^="Actions for"]').click()
     page.click('dialog.sheet-dialog button:has-text("Move to")')
     assert page.locator('dialog.sheet-dialog button.dest:not([disabled])').count() == 0
-    assert 'only party' in page.inner_text('dialog.sheet-dialog')
+    assert 'needs at least one Pokémon' in page.inner_text('dialog.sheet-dialog')   # the same words as Gen 2 and 3
     assert 'null' not in page.inner_text('dialog.sheet-dialog')
     page.click('dialog.sheet-dialog button:has-text("Back")')
     page.click('dialog.sheet-dialog button.danger')

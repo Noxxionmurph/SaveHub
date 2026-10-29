@@ -9,7 +9,8 @@ import {
 } from '../../../core/gen2/data.ts';
 import { CAUGHT_LEVEL_MAX, LOCATION_CHOICES, decodeCaught, encodeCaught, locationName, type CaughtData } from '../../../core/gen2/caught.ts';
 import { calcStats, defaultNickname, recalcPartyStats, type Gen2Game, type Gen2Mon } from '../../../core/gen2/save.ts';
-import { askConfirm, clear, field, h, lazySelect, numberInput, selectInput } from '../../dom.ts';
+import { field, h, lazySelect, numberInput, selectInput } from '../../dom.ts';
+import { monDialog } from '../../monDialog.ts';
 import { itemIcon, itemIconUrl, setIconSrc, shinyIcon, typeIcon } from '../../sprites.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
@@ -63,49 +64,11 @@ export interface MonEditorOptions {
   onDiscard?: () => void;
 }
 
-/** A comparable picture of a Pokémon (raw name and mail bytes included), to tell whether anything was edited. */
-const fingerprint = (mon: Gen2Mon): string => JSON.stringify(mon, (_key, v) => (v instanceof Uint8Array ? Array.from(v) : v));
-
 export function openMonEditor({ mon, party, game = 'gs', onDone, onDiscard }: MonEditorOptions): void {
   const guessed = guessGrowth(mon.level, mon.exp);
   const expAt = (level: number) => expForLevel(growthOf(mon.species, guessed), level);
-  const dialog = h('dialog', { class: 'mon-dialog', 'aria-labelledby': 'mon-title' });
-  const body = h('div', { class: 'dialog-body' });
-  dialog.append(body);
-
-  // Edits are applied to `mon` as they're made. Done keeps them; the X (and Escape) puts it back as it was.
-  const original = structuredClone(mon);
-  const originalPrint = fingerprint(mon);
-  const changed = () => fingerprint(mon) !== originalPrint;
-  let discarded = false;
-  const discardAndClose = async () => {
-    if (changed()) {
-      const label = original.nickname || speciesName(original.species);
-      if (!await askConfirm(`Discard your changes to ${label}?`, 'Discard', 'Keep editing')) return;
-      const target = mon as unknown as Record<string, unknown>;
-      for (const key of Object.keys(target)) if (!(key in original)) delete target[key];
-      Object.assign(mon, structuredClone(original));
-    }
-    discarded = true;
-    dialog.close();
-  };
-  const closeBar = h('div', { class: 'dialog-x-bar' },
-    h('button', {
-      class: 'dialog-x', type: 'button', title: 'Close without keeping changes', 'aria-label': 'Close without keeping changes',
-      onclick: () => { void discardAndClose(); },
-    }));
-
-  let refreshing = false;
-  const refresh = () => {
-    if (refreshing) return;
-    refreshing = true;
-    try {
-      const y = body.scrollTop;
-      clear(body);
-      body.append(closeBar, ...render().filter((n): n is Node => n !== null));
-      body.scrollTop = y;
-    } finally { refreshing = false; }
-  };
+  const win = monDialog({ mon, label: (m) => m.nickname || speciesName(m.species), render, onDone, onDiscard });
+  const refresh = win.refresh;
   const touched = () => { if (party) recalcPartyStats(mon); };
   const setDvs = (dvs: Gen2Mon['dvs']) => { mon.dvs = dvs; touched(); refresh(); };
 
@@ -331,15 +294,10 @@ export function openMonEditor({ mon, party, game = 'gs', onDone, onDiscard }: Mo
       h('p', { class: 'muted section-note' }, 'Max DVs gives the best stats; on a species that can be either gender it also makes it male, and it is never shiny.'),
       h('div', { class: 'dialog-foot' },
         h('span', { class: 'muted' }, 'Done keeps your changes and the ✕ at the top throws them away. The file is only written when you tap Save on the main page.'),
-        h('button', { class: 'primary', onclick: () => { dialog.close(); } }, 'Done'),
+        h('button', { class: 'primary', onclick: win.close }, 'Done'),
       ),
     ];
   }
 
-  // Escape works like the ✕: it asks before throwing edits away, rather than closing and keeping them.
-  dialog.addEventListener('cancel', (e) => { e.preventDefault(); void discardAndClose(); });
-  dialog.addEventListener('close', () => { dialog.remove(); if (discarded) onDiscard?.(); onDone(changed()); });
-  document.body.append(dialog);
-  refresh();
-  dialog.showModal();
+  win.open();
 }

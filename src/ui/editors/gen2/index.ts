@@ -3,6 +3,7 @@
 // shininess and gender, fourteen named boxes and the 251-Pokémon Pokédex. Crystal adds the player's gender, its four
 // new key items and a record of where each Pokémon was caught.
 
+import { popcount } from '../../../core/bytes.ts';
 import {
   DEX_COUNT, DEX_NAMES, HM_COUNT, JOHTO_BADGES, KANTO_BADGES, PRINT_SHADES, TEXT_SPEEDS, TMHM_LABELS, TMHM_MOVES, TM_COUNT,
   baseStatsFor, genderOf, itemChoices, itemName, moveInfo, speciesName, type ItemSet, type Pocket,
@@ -13,11 +14,12 @@ import {
 } from '../../../core/gen2/save.ts';
 import type { MountEditor } from '../../../core/types.ts';
 import { clear, field, h, lazySelect, numberInput, refocusAfterRemove, selectInput, toast } from '../../dom.ts';
-import { tabBar, tabPanel } from '../../tabs.ts';
 import { enableDrag } from '../../drag.ts';
 import { dexTab as sharedDexTab } from '../../dexTab.ts';
 import { choiceRow, stepRow } from '../../gameChoice.ts';
+import { itemList } from '../../itemList.ts';
 import { badgeIcon, itemIcon, itemIconUrl, setIconSrc } from '../../sprites.ts';
+import { tabBar, tabPanel } from '../../tabs.ts';
 import { typeChips } from '../../typeChip.ts';
 import { monHpBar } from './hpBar.ts';
 import { discPath, itemSpritePath } from './itemSprites.ts';
@@ -52,7 +54,6 @@ function pickers(set: ItemSet) {
 const RARE_CANDY = 0x20;
 const ULTRA_BALL = 0x02;
 
-const popcount = (n: number) => { let c = 0; for (let v = n & 0xff; v; v &= v - 1) c++; return c; };
 
 export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
   let tab: Tab = 'trainer';
@@ -251,32 +252,10 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
 
   // ---------- bag ----------
 
-  function itemList(title: string, note: string, items: BagItem[], max: number, options: Options, fresh: () => number): Node {
-    const wrap = h('section', { class: 'card' });
-    const draw = () => {
-      clear(wrap);
-      wrap.append(
-        h('h3', {}, title, h('span', { class: 'muted count' }, `${items.length}/${max}`)),
-        ...(note ? [h('p', { class: 'muted card-note' }, note)] : []),
-        ...items.map((it, i) => {
-          const icon = itemIcon(itemSpritePath(it.id));
-          return h('div', { class: 'item-row' },
-            icon,
-            lazySelect(options.some((c) => c.value === it.id) ? options : [{ value: it.id, label: nameOf(it.id) }, ...options],
-              it.id, (v) => { it.id = Number(v); setIconSrc(icon, itemIconUrl(itemSpritePath(it.id))); markDirty(); }, { 'aria-label': `${title}, item ${i + 1}` }),
-            numberInput(it.count, 1, 99, (v) => { it.count = v; markDirty(); }, { 'aria-label': `Quantity of item ${i + 1}` }),
-            h('button', { class: 'icon', 'aria-label': `Remove item ${i + 1}`, onclick: () => { items.splice(i, 1); markDirty(); draw(); refocusAfterRemove(wrap, (n) => `Remove item ${n + 1}`, i); } }, '✕'),
-          );
-        }),
-        h('button', {
-          disabled: items.length >= max,
-          onclick: () => { items.push({ id: fresh(), count: 1 }); markDirty(); draw(); },
-        }, items.length >= max ? `Full (${max} of ${max})` : '+ Add item'),
-      );
-    };
-    draw();
-    return wrap;
-  }
+
+  const bagCard = (title: string, items: BagItem[], slots: number, options: Options, fresh: () => number) => itemList({
+    title, items, slots, maxCount: 99, options, nameOf, spritePath: itemSpritePath, fresh, markDirty,
+  });
 
   /** The Key Items pocket: one of each, so no quantity. */
   function keyList(): Node {
@@ -349,10 +328,10 @@ export const mountGen2Editor: MountEditor<Gen2Save> = (container, s, host) => {
 
   const bagTab = () => h('div', { class: 'stack' },
     h('div', { class: 'two-col' },
-      itemList('Items pocket', '', s.items, BAG_MAX.items, ITEM_OPTIONS, () => RARE_CANDY),
-      itemList('Balls pocket', '', s.balls, BAG_MAX.balls, BALL_OPTIONS, () => ULTRA_BALL),
+      bagCard('Items pocket', s.items, BAG_MAX.items, ITEM_OPTIONS, () => RARE_CANDY),
+      bagCard('Balls pocket', s.balls, BAG_MAX.balls, BALL_OPTIONS, () => ULTRA_BALL),
       keyList(),
-      itemList('PC item storage', '', s.pcItems, BAG_MAX.pcItems, PC_OPTIONS, () => RARE_CANDY),
+      bagCard('PC item storage', s.pcItems, BAG_MAX.pcItems, PC_OPTIONS, () => RARE_CANDY),
     ),
     tmhmCard());
 
