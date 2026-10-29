@@ -1,6 +1,7 @@
 // Gen 1 (Red / Blue / Yellow, international) save file model.
 // Layout reference: pret/pokered wram + SRAM map, PKHeX's SAV1.
 
+import { be, readItemList as readItems, writeItemList as writeItems, type BagItem } from '../bytes.ts';
 import type { ChangeGroup, EditableSave, SummaryLine } from '../types.ts';
 import { baseStatsFor, speciesName, TYPE_BYTE } from './data.ts';
 import { describeGen1Changes } from './diff.ts';
@@ -19,7 +20,7 @@ const OFF = {
   badges: 0x2602,
   playerId: 0x2605, // u16 big-endian
   pcItemCount: 0x27e6, // count, then 50 × (id, qty), 0xFF
-  currentBox: 0x284c, // low 7 bits = box index, bit 7 = "box changed" flag
+  currentBox: 0x284c, // low 7 bits = box index, bit 7 = the player has changed box at least once
   coins: 0x2850, // 2 bytes BCD
   // Pokémon Yellow only: this 128-byte block holds the Pikachu follower's state. Red and Blue leave it
   // unused (the game clears it at boot), so any non-zero byte here means a Yellow save.
@@ -52,9 +53,11 @@ const PARTY_MON_SIZE = 44;
 const BOX_MON_SIZE = 33;
 const PARTY_MAX = 6;
 const BOX_MAX = 20;
-const BOX_SIZE = 0x462;
-const BOXES_PER_BANK = 6;
+export const BOX_SIZE = 0x462;
+export const BOXES_PER_BANK = 6;
 const BOX_COUNT = 12;
+/** Bit 7 of the current box byte: set the first time the player changes box (BIT_HAS_CHANGED_BOXES). */
+const BOXES_READY = 0x80;
 const BAG_MAX = 20;
 const PC_MAX = 50;
 export const DEX_BYTES = 19;
@@ -120,10 +123,7 @@ export interface Gen1Mon {
   otRaw?: Uint8Array;
 }
 
-export interface BagItem {
-  id: number;
-  count: number;
-}
+export type { BagItem };
 
 export interface Stats {
   hp: number; atk: number; def: number; spe: number; spc: number;
@@ -131,8 +131,7 @@ export interface Stats {
 
 // ---------- helpers ----------
 
-const u16 = (d: Uint8Array, o: number) => (d[o] << 8) | d[o + 1];
-const setU16 = (d: Uint8Array, o: number, v: number) => { d[o] = (v >> 8) & 0xff; d[o + 1] = v & 0xff; };
+const { u16, setU16 } = be;
 
 export function sum8(d: Uint8Array, start: number, end: number): number {
   let s = 0;
@@ -330,23 +329,6 @@ function writeMonList(d: Uint8Array, base: number, mons: Gen1Mon[], party: boole
   d[base + 1 + list.length] = 0xff;
 }
 
-function readItems(d: Uint8Array, base: number, max: number): BagItem[] {
-  const count = Math.min(d[base], max);
-  const items: BagItem[] = [];
-  for (let i = 0; i < count; i++) items.push({ id: d[base + 1 + i * 2], count: d[base + 2 + i * 2] });
-  return items;
-}
-
-function writeItems(d: Uint8Array, base: number, items: BagItem[], max: number): void {
-  const list = items.filter((it) => it.id !== 0 && it.id !== 0xff).slice(0, max);
-  d[base] = list.length;
-  list.forEach((it, i) => {
-    d[base + 1 + i * 2] = it.id;
-    d[base + 2 + i * 2] = Math.max(1, Math.min(99, it.count));
-  });
-  d[base + 1 + list.length * 2] = 0xff;
-}
-
 // ---------- the save ----------
 
 export class Gen1Save implements EditableSave {
@@ -365,6 +347,14 @@ export class Gen1Save implements EditableSave {
   playMinutes: number;
   playSeconds: number;
   currentBoxIndex: number;
+  /**
+   * Whether the player has ever changed box. Until then the game has never written boxes 1-12 in the box banks: they
+   * hold whatever was there, and the first change of box empties them all. So they're read as empty, and the first
+   * edit that puts a Pokémon in one of them sets them all up the way the game would.
+   */
+  readonly boxesReady: boolean;
+  /** Whether the file's checksum was right when it was opened. Saving always writes a fresh one. */
+  readonly checksumOk: boolean;
   bag: BagItem[];
   pcItems: BagItem[];
   party: Gen1Mon[];
@@ -380,6 +370,7 @@ export class Gen1Save implements EditableSave {
     if (data.length < SAVE_SIZE) throw new Error(`Gen 1 saves are ${SAVE_SIZE} bytes (got ${data.length}).`);
     this.original = data.slice();
     const d = this.original;
+    this.checksumOk = Gen1Save.checksumValid(d);
     this.nameRaw = d.slice(OFF.playerName, OFF.playerName + NAME_LEN);
     this.rivalRaw = d.slice(OFF.rivalName, OFF.rivalName + NAME_LEN);
     this.trainerName = decodeText(this.nameRaw);
@@ -396,6 +387,7 @@ export class Gen1Save implements EditableSave {
     this.playMinutes = d[OFF.playMinutes];
     this.playSeconds = d[OFF.playSeconds];
     this.currentBoxIndex = Math.min(d[OFF.currentBox] & 0x7f, BOX_COUNT - 1);
+    this.boxesReady = !!(d[OFF.currentBox] & BOXES_READY);
     this.bag = readItems(d, OFF.bagCount, BAG_MAX);
     this.pcItems = readItems(d, OFF.pcItemCount, PC_MAX);
     this.dexOwned = d.slice(OFF.dexOwned, OFF.dexOwned + DEX_BYTES);
@@ -403,7 +395,8 @@ export class Gen1Save implements EditableSave {
     this.party = readMonList(d, OFF.party, true);
     this.boxes = [];
     for (let i = 0; i < BOX_COUNT; i++) {
-      this.boxes.push(readMonList(d, i === this.currentBoxIndex ? OFF.currentBoxData : this.boxOffset(i), false));
+      if (i === this.currentBoxIndex) this.boxes.push(readMonList(d, OFF.currentBoxData, false));
+      else this.boxes.push(this.boxesReady ? readMonList(d, this.boxOffset(i), false) : []);
     }
   }
 
@@ -414,6 +407,12 @@ export class Gen1Save implements EditableSave {
 
   static checksumValid(data: Uint8Array): boolean {
     return data.length >= SAVE_SIZE && data[OFF.checksum] === checksum8(data, OFF.checksumStart, OFF.checksumEnd);
+  }
+
+  /** A line for the top of the editor when the file didn't open cleanly. */
+  loadNote(): string | null {
+    return this.checksumOk ? null
+      : "This file failed the save check, so it may be damaged or from another game. Saving makes the game accept it as shown here.";
   }
 
   isOwned = (dex: number) => (this.dexOwned[(dex - 1) >> 3] >> ((dex - 1) & 7)) & 1;
@@ -490,12 +489,17 @@ export class Gen1Save implements EditableSave {
     writeItems(d, OFF.pcItemCount, this.pcItems, PC_MAX);
     writeMonList(d, OFF.party, this.party, true);
 
-    d[OFF.currentBox] = (d[OFF.currentBox] & 0x80) | (this.currentBoxIndex & 0x7f);
+    // Boxes that were never set up are written (all of them, empty ones as empty lists, as the game's first change of
+    // box does) only once a Pokémon goes into one or the current box moves; the flag then stops the game wiping them.
+    const original = this.original[OFF.currentBox];
+    const setUp = !this.boxesReady && (this.currentBoxIndex !== Math.min(original & 0x7f, BOX_COUNT - 1)
+      || this.boxes.some((box, i) => i !== this.currentBoxIndex && box.length > 0));
+    d[OFF.currentBox] = (original & BOXES_READY) | (setUp ? BOXES_READY : 0) | (this.currentBoxIndex & 0x7f);
     // The game keeps the *current* box in the main bank (0x30C0); its slot in the box banks is only
     // refreshed when the player switches boxes, so edits to the current box go to 0x30C0 only.
     for (let i = 0; i < BOX_COUNT; i++) {
-      const at = i === this.currentBoxIndex ? OFF.currentBoxData : this.boxOffset(i);
-      writeMonList(d, at, this.boxes[i] ?? [], false);
+      if (i === this.currentBoxIndex) writeMonList(d, OFF.currentBoxData, this.boxes[i] ?? [], false);
+      else if (this.boxesReady || setUp) writeMonList(d, this.boxOffset(i), this.boxes[i] ?? [], false);
     }
 
     // Main checksum.
@@ -503,7 +507,7 @@ export class Gen1Save implements EditableSave {
     // Box-bank checksums (whole-bank at +0x1A4C, then one per box), refreshed only for banks we changed.
     const total = BOX_SIZE * BOXES_PER_BANK;
     for (const bank of [OFF.bank2, OFF.bank3]) {
-      let changed = false;
+      let changed = setUp;
       for (let i = bank; i < bank + total && !changed; i++) changed = d[i] !== this.original[i];
       if (!changed) continue;
       d[bank + total] = checksum8(d, bank, bank + total);

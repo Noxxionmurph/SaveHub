@@ -30,6 +30,11 @@ export interface EditableSave {
    * dialog shown ahead of Save. Omit if a game can't describe its edits; the dialog then just confirms.
    */
   describeChanges?(before: EditableSave): ChangeGroup[];
+  /**
+   * A warning about the file as opened, shown above the editor: it failed its checks (opened from "Try opening anyway"),
+   * or the game would load a backup copy instead. Null when it opened cleanly. Optional.
+   */
+  loadNote?(): string | null;
 }
 
 export interface GameIdentity {

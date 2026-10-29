@@ -7,7 +7,7 @@ import {
 } from '../src/core/gen2/data.ts';
 import { hpBarColour, hpBarPixels } from '../src/core/gen2/hp.ts';
 import { PARTY, copyMon, dropMon, moveMon, partyLeaveRefusal, removeMon } from '../src/core/gen2/roster.ts';
-import { Gen2Save, SAVE_SIZE, calcStats, newMon, sum16 } from '../src/core/gen2/save.ts';
+import { GEN2_LAYOUTS, Gen2Save, SAVE_SIZE, calcStats, newMon, sum16 } from '../src/core/gen2/save.ts';
 import { blankGen2Save, buildSampleSave } from '../src/core/gen2/sample.ts';
 import { decodeText, encodeText, nameProblems } from '../src/core/gen2/text.ts';
 import { openSave } from '../src/core/registry.ts';
@@ -149,6 +149,44 @@ test('an edit rewrites the checksum and refreshes the backup copy', () => {
   const again = new Gen2Save(out);
   assert.equal(again.trainerName, 'KRIS');
   assert.equal(again.party[0].level, 60);
+});
+
+for (const game of ['gs', 'crystal'] as const) {
+  test(`${game}: a damaged main copy opens from the backup, and saving repairs it instead of overwriting the backup`, () => {
+    const L = GEN2_LAYOUTS[game];
+    const raw = buildSampleSave(game);
+    const good = new Gen2Save(raw, game);
+    const damaged = raw.slice();
+    damaged.fill(0x5a, L.gameData + 0x40, L.gameData + 0x80); // garbage across the player data
+    assert.ok(!Gen2Save.mainValid(damaged, game));
+    assert.ok(Gen2Save.backupValid(damaged, game));
+    assert.equal(Gen2Save.detectGame(damaged), game);
+
+    const s = new Gen2Save(damaged, game);
+    assert.equal(s.loadedFrom, 'backup');
+    assert.ok(s.loadNote());
+    assert.equal(s.trainerName, good.trainerName);
+    assert.equal(s.money, good.money);
+
+    s.money = 4321;
+    const out = s.serialize();
+    assert.ok(Gen2Save.mainValid(out, game));
+    assert.ok(Gen2Save.backupValid(out, game));
+    assert.equal(new Gen2Save(out, game).money, 4321);
+    // Untouched, it comes back as the good file.
+    assert.deepEqual(new Gen2Save(damaged, game).serialize(), raw);
+  });
+}
+
+test('a file with neither copy valid says so', () => {
+  const raw = buildSampleSave('gs');
+  raw.fill(0x5a, 0x2050, 0x2090);
+  raw.fill(0x5a, 0x15d0, 0x1610);
+  assert.equal(Gen2Save.detectGame(raw), null);
+  const s = new Gen2Save(raw, 'gs');
+  assert.equal(s.loadedFrom, 'neither');
+  assert.ok(s.loadNote());
+  assert.equal(new Gen2Save(buildSampleSave('gs')).loadNote(), null);
 });
 
 test('the open box lives in its own slot; its copy in the box bank is left as the game left it', () => {

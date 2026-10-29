@@ -15,6 +15,7 @@
 // This edits the newest slot in place (same counter, same sector order), so the game loads it as before, and an
 // unedited file comes back byte for byte. Emerald hides money, coins and bag quantities behind a random key.
 
+import { clamp, le } from '../bytes.ts';
 import type { ChangeGroup, EditableSave, SummaryLine } from '../types.ts';
 import {
   DEX_COUNT, EGG_SPECIES, ENGLISH, HM_COUNT, TM01, TM_COUNT, abilityOf, baseStatsFor, calcStats, dexOf, expForLevel, growthOf,
@@ -134,11 +135,7 @@ const unpackIvs = (iv: number): Ivs =>
 const packIvs = (iv: Ivs) =>
   ((iv.hp & 31) | ((iv.atk & 31) << 5) | ((iv.def & 31) << 10) | ((iv.spe & 31) << 15) | ((iv.spa & 31) << 20) | ((iv.spd & 31) << 25)) >>> 0;
 
-const u16 = (d: Uint8Array, o: number) => d[o] | (d[o + 1] << 8);
-const u32 = (d: Uint8Array, o: number) => (d[o] | (d[o + 1] << 8) | (d[o + 2] << 16) | (d[o + 3] << 24)) >>> 0;
-const setU16 = (d: Uint8Array, o: number, v: number) => { d[o] = v & 0xff; d[o + 1] = (v >> 8) & 0xff; };
-const setU32 = (d: Uint8Array, o: number, v: number) => { setU16(d, o, v & 0xffff); setU16(d, o + 2, (v >>> 16) & 0xffff); };
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.floor(v)));
+const { u16, u32, setU16, setU32 } = le;
 
 /** The sector checksum (pokeemerald: CalculateChecksum): a 32-bit sum of the words, folded to 16 bits. */
 export function sectorChecksum(d: Uint8Array, start: number, size: number): number {
@@ -466,6 +463,10 @@ export interface Gen3Options {
   buttonMode: number;
 }
 
+/** The blocks that are written back only when edited, so unedited ones keep their exact bytes. */
+const TRACKED = ['pockets', 'pcItems', 'frontier', 'gameStats', 'pokeblocks', 'decorations', 'roamer', 'rematches'] as const;
+type Tracked = typeof TRACKED[number];
+
 export class Gen3Save implements EditableSave {
   readonly game: Gen3Game;
   trainerName: string;
@@ -515,7 +516,9 @@ export class Gen3Save implements EditableSave {
   private sb1: Uint8Array;
   private storage: Uint8Array;
   private key: number;
-  private loaded: { pockets: string; pcItems: string; boxNameRaw: Uint8Array[]; nameRaw: Uint8Array; frontier: string; gameStats: number[]; pokeblocks: string; decorations: string; roamer: string; rematches: string };
+  private raw: { name: Uint8Array; boxNames: Uint8Array[] };
+  /** A copy of each block below as it was opened. serialize() rewrites a block only if it differs from this. */
+  private loaded: Pick<Gen3Save, Tracked>;
 
   constructor(data: Uint8Array, game?: Gen3Game) {
     if (data.length < SAVE_SIZE) throw new Error(`Gen 3 Pokémon saves are ${SAVE_SIZE.toLocaleString('en-US')} bytes (this file is ${data.length.toLocaleString('en-US')}).`);
@@ -597,13 +600,13 @@ export class Gen3Save implements EditableSave {
       readMon(st, STORAGE.boxes + (b * BOX_SLOTS + i) * BOX_MON_SIZE, false)));
     const boxNameRaw = Array.from({ length: BOX_COUNT }, (_, i) => st.slice(STORAGE.names + i * 9, STORAGE.names + i * 9 + 9));
     this.boxNames = boxNameRaw.map(decodeText);
-    this.loaded = {
-      pockets: JSON.stringify(this.pockets), pcItems: JSON.stringify(this.pcItems), boxNameRaw,
-      nameRaw: sb2.slice(SB2.name, SB2.name + 8), frontier: JSON.stringify(this.frontier),
-      gameStats: this.gameStats.slice(), pokeblocks: JSON.stringify(this.pokeblocks),
-      decorations: JSON.stringify(this.decorations), roamer: JSON.stringify(this.roamer),
-      rematches: JSON.stringify(this.rematches),
-    };
+    this.raw = { name: sb2.slice(SB2.name, SB2.name + 8), boxNames: boxNameRaw };
+    this.loaded = structuredClone(Object.fromEntries(TRACKED.map((k) => [k, this[k]]))) as Pick<Gen3Save, Tracked>;
+  }
+
+  /** Whether a block differs from how it was opened. */
+  private edited(k: Tracked): boolean {
+    return JSON.stringify(this[k]) !== JSON.stringify(this.loaded[k]);
   }
 
   /** Which game a file is from, or null if it isn't a Gen 3 save this can read. */
@@ -659,7 +662,7 @@ export class Gen3Save implements EditableSave {
     const sb2 = this.sb2.slice(), sb1 = this.sb1.slice(), st = this.storage.slice();
     const key16 = this.key & 0xffff;
 
-    sb2.set(encodeText(this.trainerName, 8, this.loaded.nameRaw, PLAYER_NAME_MAX), SB2.name);
+    sb2.set(encodeText(this.trainerName, 8, this.raw.name, PLAYER_NAME_MAX), SB2.name);
     sb2[SB2.gender] = this.gender === 'female' ? 1 : 0;
     setU16(sb2, SB2.trainerId, this.trainerId);
     setU16(sb2, SB2.trainerId + 2, this.secretId);
@@ -693,7 +696,7 @@ export class Gen3Save implements EditableSave {
     }
 
     // Only what was edited is written, so an unedited value the game wouldn't make (a hacked 60000 BP) is kept.
-    const f = this.frontier, f0 = JSON.parse(this.loaded.frontier) as Gen3Save['frontier'];
+    const f = this.frontier, f0 = this.loaded.frontier;
     if (f && f0) {
       if (f.battlePoints !== f0.battlePoints) setU16(sb2, EM.battlePoints, clamp(f.battlePoints, 0, BATTLE_POINTS_MAX));
       if (f.battlePointsWon !== f0.battlePointsWon) setU16(sb2, CARD_BATTLE_POINTS, clamp(f.battlePointsWon, 0, 0xffff));
@@ -719,17 +722,17 @@ export class Gen3Save implements EditableSave {
     if (anyRibbon && !this.flag(ribbonFlag)) this.setFlagIn(sb1, ribbonFlag, true);
 
     // Pockets are rewritten only when they changed, so an unedited bag keeps its exact bytes (gaps and all).
-    if (JSON.stringify(this.pockets) !== this.loaded.pockets) {
+    if (this.edited('pockets')) {
       writeItems(sb1, L.items, this.pockets.item, L.itemsMax, key16, 99);
       writeItems(sb1, L.keyItems, this.pockets.key, L.keyItemsMax, key16, 99);
       writeItems(sb1, L.balls, this.pockets.ball, L.ballsMax, key16, 99);
       writeItems(sb1, L.tmhm, this.pockets.tmhm, L.tmhmMax, key16, 99);
       writeItems(sb1, L.berries, this.pockets.berry, L.berriesMax, key16, 999);
     }
-    const rm0 = JSON.parse(this.loaded.rematches) as Gen3Save['rematches'];
+    const rm0 = this.loaded.rematches;
     this.rematches?.forEach((m, i) => { if (m.team !== rm0![i].team) sb1[REMATCHES_AT + i] = clamp(m.team, 0, 5); });
     const ro = this.roamer;
-    if (ro && JSON.stringify(ro) !== this.loaded.roamer) {
+    if (ro && this.edited('roamer')) {
       setU32(sb1, L.roamer, packIvs(ro.ivs));
       setU32(sb1, L.roamer + 4, ro.pid >>> 0);
       setU16(sb1, L.roamer + 8, speciesOf(ro.species));
@@ -738,9 +741,9 @@ export class Gen3Save implements EditableSave {
       sb1[L.roamer + 13] = ro.status & 0xff;
       sb1[L.roamer + 19] = +ro.active;
     }
-    if (JSON.stringify(this.decorations) !== this.loaded.decorations) writeDecorations(sb1, L.decorations, this.decorations);
-    if (JSON.stringify(this.pokeblocks) !== this.loaded.pokeblocks) writePokeblocks(sb1, L.pokeblocks, this.pokeblocks);
-    if (JSON.stringify(this.pcItems) !== this.loaded.pcItems) writeItems(sb1, SB1.pcItems, this.pcItems, PC_ITEMS_MAX, 0, 999);
+    if (this.edited('decorations')) writeDecorations(sb1, L.decorations, this.decorations);
+    if (this.edited('pokeblocks')) writePokeblocks(sb1, L.pokeblocks, this.pokeblocks);
+    if (this.edited('pcItems')) writeItems(sb1, SB1.pcItems, this.pcItems, PC_ITEMS_MAX, 0, 999);
 
     const party = this.party.slice(0, PARTY_MAX);
     sb1[SB1.partyCount] = party.length;
@@ -756,7 +759,7 @@ export class Gen3Save implements EditableSave {
       if (mon) writeMon(st, off, mon, false);
       else if (readMon(this.storage, off, false)) st.fill(0, off, off + BOX_MON_SIZE);
     }));
-    this.boxNames.forEach((name, i) => st.set(encodeText(name, 9, this.loaded.boxNameRaw[i], BOX_NAME_LEN), STORAGE.names + i * 9));
+    this.boxNames.forEach((name, i) => st.set(encodeText(name, 9, this.raw.boxNames[i], BOX_NAME_LEN), STORAGE.names + i * 9));
 
     // Back into the sectors of the slot it came from, with fresh checksums.
     const d = this.original.slice();

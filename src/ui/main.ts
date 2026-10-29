@@ -87,8 +87,7 @@ const hostedDownloads: Promise<DownloadsApi | null> = (async () => {
   } catch { return null; }
 })();
 
-async function download(save: EditableSave): Promise<void> {
-  const bytes = save.serialize();
+async function download(bytes: Uint8Array): Promise<void> {
   const name = exportName();
   const hosted = await hostedDownloads;
   if (hosted) {
@@ -115,14 +114,16 @@ const sameBytes = (x: Uint8Array, y: Uint8Array) => x.length === y.length && x.e
 
 /** Save button: show what changed first (for games that can say), then write the file. */
 async function reviewThenSave(game: GameModule, save: EditableSave, original: Uint8Array): Promise<void> {
+  // Built once: the review needs to know whether anything changed, and the same bytes are what gets saved.
+  const bytes = save.serialize();
   if (save.describeChanges) {
     let groups: ChangeGroup[] = [];
     try { groups = save.describeChanges(game.load(original)); } catch { groups = []; }
     let summary: SummaryLine[] = [];
     try { summary = save.summary?.() ?? []; } catch { summary = []; }
-    if (!await askReview(groups, !sameBytes(save.serialize(), original), summary)) return;
+    if (!await askReview(groups, !sameBytes(bytes, original), summary)) return;
   }
-  await download(save);
+  await download(bytes);
 }
 
 async function openSample(game: GameModule): Promise<void> {
@@ -164,6 +165,8 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
   let identity: GameIdentity;
   try { identity = game.identify?.(data) ?? { names: game.games }; } catch { identity = { names: game.games }; }
   const names = identity.names.length ? identity.names : game.games;
+  let loadNote: string | null = null;
+  try { loadNote = save.loadNote?.() ?? null; } catch { loadNote = null; }
 
   // Exactly one name = the file settled it. Several = the format can't say, so the user confirms.
   let chosen: string | null = names.length === 1 ? names[0] : null;
@@ -204,6 +207,7 @@ async function openGame(game: GameModule, data: Uint8Array, isSample = false): P
       nameEl,
       h('p', { class: 'muted file-line' }, h('span', {}, fileName), h('span', {}, game.platform)),
       isSample ? h('p', { class: 'sample-note' }, 'This is a made-up sample save. Edit anything, then tap Save to see the list of changes. Nothing leaves your device.') : null,
+      loadNote ? h('p', { class: 'sample-note load-note', role: 'note' }, loadNote) : null,
       picker,
       identity.note && names.length > 1 ? h('p', { class: 'muted version-note' }, identity.note) : null,
       dlNote),

@@ -7,9 +7,11 @@
 //   bank 1  options and the game itself (one checksum), the PC box that is open, Hall of Fame, and in Gold and Silver
 //           more of the backup
 //   bank 2  PC boxes 1-7        bank 3  PC boxes 8-14, then (Gold, Silver) the rest of the backup and its checksum
-// The game loads the main copy if its checksum and two check bytes are right, and the backup otherwise. On save it
-// writes both, so this does too: once anything has changed, the backup is refreshed from the main copy.
+// The game loads the main copy if its checksum and two check bytes are right, and the backup otherwise. So does this: a
+// file whose main copy is damaged opens from its backup, which is copied over the main copy. On save the game writes
+// both, so this does too: once anything has changed, the backup is refreshed from the main copy.
 
+import { be, clamp, readItemList as readItems, writeItemList as writeItems, type BagItem } from '../bytes.ts';
 import type { ChangeGroup, EditableSave, SummaryLine } from '../types.ts';
 import {
   DEX_COUNT, EGG_SPECIES, HM_COUNT, TM_COUNT, baseStatsFor, hpDv, maxPp, speciesName, type Dvs,
@@ -184,18 +186,11 @@ export interface Gen2Mon {
   mail?: Uint8Array;
 }
 
-export interface BagItem {
-  id: number;
-  count: number;
-}
+export type { BagItem };
 
 // ---------- helpers ----------
 
-const u16 = (d: Uint8Array, o: number) => (d[o] << 8) | d[o + 1];
-const setU16 = (d: Uint8Array, o: number, v: number) => { d[o] = (v >> 8) & 0xff; d[o + 1] = v & 0xff; };
-const u24 = (d: Uint8Array, o: number) => (d[o] << 16) | (d[o + 1] << 8) | d[o + 2];
-const setU24 = (d: Uint8Array, o: number, v: number) => { d[o] = (v >> 16) & 0xff; d[o + 1] = (v >> 8) & 0xff; d[o + 2] = v & 0xff; };
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, Math.floor(v)));
+const { u16, setU16, u24, setU24 } = be;
 
 /** The game's checksum (pokegold: Checksum): a 16-bit sum of the bytes. */
 export function sum16(d: Uint8Array, start: number, end: number): number {
@@ -359,23 +354,6 @@ function writeMonList(d: Uint8Array, base: number, mons: Gen2Mon[], party: boole
   d[base + 1 + list.length] = 0xff;
 }
 
-function readItems(d: Uint8Array, base: number, max: number): BagItem[] {
-  const count = Math.min(d[base], max);
-  const items: BagItem[] = [];
-  for (let i = 0; i < count; i++) items.push({ id: d[base + 1 + i * 2], count: d[base + 2 + i * 2] });
-  return items;
-}
-
-function writeItems(d: Uint8Array, base: number, items: BagItem[], max: number): void {
-  const list = items.filter((it) => it.id !== 0 && it.id !== 0xff).slice(0, max);
-  d[base] = list.length;
-  list.forEach((it, i) => {
-    d[base + 1 + i * 2] = it.id;
-    d[base + 2 + i * 2] = clamp(it.count, 1, 99);
-  });
-  d[base + 1 + list.length * 2] = 0xff;
-}
-
 // ---------- the save ----------
 
 export class Gen2Save implements EditableSave {
@@ -409,6 +387,8 @@ export class Gen2Save implements EditableSave {
   readonly game: Gen2Game;
   /** Crystal only: the player chose the boy or the girl at the start (null for Gold and Silver). */
   playerGender: 'boy' | 'girl' | null;
+  /** Which copy the file opened from, as the game would pick it: neither passing its checks means a damaged file. */
+  readonly loadedFrom: 'main' | 'backup' | 'neither';
 
   private L: Layout;
   private original: Uint8Array;
@@ -421,6 +401,13 @@ export class Gen2Save implements EditableSave {
     const L = this.L = GEN2_LAYOUTS[this.game];
     this.original = data.slice();
     const d = this.original;
+    this.loadedFrom = Gen2Save.mainValid(d, this.game) ? 'main' : Gen2Save.backupValid(d, this.game) ? 'backup' : 'neither';
+    if (this.loadedFrom === 'backup') {
+      for (const [from, to, at] of L.backup) d.set(d.subarray(at, at + to - from), from);
+      d[L.checksum] = d[L.backupChecksum];
+      d[L.checksum + 1] = d[L.backupChecksum + 1];
+      d[L.checkValue2] = CHECK_VALUE_2;
+    }
     this.playerGender = L.playerGender === undefined ? null : d[L.playerGender] & 1 ? 'girl' : 'boy';
     this.raw = {
       name: d.slice(L.playerName, L.playerName + NAME_LEN),
@@ -460,10 +447,15 @@ export class Gen2Save implements EditableSave {
       readMonList(d, i === this.currentBoxIndex ? L.currentBox : Gen2Save.boxOffset(i), false));
   }
 
-  /** The layout whose main copy is valid, or null. Only one can be: the checksums sit in different places. */
+  /**
+   * The layout whose main copy is valid, or else whose backup is (the game falls back to it), or null. Only one layout
+   * can match: the checksums sit in different places.
+   */
   static detectGame(data: Uint8Array): Gen2Game | null {
     if (Gen2Save.mainValid(data, 'crystal')) return 'crystal';
     if (Gen2Save.mainValid(data, 'gs')) return 'gs';
+    if (Gen2Save.backupValid(data, 'crystal')) return 'crystal';
+    if (Gen2Save.backupValid(data, 'gs')) return 'gs';
     return null;
   }
 
@@ -476,6 +468,27 @@ export class Gen2Save implements EditableSave {
     const L = GEN2_LAYOUTS[game];
     return data.length >= SAVE_SIZE && data[L.checkValue1] === CHECK_VALUE_1 && data[L.checkValue2] === CHECK_VALUE_2
       && (data[L.checksum] | (data[L.checksum + 1] << 8)) === sum16(data, L.gameData, L.gameDataEnd);
+  }
+
+  /** The backup copy is good: both of its check bytes in place, and its checksum the sum of its copy of the game data. */
+  static backupValid(data: Uint8Array, game: Gen2Game = 'gs'): boolean {
+    const L = GEN2_LAYOUTS[game];
+    if (data.length < SAVE_SIZE) return false;
+    let sum = 0, check1 = -1;
+    for (const [from, to, at] of L.backup) {
+      if (L.checkValue1 >= from && L.checkValue1 < to) check1 = data[at + L.checkValue1 - from];
+      const lo = Math.max(from, L.gameData), hi = Math.min(to, L.gameDataEnd);
+      if (lo < hi) sum = (sum + sum16(data, at + lo - from, at + hi - from)) & 0xffff;
+    }
+    return check1 === CHECK_VALUE_1 && data[L.backupCheckValue2] === CHECK_VALUE_2
+      && (data[L.backupChecksum] | (data[L.backupChecksum + 1] << 8)) === sum;
+  }
+
+  /** A line for the top of the editor when the file didn't open cleanly. */
+  loadNote(): string | null {
+    if (this.loadedFrom === 'backup') return "This save's main copy is damaged, so this shows its backup copy, as the game would. Saving repairs the main copy.";
+    if (this.loadedFrom === 'neither') return "This file failed the save checks, so it may be damaged or from another game. Saving makes the game accept it as shown here.";
+    return null;
   }
 
   private bit = (arr: Uint8Array, dex: number) => (arr[(dex - 1) >> 3] >> ((dex - 1) & 7)) & 1;

@@ -129,6 +129,9 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
 - **Save** first shows a plain-language list of everything that changed (and "No changes yet" if nothing did)
 - "Try a Yellow sample", "Try a Crystal sample" and "Try an Emerald sample" on the landing page open made-up saves, so nothing needs to be uploaded to look around
 - All checksums recalculated on export (main + box banks); an unedited save round-trips byte-for-byte
+- Boxes 2-12 of a save where the player never changed box are read as empty (the game hasn't set them up, and empties
+  them on the first change of box). Putting a Pokémon in one sets them all up and marks them, as that first change does.
+- A file opened with "Try opening anyway" after failing its checksum says so above the editor.
 
 ## Gen 2 features (Gold / Silver)
 
@@ -146,7 +149,8 @@ Everything runs client-side; saves never leave the browser. **Back up your real 
   changes as few DV bits as it can. Shiny Pokémon get a ★ and Unown shows its own letter everywhere.
 - Pokédex: all 251 seen / caught.
 - Both copies of the save are written (Gold and Silver keep a backup), with both checksums; an unedited save
-  round-trips byte for byte.
+  round-trips byte for byte. If the main copy is damaged but the backup isn't, the file opens from the backup (as the
+  game does) and saving repairs the main copy.
 
 ## Crystal
 
@@ -200,6 +204,7 @@ the same editor (`GEN3_LAYOUTS` in `src/core/gen3/save.ts`).
 ```
 src/core/types.ts          GameModule / EditableSave contracts (the only thing the shell knows about)
 src/core/registry.ts       GAMES list + detectGames()
+src/core/bytes.ts          byte helpers every game shares (big- and little-endian numbers, Game Boy item lists)
 src/games/*.ts             one small descriptor per game: detect, load, lazy editor import
 src/core/<game>/           format code per game: data tables, text encoding, parse/serialize, checksums,
                            plus what the shell can ask for: describeChanges (review list) and a sample save
