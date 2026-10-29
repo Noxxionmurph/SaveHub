@@ -45,8 +45,9 @@ export function hideFrame(): void {
  * background, k screen pixels per art pixel, where k is --px2's
  * (the whole number of screen pixels nearest two CSS pixels). The edges repeat their tile from each corner, like the
  * game's, and the last one is cut short. Gen 2's frames are one colour, so they take the window's ink on the window's
- * colour (and follow the theme); Gen 3's keep the game's own colours, round the game's white window (the stylesheet's
- * --lcd there). This runs again after anything that can
+ * colour (and follow the theme). Gen 3's keep the game's own colours round the game's white window (the stylesheet's
+ * --lcd there) on a light theme; on a dark one each colour's lightness is turned over and laid on the dark window
+ * colour, so the frame's white edge becomes the window and its dark outline a light one, in the same hues. This runs again after anything that can
  * move or resize a window: a redraw, a dialog opening, a resize or zoom, a theme change, an animation ending.
  */
 const TILE = 8;
@@ -91,7 +92,8 @@ function align(): void {
     const key = `${frame.img.src} ${W}x${H} ${k} ${ink} ${paper}`;
     if (w.dataset.frameKey === key) return;
     w.dataset.frameKey = key;
-    w.style.backgroundImage = `url("${paint(frame.img, frame.set === 'gen2' ? ink : null, paper, W, H, k)}")`;
+    const art = frame.set === 'gen2' || !isDark(paper) ? frame.img : darkened(frame.img, paper);
+    w.style.backgroundImage = `url("${paint(art, frame.set === 'gen2' ? ink : null, paper, W, H, k)}")`;
     w.style.backgroundSize = `${W / dpr}px ${H / dpr}px`;
   });
 }
@@ -100,7 +102,7 @@ function align(): void {
  * A W x H (screen pixels) window in `paper` with its frame, as a picture; `ink` recolours a one-colour frame (drawn on
  * the paper right to the edge, like Gen 2's), null keeps the frame's colours (with its outer pixels see-through).
  */
-function paint(img: HTMLImageElement, ink: string | null, paper: string, W: number, H: number, k: number): string {
+function paint(img: CanvasImageSource, ink: string | null, paper: string, W: number, H: number, k: number): string {
   const c = document.createElement('canvas');
   c.width = W; c.height = H;
   const g = c.getContext('2d');
@@ -120,6 +122,51 @@ function paint(img: HTMLImageElement, ink: string | null, paper: string, W: numb
   const inset = ink ? 0 : 3 * k;
   g.fillRect(inset, inset, W - 2 * inset, H - 2 * inset);
   return c.toDataURL();
+}
+
+/** A CSS colour as 0-255 red, green, blue (by painting it, so any notation the stylesheet uses works). */
+function rgb(colour: string): [number, number, number] {
+  const c = document.createElement('canvas');
+  c.width = c.height = 1;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  if (!g) return [255, 255, 255];
+  g.fillStyle = colour;
+  g.fillRect(0, 0, 1, 1);
+  const [r, gr, b] = g.getImageData(0, 0, 1, 1).data;
+  return [r, gr, b];
+}
+
+const isDark = (colour: string) => { const [r, g, b] = rgb(colour); return 0.2126 * r + 0.7152 * g + 0.0722 * b < 128; };
+
+const darkCache = new Map<string, HTMLCanvasElement>();
+
+/**
+ * A Gen 3 frame for a dark window: each colour's HSL lightness turned over (white to black, dark grey to light grey,
+ * hues kept), then laid on the window colour as a "screen" blend, so what was the game's white is exactly the window.
+ */
+function darkened(img: HTMLImageElement, paper: string): HTMLCanvasElement {
+  const key = `${img.src} ${paper}`;
+  const hit = darkCache.get(key);
+  if (hit) return hit;
+  const c = document.createElement('canvas');
+  c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  if (!g) return c;
+  g.drawImage(img, 0, 0);
+  const px = g.getImageData(0, 0, c.width, c.height);
+  const p = rgb(paper).map((v) => v / 255);
+  const d = px.data;
+  for (let i = 0; i < d.length; i += 4) {
+    if (!d[i + 3]) continue;
+    const [r, gr, b] = [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255];
+    const max = Math.max(r, gr, b), min = Math.min(r, gr, b), l = (max + min) / 2;
+    // turning lightness l over to 1 - l with hue and saturation kept is the same as moving every channel by 1 - 2l
+    const shift = 1 - 2 * l;
+    [r, gr, b].forEach((v, j) => { const turned = Math.min(1, Math.max(0, v + shift)); d[i + j] = Math.round(255 * (1 - (1 - turned) * (1 - p[j]))); });
+  }
+  g.putImageData(px, 0, 0);
+  darkCache.set(key, c);
+  return c;
 }
 
 /**

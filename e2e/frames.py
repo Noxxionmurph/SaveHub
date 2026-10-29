@@ -1,6 +1,7 @@
 """The chosen in-game frame: on Gold/Silver/Crystal and Ruby/Sapphire/Emerald pages the big windows wear the frame the
 save's FRAME option picks (Gen 2's eight, Ruby and Sapphire's twenty, Emerald's twenty), it changes as the Options card
-steps through them, it is drawn at whole screen pixels, and it goes away again on Gen 1 and the landing page."""
+steps through them, it is drawn at whole screen pixels, the windows stay dark in dark mode, and it goes away again on
+Gen 1 and the landing page."""
 import base64
 import math
 import sys
@@ -83,6 +84,12 @@ with sync_playwright() as p:
             page.wait_for_selector('.sample-row button')
             page.click(f'.sample-row button:has-text("{sample}")'); page.wait_for_selector('.tabs'); page.wait_for_timeout(300)
             framed(page, fset, 1, f'{sample} {width}')
+            # dark mode: the windows stay dark (Gen 3's too: the frame is drawn in a dark version of its colours), light: Gen 3's are the game's white
+            paper = page.evaluate(f"getComputedStyle(document.querySelector('{BIG}')).getPropertyValue('--lcd').trim().toLowerCase()")
+            if scheme == 'dark':
+                assert paper != '#ffffff', (sample, width, paper)
+            elif fset != 'gen2':
+                assert paper == '#ffffff', (sample, width, paper)
             # stepping the Options card's Frame redraws every big window, live, and wraps round past the last TYPE
             nxt = page.locator('button[aria-label="Next frame"]')
             for n in range(2, count + 1):

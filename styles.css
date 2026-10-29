@@ -234,17 +234,18 @@ a { color: inherit; text-underline-offset: 3px; }
    chosen round the big windows in place of the two-line frame, and redraw it as the Options card steps through them.
    src/ui/windowFrame.ts sets data-frame on the page and paints the frame (the game's 8x8 tiles, at --frame-px screen
    pixels per art pixel) as the window's background picture; this makes room for it and squares the corners off.
-   Gen 3's frames are in the game's own colours round the game's white window, so a Gen 3 window keeps the light
-   theme's ink in both themes. Without the artwork, the two-line frame. */
+   Gen 3's frames are in the game's own colours round the game's white window on the light theme; on the dark one the
+   window keeps the theme's dark screen and the frame is drawn in a dark version of its colours (windowFrame.ts).
+   Without the artwork, the two-line frame. */
 :root { --frame-px: var(--px2); }
 :root[data-frame]:not([data-art="off"]) .lcd:is(.tcard, .stats, .review-list, .save-window, .options-window, .dex-summary) {
   border: calc(8 * var(--frame-px)) solid transparent; border-radius: 0; box-shadow: none;
   background-repeat: no-repeat; background-origin: border-box; background-clip: border-box; image-rendering: pixelated;
 }
-:root[data-frame="gen3"]:not([data-art="off"]) .lcd:is(.tcard, .stats, .review-list, .save-window, .options-window, .dex-summary) {
-  --lcd: #ffffff; --lcd-ink: #131f4a; --lcd-dim: #3e4e82; --lcd-edge: #2b3f8f; --lcd-inner: #a9b8e6;
-  color: var(--lcd-ink); color-scheme: light;
+@media not (prefers-color-scheme: dark) {
+  :root[data-frame="gen3"]:not([data-art="off"], [data-theme="dark"]) .lcd:is(.tcard, .stats, .review-list, .save-window, .options-window, .dex-summary) { --lcd: #ffffff; }
 }
+:root[data-frame="gen3"][data-theme="light"]:not([data-art="off"]) .lcd:is(.tcard, .stats, .review-list, .save-window, .options-window, .dex-summary) { --lcd: #ffffff; }
 /* the painted picture has the window's colour in it (until it is painted, while the frame loads, plain --lcd) */
 :root[data-frame]:not([data-art="off"]) .lcd:is(.tcard, .stats, .review-list, .save-window, .options-window, .dex-summary)[data-frame-key] {
   background-color: transparent;
