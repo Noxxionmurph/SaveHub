@@ -120,20 +120,30 @@ with sync_playwright() as p:
     room.wait_for()
     box = room.bounding_box()
     tap = lambda x, y: room.click(position={'x': (x + 0.5) * box['width'] / 11, 'y': (y + 0.5) * box['height'] / 9})
-    pick = base.locator('select[aria-label="Decoration to set out"]')
-    pick.select_option(label='Heavy Desk'); tap(4, 5)                                # 3x2: the tap lands on its middle
-    pick.select_option(label='Pikachu Doll'); tap(7, 6)
+    thumb = lambda name: base.locator(f'.base-thumb[title="{name}"]')                 # the PC's spare decorations
+
+    def drag(press, x, y):                                                            # press on something, let go on tile (x, y)
+        press()
+        page.mouse.down()
+        b = room.bounding_box()
+        page.mouse.move(b['x'] + (x + 0.5) * b['width'] / 11, b['y'] + (y + 0.5) * b['height'] / 9, steps=5)
+        page.mouse.up()
+    thumb('Heavy Desk').click(); tap(4, 5)                                            # 3x2: the tap lands on its middle
+    drag(thumb('Pikachu Doll').hover, 7, 6)                                           # dragged in from the strip
     assert 'large desk or mat' in base.locator('.base-note').inner_text()            # dolls don't go on the floor...
-    tap(3, 4)                                                                         # ...but on a desk
-    pick.select_option(label='Ball Poster'); tap(3, 0)
+    drag(thumb('Pikachu Doll').hover, 3, 4)                                           # ...but on a desk
+    thumb('Ball Poster').click(); tap(3, 0)
     assert base.locator('summary .count').inner_text() == '3/16'
     assert room.evaluate('c => c.getContext("2d").getImageData(3 * 16 + 8, 4 * 16 + 8, 1, 1).data[3]') == 255
     base.screenshot(path=f'{SP}/e-secret-base.png')
-    tap(5, 5)                                                                         # pick the desk, put it away: the doll goes too
+    drag(lambda: room.hover(position={'x': 4.5 * box['width'] / 11, 'y': 5.5 * box['height'] / 9}), 6, 6)  # move the desk
+    tap(5, 5)                                                                         # the doll came along
+    assert base.locator('.base-picked').inner_text().startswith('Pikachu Doll')
+    tap(5, 5); tap(6, 6)                                                              # pick the desk, put it away: the doll goes too
     assert base.locator('.base-picked').inner_text().startswith('Heavy Desk')
     base.locator('button:has-text("Put away")').click()
     assert base.locator('summary .count').inner_text() == '1/16'
-    pick.select_option(label='Heavy Desk'); tap(4, 5)
+    thumb('Heavy Desk').click(); tap(4, 5)
     page.click('button.tab:has-text("Party")')
     assert page.locator('.mon').count() == 5
     page.click('.save-btn')
