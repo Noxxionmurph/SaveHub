@@ -410,7 +410,7 @@ test('decorations: one list per category, packed; removing one still set out in 
 });
 
 test('the secret base: made, decorated, moved and taken down; placing follows the game', async () => {
-  const { cantPlace, withoutDecor, BASE_SPOT_OPTIONS } = await import('../src/core/gen3/bases.ts');
+  const { cantPlace, moveDecor, withoutDecor, BASE_SPOT_OPTIONS } = await import('../src/core/gen3/bases.ts');
   assert.equal(BASE_SPOT_OPTIONS.length, 75);
   assert.equal(new Set(BASE_SPOT_OPTIONS.map((o) => o.label)).size, 75, 'every spot has its own label');
   // Red cave 1 (spot 1, Route 118): a Heavy Desk on the floor holds a Pikachu Doll; posters go on the north wall.
@@ -424,6 +424,12 @@ test('the secret base: made, decorated, moved and taken down; placing follows th
   assert.ok(cantPlace(1, [], 66, 3, 4));
   assert.ok(cantPlace(1, [], 3, 0, 0), 'not over the rock walls');
   assert.deepEqual(withoutDecor(1, [...desk, { id: 77, x: 3, y: 4 }], 0), [], 'the doll goes with its desk');
+  // Moving a desk carries its dolls; moving onto a wall or another decoration doesn't happen.
+  const set = [...desk, { id: 77, x: 3, y: 4 }, { id: 66, x: 3, y: 0 }];
+  assert.deepEqual(moveDecor(1, set, 0, 4, 6), [{ id: 3, x: 4, y: 6 }, { id: 77, x: 4, y: 5 }, { id: 66, x: 3, y: 0 }]);
+  assert.equal(typeof moveDecor(1, set, 0, 0, 6), 'string');
+  assert.deepEqual(moveDecor(1, set, 1, 5, 4), [desk[0], { id: 77, x: 5, y: 4 }, { id: 66, x: 3, y: 0 }], 'the doll along the desk');
+  assert.match(moveDecor(1, set, 1, 7, 6) as string, /large desk or mat/);
 
   for (const game of ['rs', 'emerald'] as const) {
     const s = new Gen3Save(buildSampleSave(game));

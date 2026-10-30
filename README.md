@@ -183,8 +183,9 @@ the same editor (`GEN3_LAYOUTS` in `src/core/gen3/save.ts`).
 - Decorations in the PC: each category's list (desks, chairs, plants, ornaments, mats, posters, dolls, cushions), or one
   of every decoration.
 - Your secret base: make it at any of the 75 spots, move it (as in the game, its decorations go back to the PC) or take
-  it down, and set out or put away decorations by tapping a picture of the room drawn from the game's own tiles. Placing
-  follows the game's rules (posters on the back wall, dolls and cushions on a large desk or mat, 16 decorations, 14 dolls
+  it down, and set out decorations on a picture of the room drawn from the game's own tiles: drag them in from a strip
+  of the PC's spare ones (or pick one and tap the room), drag them around (dolls on a desk move with it), and tap one to
+  put it away. Placing follows the game's rules (posters on the back wall, dolls and cushions on a large desk or mat, 16 decorations, 14 dolls
   and cushions). Friends' bases from record mixing are left as they are.
 - The Pokéblock case: up to 40 Pokéblocks, each with its colour (in the game's own pictures), five flavours and feel.
 - Game stats: every counter the game keeps (steps, battles, catches, eggs hatched, trades, contests, link battles and

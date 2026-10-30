@@ -183,3 +183,23 @@ export function withoutDecor(baseId: number, decor: PlacedDecoration[], index: n
   });
   return kept;
 }
+
+/** The decorations with one moved so its bottom-left corner is at (x, y), or why it can't go there. Dolls and cushions
+ * standing on it (a desk, a big mat) move with it. */
+export function moveDecor(baseId: number, decor: PlacedDecoration[], index: number, x: number, y: number): PlacedDecoration[] | string {
+  const p = decor[index], d = placing.get(p.id);
+  if (!d) return 'Unknown decoration';
+  const riders = d.perm === 'sprite' ? [] : decor.flatMap((q, k) =>
+    isSpriteDecor(q.id) && q.x >= p.x && q.x < p.x + d.w && q.y <= p.y && q.y > p.y - d.h ? [k] : []);
+  const others = decor.filter((_, k) => k !== index && !riders.includes(k));
+  const why = cantPlace(baseId, others, p.id, x, y);
+  if (why) return why;
+  const dx = x - p.x, dy = y - p.y;
+  const moved = decor.map((q, k) => (k === index ? { id: q.id, x, y } : riders.includes(k) ? { id: q.id, x: q.x + dx, y: q.y + dy } : q));
+  for (const k of riders) {
+    const rest = moved.filter((_, j) => j !== k);
+    const r = cantPlace(baseId, rest, moved[k].id, moved[k].x, moved[k].y);
+    if (r) return r;
+  }
+  return moved;
+}

@@ -880,9 +880,13 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 .decorations details > button { margin: 2px 0 10px; }
 .secret-base select[aria-label="Secret base spot"] { margin-bottom: 12px; }
 .base-view { overflow-x: auto; margin-bottom: 10px; }
-.base-room { display: block; margin-inline: auto; cursor: pointer; touch-action: manipulation; }
-.item-row.base-picked, .item-row.base-place { grid-template-columns: 1fr auto; }
+.base-room { display: block; margin-inline: auto; cursor: pointer; touch-action: none; }
+.item-row.base-picked, .item-row.base-place { grid-template-columns: 1fr auto; min-height: 40px; }
 .base-note { margin: 6px 0 0; }
+.base-strip { display: flex; align-items: center; gap: 6px; overflow-x: auto; padding: 4px 2px 8px; margin: 8px 0 4px; scrollbar-width: thin; }
+.base-thumb { position: relative; flex: none; padding: 4px; border-radius: 8px; line-height: 0; touch-action: pan-x; cursor: grab; }
+.base-thumb.chosen { outline: 2px solid var(--button); outline-offset: 1px; }
+.base-thumb-n { position: absolute; right: 3px; bottom: 3px; font-size: 0.6875rem; line-height: 1; color: var(--muted); }
 .pokeblock-row + .pokeblock-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .pokeblock-row .item-row { grid-template-columns: 32px 1fr auto; margin-bottom: 6px; }
 .pokeblock-row .item-row > .pokeblock-icon { justify-self: center; }
@@ -988,6 +992,7 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 /* The secret base room is a canvas of the game's 16x16 tiles (--w x --h art pixels): --px2 where it fits (.x2), else --px1 */
 .base-room { --art: var(--px1); width: calc(var(--w) * var(--art)); height: calc(var(--h) * var(--art)); image-rendering: pixelated; }
 .base-room.x2 { --art: var(--px2); }
+.base-thumb canvas { width: calc(var(--w) * var(--px1)); height: calc(var(--h) * var(--px1)); image-rendering: pixelated; }
 .dex-tile .dex-ball { margin: calc(-7 * var(--art)); }
 .pika-pic { --s: calc(40 * var(--px2)); }
 /* in tiles and cells the picture gets 4 art pixels of room above and below, so the art never crowds the edge or the Lv */
