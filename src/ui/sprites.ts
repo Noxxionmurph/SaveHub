@@ -77,6 +77,11 @@ export function pokeblockIcon(color: number, cls = ''): HTMLImageElement {
 }
 export const pokeblockIconUrl = (color: number) => `${BASE}/pokeblocks/${Math.min(Math.max(color, 1), 14)}.png`;
 
+/** Every secret base metatile in one style's colours (red_cave ... shrub), 16 to a row; see scripts/extract-secret-bases.py. */
+export const secretBaseTilesUrl = (kind: string) => `${BASE}/secret-bases/${kind}.png`;
+/** A doll or cushion as it stands in a secret base, by decoration id. */
+export const decorSpriteUrl = (id: number) => `${BASE}/secret-bases/dolls/${id}.png`;
+
 /** A Gen 3 ribbon (32x32) by the game's ribbon id: 0 Champion, 1-20 the contest ribbons, 21-24 Winning to Effort, 25-31 the gift ribbons. */
 export function gen3RibbonIcon(id: number, cls = ''): HTMLImageElement {
   return icon(`${BASE}/ribbons/gen3/${id}.png`, 32, 32, `ribbon-icon ${cls}`.trim());

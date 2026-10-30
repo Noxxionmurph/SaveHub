@@ -27,6 +27,7 @@ import {
 } from './layout.ts';
 
 export { GEN3_LAYOUTS, MONEY_MAX, SAVE_SIZE, detectGen3, sectorChecksum };
+import { VAR_SECRET_BASE_MAP, baseMapSection, readSecretBase, writeSecretBase, type SecretBase } from './bases.ts';
 import { readDecorations, writeDecorations } from './decorations.ts';
 import { CARD_BATTLE_POINTS, readStreaks, writeStreaks, type Streak } from './frontier.ts';
 import { readPokeblocks, writePokeblocks, type Pokeblock } from './pokeblocks.ts';
@@ -348,7 +349,7 @@ export interface Gen3Options {
 }
 
 /** The blocks that are written back only when edited, so unedited ones keep their exact bytes. */
-const TRACKED = ['pockets', 'pcItems', 'frontier', 'gameStats', 'pokeblocks', 'decorations', 'roamer', 'rematches'] as const;
+const TRACKED = ['pockets', 'pcItems', 'frontier', 'gameStats', 'pokeblocks', 'decorations', 'secretBase', 'roamer', 'rematches'] as const;
 type Tracked = typeof TRACKED[number];
 
 export class Gen3Save implements EditableSave {
@@ -377,8 +378,13 @@ export class Gen3Save implements EditableSave {
   rematches: { available: boolean; next: number; team: number }[] | null;
   /** The decorations in the PC, one id list per category (decorations.ts). */
   decorations: number[][];
-  /** Decorations set out in the bedroom and the player's secret base (read only). */
-  readonly placedDecorations: number[];
+  /** The player's secret base (bases.ts), or null before they've made one. */
+  secretBase: SecretBase | null;
+  /** Decorations set out in the bedroom (read only) and the player's secret base: the PC counts them as in use. */
+  get placedDecorations(): number[] {
+    return [...this.roomDecorations, ...(this.secretBase?.decor.map((p) => p.id) ?? [])];
+  }
+  private roomDecorations: number[];
   /** The Pokéblock case, filled slots only. */
   pokeblocks: Pokeblock[];
   /** The game's counters, indexed as in stats.ts (steps, battles, catches...). */
@@ -462,8 +468,8 @@ export class Gen3Save implements EditableSave {
       species: dexOf(roamerSpecies), pid: u32(sb1, ro + 4), ivs: unpackIvs(u32(sb1, ro)), hp: u16(sb1, ro + 10), level: sb1[ro + 12],
       status: sb1[ro + 13], active: !!sb1[ro + 19],
     } : null;
-    this.placedDecorations = [...sb1.subarray(L.roomDecor, L.roomDecor + 12), ...sb1.subarray(L.baseDecor, L.baseDecor + 16)]
-      .filter((id) => id !== 0);
+    this.roomDecorations = [...sb1.subarray(L.roomDecor, L.roomDecor + 12)].filter((id) => id !== 0);
+    this.secretBase = readSecretBase(sb1, L.secretBase);
     this.pockets = {
       item: readItems(sb1, L.items, L.itemsMax, key16),
       key: readItems(sb1, L.keyItems, L.keyItemsMax, key16),
@@ -626,6 +632,16 @@ export class Gen3Save implements EditableSave {
       sb1[L.roamer + 19] = +ro.active;
     }
     if (this.edited('decorations')) writeDecorations(sb1, L.decorations, this.decorations);
+    if (this.edited('secretBase')) {
+      const before = this.loaded.secretBase, base = this.secretBase;
+      // The game's own language, as on the player's own Pokémon (English if there are none).
+      const own = [...this.party, ...this.boxes.flat()].find((m) => m && !m.bad && m.otId === ((this.secretId << 16 | this.trainerId) >>> 0));
+      writeSecretBase(sb1, L.secretBase, base, before, {
+        name: sb2.subarray(SB2.name, SB2.name + 7), trainerId: sb2.subarray(SB2.trainerId, SB2.trainerId + 4),
+        gender: sb2[SB2.gender], language: own?.language ?? ENGLISH,
+      });
+      if (base && base.id !== before?.id) setU16(sb1, L.vars + (VAR_SECRET_BASE_MAP - 0x4000) * 2, baseMapSection(base.id));
+    }
     if (this.edited('pokeblocks')) writePokeblocks(sb1, L.pokeblocks, this.pokeblocks);
     if (this.edited('pcItems')) writeItems(sb1, SB1.pcItems, this.pcItems, PC_ITEMS_MAX, 0, 999);
 

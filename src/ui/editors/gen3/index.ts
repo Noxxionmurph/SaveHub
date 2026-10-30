@@ -29,6 +29,7 @@ import {
 import { tabBar, tabPanel } from '../../tabs.ts';
 import { typeChips } from '../../typeChip.ts';
 import { showFrame } from '../../windowFrame.ts';
+import { secretBaseCard } from './baseCard.ts';
 import { monHpBar } from './hpBar.ts';
 import { discPath, itemSpritePath } from './itemSprites.ts';
 import { genderMark, monLabel, monPic, shinyMark } from './monBits.ts';
@@ -450,7 +451,11 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
     ),
     tmhmCard(),
     pokeblockCard(),
-    decorationCard());
+    decorationCard(),
+    secretBaseCard(s, markDirty, fold, (redraw) => { redrawBase = redraw; }));
+  /** The secret base offers what the PC has spare, so it redraws when the PC's decorations change. */
+  let redrawBase = () => {};
+  const decorEdited = () => { markDirty(); redrawBase(); };
 
   /** The decorations kept in the PC, one list per category. */
   function decorationCard(): Node {
@@ -465,11 +470,11 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
           const details = h('details', { class: 'tips' },
             h('summary', {}, cat.name, h('span', { class: 'muted count' }, `${list.length}/${cat.slots}`)),
             list.map((id, i) => h('div', { class: 'item-row decor-row' },
-              selectInput(options, id, (v) => { list[i] = Number(v); markDirty(); }, { 'aria-label': `${cat.name} ${i + 1}` }),
-              h('button', { class: 'icon', 'aria-label': `Remove ${cat.name.toLowerCase()} ${i + 1}`, onclick: () => { list.splice(i, 1); markDirty(); draw(); refocusAfterRemove(wrap.querySelectorAll('details')[c], (n) => `Remove ${cat.name.toLowerCase()} ${n + 1}`, i); } }, '✕'))),
+              selectInput(options, id, (v) => { list[i] = Number(v); decorEdited(); }, { 'aria-label': `${cat.name} ${i + 1}` }),
+              h('button', { class: 'icon', 'aria-label': `Remove ${cat.name.toLowerCase()} ${i + 1}`, onclick: () => { list.splice(i, 1); decorEdited(); draw(); refocusAfterRemove(wrap.querySelectorAll('details')[c], (n) => `Remove ${cat.name.toLowerCase()} ${n + 1}`, i); } }, '✕'))),
             h('button', {
               disabled: list.length >= cat.slots,
-              onclick: () => { list.push((options.find((o) => !list.includes(o.value)) ?? options[0]).value); markDirty(); draw(); },
+              onclick: () => { list.push((options.find((o) => !list.includes(o.value)) ?? options[0]).value); decorEdited(); draw(); },
             }, list.length >= cat.slots ? `Full (${cat.slots} of ${cat.slots})` : '+ Add'));
           details.open = openCats.has(c);
           details.addEventListener('toggle', () => { if (details.open) openCats.add(c); else openCats.delete(c); });
@@ -482,7 +487,7 @@ export const mountGen3Editor: MountEditor<Gen3Save> = (container, s, host) => {
                 const have = s.decorations[c];
                 for (const d of DECORS_BY_CATEGORY[c]) if (!have.includes(d.id) && have.length < cat.slots) have.push(d.id);
               });
-              markDirty(); draw();
+              decorEdited(); draw();
             },
           }, 'One of every decoration')));
     };
