@@ -182,6 +182,10 @@ the same editor (`GEN3_LAYOUTS` in `src/core/gen3/save.ts`).
   with the team the game would pick.
 - Decorations in the PC: each category's list (desks, chairs, plants, ornaments, mats, posters, dolls, cushions), or one
   of every decoration.
+- Your secret base: make it at any of the 75 spots, move it (as in the game, its decorations go back to the PC) or take
+  it down, and set out or put away decorations by tapping a picture of the room drawn from the game's own tiles. Placing
+  follows the game's rules (posters on the back wall, dolls and cushions on a large desk or mat, 16 decorations, 14 dolls
+  and cushions). Friends' bases from record mixing are left as they are.
 - The Pokéblock case: up to 40 Pokéblocks, each with its colour (in the game's own pictures), five flavours and feel.
 - Game stats: every counter the game keeps (steps, battles, catches, eggs hatched, trades, contests, link battles and
   the rest) and the first Hall of Fame time shown on the back of the trainer card.
@@ -325,9 +329,10 @@ Every screen explains itself in plain words, so keep it that way when you add a 
   save back byte for byte. The Ruby and Emerald samples, edited copies of both real saves (a new name, money, a TM
   count, a nickname, nature, shininess, EVs, a box name, a Pokémon added and one moved out of a box), and edited copies
   of the samples (nature, shininess, IVs, EVs, badges, options, the National Pokédex) all load and play in the real
-  games (checked in an emulator), as do Emerald's edited Battle Points, Berry Powder, Frontier symbols, BP won, game stats and Pokéblocks. Offsets come
+  games (checked in an emulator), as do Emerald's edited Battle Points, Berry Powder, Frontier symbols, BP won, game stats, Pokéblocks and a secret base
+  made and decorated in the editor. Offsets come
   from pokeruby and pokeemerald. Event flags (other than badges, the National Pokédex and Emerald's Frontier symbols),
-  map position, the clock, secret bases, the Day-Care, records and the rest of the Battle Frontier data
+  map position, the clock, friends' secret bases, the Day-Care, records and the rest of the Battle Frontier data
   (Battle Tower opponents, rental Pokémon and so on) are left untouched. FireRed and LeafGreen aren't supported yet.
 - A Pokémon's stats can be a point behind the editor's numbers in a real save: the game only recalculates stats when a
   Pokémon levels up, so stat experience earned since then hasn't counted yet. The editor shows both and leaves the

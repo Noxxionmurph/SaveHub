@@ -7,6 +7,7 @@ import {
   genderOf, isShiny, itemName, natureOf, speciesName, unownForm,
 } from './data.ts';
 import { BOX_NAME_LEN, FRONTIER_FACILITIES, NICKNAME_MAX, PLAYER_NAME_MAX, monAbility, type BagItem, type Gen3Mon, type Gen3Save } from './save.ts';
+import { baseSpotLabel, type SecretBase } from './bases.ts';
 import { DECOR_CATEGORIES, decorName } from './decorations.ts';
 import { STREAK_ROWS, rowLabel } from './frontier.ts';
 import { pokeblockLevel, pokeblockName, type Pokeblock } from './pokeblocks.ts';
@@ -322,6 +323,20 @@ function decorationLines(b: Gen3Save, a: Gen3Save): string[] {
   return out;
 }
 
+// ---------- secret base ----------
+
+function baseLines(x: SecretBase | null, y: SecretBase | null): string[] {
+  if (!y) return x ? [`Secret base at ${baseSpotLabel(x.id)} removed${x.decor.length ? '; its decorations go back to the PC' : ''}`] : [];
+  const out: string[] = [];
+  if (!x) out.push(`New secret base at ${baseSpotLabel(y.id)}`);
+  else if (x.id !== y.id) out.push(`Secret base moved to ${baseSpotLabel(y.id)}${x.decor.length ? '; its decorations go back to the PC' : ''}`);
+  const was = x && x.id === y.id ? x.decor : [];
+  const key = (p: { id: number; x: number; y: number }) => `${p.id}@${p.x},${p.y}`;
+  for (const p of y.decor) if (!was.some((q) => key(q) === key(p))) out.push(`Set out ${decorName(p.id)}`);
+  for (const p of was) if (!y.decor.some((q) => key(q) === key(p))) out.push(`Put away ${decorName(p.id)}`);
+  return out;
+}
+
 // ---------- Pokéblocks ----------
 
 function pokeblockLines(before: Pokeblock[], after: Pokeblock[]): string[] {
@@ -369,6 +384,7 @@ export function describeGen3Changes(before: Gen3Save, after: Gen3Save): ChangeGr
     group('PC items', itemLines(before.pcItems, after.pcItems)),
     group('Roaming Pokémon', roamerLines(before, after)),
     group('Trainer rematches', rematchLines(before, after)),
+    group('Secret base', baseLines(before.secretBase, after.secretBase)),
     group('Decorations', decorationLines(before, after)),
     group('Pokéblock case', pokeblockLines(before.pokeblocks, after.pokeblocks)),
     group('Pokémon', pokemonLines(before, after), 14),

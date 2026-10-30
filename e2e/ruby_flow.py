@@ -113,6 +113,27 @@ with sync_playwright() as p:
     page.click('section.decorations summary:has-text("Dolls")')
     assert page.inner_text('section.decorations summary:has-text("Dolls") .count') == '35/40'
     page.locator('section.decorations').screenshot(path=f'{SP}/e-decorations.png')
+    base = page.locator('section.secret-base')                                       # the secret base, set out by tapping
+    base.locator('summary').click()
+    base.locator('select[aria-label="Secret base spot"]').select_option(label='Route 118 · Red cave (11×9)')
+    room = base.locator('canvas.base-room')
+    room.wait_for()
+    box = room.bounding_box()
+    tap = lambda x, y: room.click(position={'x': (x + 0.5) * box['width'] / 11, 'y': (y + 0.5) * box['height'] / 9})
+    pick = base.locator('select[aria-label="Decoration to set out"]')
+    pick.select_option(label='Heavy Desk'); tap(4, 5)                                # 3x2: the tap lands on its middle
+    pick.select_option(label='Pikachu Doll'); tap(7, 6)
+    assert 'large desk or mat' in base.locator('.base-note').inner_text()            # dolls don't go on the floor...
+    tap(3, 4)                                                                         # ...but on a desk
+    pick.select_option(label='Ball Poster'); tap(3, 0)
+    assert base.locator('summary .count').inner_text() == '3/16'
+    assert room.evaluate('c => c.getContext("2d").getImageData(3 * 16 + 8, 4 * 16 + 8, 1, 1).data[3]') == 255
+    base.screenshot(path=f'{SP}/e-secret-base.png')
+    tap(5, 5)                                                                         # pick the desk, put it away: the doll goes too
+    assert base.locator('.base-picked').inner_text().startswith('Heavy Desk')
+    base.locator('button:has-text("Put away")').click()
+    assert base.locator('summary .count').inner_text() == '1/16'
+    pick.select_option(label='Heavy Desk'); tap(4, 5)
     page.click('button.tab:has-text("Party")')
     assert page.locator('.mon').count() == 5
     page.click('.save-btn')
@@ -124,6 +145,7 @@ with sync_playwright() as p:
     assert 'Latios is now shiny' in text and "Latios's IVs: 20/12/25/31/17/9 → 31/31/31/31/31/31" in text, text
     assert 'Want a rematch: Dusty' in text, text
     assert 'Added Small Desk' in text and 'and 108 more' in text, text
+    assert 'New secret base at Route 118 · Red cave (11×9)' in text and 'Set out Heavy Desk' in text and 'Set out Ball Poster' in text, text
     assert 'Steps: 0 → 4,321' in text and 'First Hall of Fame time: none → 7:00:00' in text, text
     page.keyboard.press('Escape')
 
@@ -157,6 +179,7 @@ with sync_playwright() as p:
     for pocket in ['Items pocket', 'Poké Balls pocket', 'Key Items pocket', 'Berries pocket', 'PC item storage', 'TMs & HMs pocket']:
         assert page.locator(f'h3:has-text("{pocket}")').count() >= 1, pocket
     assert page.locator('.tm-row').count() == 58
+    assert page.locator('section.secret-base').count() == 1                           # Ruby and Sapphire have secret bases too
     page.fill('input[aria-label="TM26 count"]', '3'); page.press('input[aria-label="TM26 count"]', 'Tab')
     berries = page.locator('section.card:has(h3:has-text("Berries pocket"))')
     berries.locator('.item-row input').first.fill('500'); berries.locator('.item-row input').first.press('Tab')

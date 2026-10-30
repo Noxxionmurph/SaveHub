@@ -32,9 +32,9 @@ export interface Layout {
   gameStats: number;
   /** SaveBlock1's Pokéblock case (see pokeblocks.ts). */
   pokeblocks: number;
-  /** SaveBlock1's decoration lists (see decorations.ts), and where the bedroom's and the player's secret base's
-   * placed decorations are kept (12 and 16 ids). */
-  decorations: number; roomDecor: number; baseDecor: number;
+  /** SaveBlock1's decoration lists (see decorations.ts), the bedroom's 12 placed decorations, and the player's secret
+   * base (slot 0 of 20, see bases.ts). */
+  decorations: number; roomDecor: number; secretBase: number;
   /** SaveBlock1's roaming Latios or Latias (struct Roamer). */
   roamer: number;
   /** Money, coins and bag quantities are XORed with the key at SaveBlock2 0xAC. */
@@ -46,7 +46,7 @@ export const RS: Layout = {
   items: 0x560, itemsMax: 20, keyItems: 0x5b0, keyItemsMax: 20, balls: 0x600, ballsMax: 16,
   tmhm: 0x640, tmhmMax: 64, berries: 0x740, berriesMax: 46,
   seenCopies: [0x938, 0x3a8c], flags: 0x1220, vars: 0x1340, badgeFlag: 0x807, nationalDexFlag: 0x836, gameStats: 0x1540, pokeblocks: 0x7f8,
-  decorations: 0x26a0, roomDecor: 0x2688, baseDecor: 0x1a1a, roamer: 0x3144,
+  decorations: 0x26a0, roomDecor: 0x2688, secretBase: 0x1a08, roamer: 0x3144,
   encrypted: false,
 };
 
@@ -55,7 +55,7 @@ export const EMERALD: Layout = {
   items: 0x560, itemsMax: 30, keyItems: 0x5d8, keyItemsMax: 30, balls: 0x650, ballsMax: 16,
   tmhm: 0x690, tmhmMax: 64, berries: 0x790, berriesMax: 46,
   seenCopies: [0x988, 0x3b24], flags: 0x1270, vars: 0x139c, badgeFlag: 0x867, nationalDexFlag: 0x896, gameStats: 0x159c, pokeblocks: 0x848,
-  decorations: 0x2734, roomDecor: 0x271c, baseDecor: 0x1aae, roamer: 0x31dc,
+  decorations: 0x2734, roomDecor: 0x271c, secretBase: 0x1a9c, roamer: 0x31dc,
   encrypted: true,
 };
 

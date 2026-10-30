@@ -403,9 +403,51 @@ test('decorations: one list per category, packed; removing one still set out in 
     for (const want of ['Added Heavy Desk', 'Added Pikachu Doll ×2']) assert.ok(lines.includes(want), want);
     // A decoration in the bedroom is matched by id; taking the last one out of the PC leaves it standing there.
     const u = new Gen3Save(t.serialize());
-    (u as unknown as { placedDecorations: number[] }).placedDecorations.push(3);
+    (u as unknown as { roomDecorations: number[] }).roomDecorations.push(3);
     u.decorations[0] = [9];
     assert.ok(u.describeChanges(t).flatMap((g) => g.lines).some((l) => l.startsWith('Warning: Heavy Desk is still set out')));
+  }
+});
+
+test('the secret base: made, decorated, moved and taken down; placing follows the game', async () => {
+  const { cantPlace, withoutDecor, BASE_SPOT_OPTIONS } = await import('../src/core/gen3/bases.ts');
+  assert.equal(BASE_SPOT_OPTIONS.length, 75);
+  assert.equal(new Set(BASE_SPOT_OPTIONS.map((o) => o.label)).size, 75, 'every spot has its own label');
+  // Red cave 1 (spot 1, Route 118): a Heavy Desk on the floor holds a Pikachu Doll; posters go on the north wall.
+  const desk = [{ id: 3, x: 3, y: 5 }];
+  assert.equal(cantPlace(1, [], 3, 3, 5), null);
+  assert.equal(cantPlace(1, desk, 77, 3, 4), null);
+  assert.match(cantPlace(1, desk, 77, 7, 6)!, /large desk or mat/);
+  assert.equal(cantPlace(1, desk, 111, 4, 4), null, 'a big doll in the middle of the desk');
+  assert.match(cantPlace(1, desk, 111, 3, 4)!, /Big dolls/);
+  assert.equal(cantPlace(1, [], 66, 3, 0), null);
+  assert.ok(cantPlace(1, [], 66, 3, 4));
+  assert.ok(cantPlace(1, [], 3, 0, 0), 'not over the rock walls');
+  assert.deepEqual(withoutDecor(1, [...desk, { id: 77, x: 3, y: 4 }], 0), [], 'the doll goes with its desk');
+
+  for (const game of ['rs', 'emerald'] as const) {
+    const s = new Gen3Save(buildSampleSave(game));
+    assert.equal(s.secretBase, null);
+    s.secretBase = { id: 13, decor: [{ id: 3, x: 3, y: 5 }, { id: 77, x: 3, y: 4 }] };
+    const t = new Gen3Save(s.serialize());
+    assert.deepEqual(t.secretBase, s.secretBase);
+    const L = GEN3_LAYOUTS[game], sb1 = t['sb1'] as Uint8Array, sb2 = t['sb2'] as Uint8Array, at = L.secretBase;
+    assert.deepEqual([...sb1.subarray(at + 2, at + 9)], [...sb2.subarray(0, 7)], "the player's name");
+    assert.deepEqual([...sb1.subarray(at + 9, at + 13)], [...sb2.subarray(0x0a, 0x0e)], "the player's ID");
+    assert.equal(u16(sb1, L.vars + 0x26 * 2), 26, 'VAR_SECRET_BASE_MAP: Route 111');
+    assert.ok(t.placedDecorations.includes(77));
+    const lines = t.describeChanges(new Gen3Save(buildSampleSave(game))).flatMap((g) => g.lines);
+    for (const want of ['New secret base at Route 111 · Red cave (7×16)', 'Set out Heavy Desk', 'Set out Pikachu Doll']) assert.ok(lines.includes(want), want);
+    // Moving clears the old base, as the game does (the decorations go back to the PC); a base's received count stays.
+    sb1[at + 0x0e] = 5;
+    t.secretBase = { id: 231, decor: [] };
+    const u = new Gen3Save(t.serialize());
+    assert.deepEqual(u.secretBase, { id: 231, decor: [] });
+    assert.equal((u['sb1'] as Uint8Array)[at + 0x0e], 5);
+    u.secretBase = null;
+    const v = new Gen3Save(u.serialize());
+    assert.equal(v.secretBase, null);
+    assert.equal((v['sb1'] as Uint8Array)[at + 2], 0xff, 'an empty base has no name');
   }
 });
 

@@ -878,6 +878,11 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 .roamer .button-row { margin: 10px 0 4px; }
 .rematch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0 12px; }
 .decorations details > button { margin: 2px 0 10px; }
+.secret-base select[aria-label="Secret base spot"] { margin-bottom: 12px; }
+.base-view { overflow-x: auto; margin-bottom: 10px; }
+.base-room { display: block; margin-inline: auto; cursor: pointer; touch-action: manipulation; }
+.item-row.base-picked, .item-row.base-place { grid-template-columns: 1fr auto; }
+.base-note { margin: 6px 0 0; }
 .pokeblock-row + .pokeblock-row { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .pokeblock-row .item-row { grid-template-columns: 32px 1fr auto; margin-bottom: 6px; }
 .pokeblock-row .item-row > .pokeblock-icon { justify-self: center; }
@@ -980,6 +985,9 @@ input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-o
 /* Gen 3 ribbons are 32x32, drawn at the lists' scale like the items */
 .ribbon-btn .ribbon-icon { --art: var(--px1); width: calc(32 * var(--art)); height: calc(32 * var(--art)); }
 .pokeblock-icon { --art: var(--px2); width: calc(8 * var(--art)); height: calc(8 * var(--art)); }
+/* The secret base room is a canvas of the game's 16x16 tiles (--w x --h art pixels): --px2 where it fits (.x2), else --px1 */
+.base-room { --art: var(--px1); width: calc(var(--w) * var(--art)); height: calc(var(--h) * var(--art)); image-rendering: pixelated; }
+.base-room.x2 { --art: var(--px2); }
 .dex-tile .dex-ball { margin: calc(-7 * var(--art)); }
 .pika-pic { --s: calc(40 * var(--px2)); }
 /* in tiles and cells the picture gets 4 art pixels of room above and below, so the art never crowds the edge or the Lv */
